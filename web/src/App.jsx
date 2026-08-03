@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './App.css'
+import CoachAdminPage from './CoachAdminPage'
 
 const currentMember = {
   id: 'seol-jaehyun',
@@ -175,13 +176,36 @@ const assignmentIds = [
 ]
 
 function getPersonalizedSession(session, memberId) {
-  const override = memberOverrides[memberId]?.[session.id]
+  let savedOverrides = {}
+
+  try {
+    savedOverrides =
+      JSON.parse(
+        localStorage.getItem('ntac-member-overrides'),
+      ) || {}
+  } catch {
+    savedOverrides = {}
+  }
+
+  const defaultOverride =
+    memberOverrides[memberId]?.[session.id] || {}
+
+  const savedOverride =
+    savedOverrides[memberId]?.[session.id] || {}
+
+  const override = {
+    ...defaultOverride,
+    ...savedOverride,
+  }
 
   return {
     ...session,
     ...override,
-    sections: override?.sections || session.sections,
-    isPersonalized: Boolean(override),
+    sections:
+      savedOverride.sections ||
+      defaultOverride.sections ||
+      session.sections,
+    isPersonalized: Object.keys(override).length > 0,
   }
 }
 
@@ -739,7 +763,7 @@ function CommunityPage() {
   )
 }
 
-function MyPage({ progressPercent }) {
+function MyPage({ progressPercent, openAdmin }) {
   return (
     <section className="sub-page">
       <div className="page-heading">
@@ -782,6 +806,12 @@ function MyPage({ progressPercent }) {
 
         <button>서비스 알아보기</button>
       </article>
+      <button
+  className="admin-entry-button"
+  onClick={openAdmin}
+>
+  코치 관리자 열기
+</button>
     </section>
   )
 }
@@ -868,8 +898,17 @@ function App() {
       return <CommunityPage />
     }
 
+    if (activeTab === 'admin') {
+  return (
+    <CoachAdminPage
+      onClose={() => setActiveTab('my')}
+    />
+  )
+}
+
     if (activeTab === 'my') {
-      return <MyPage progressPercent={progressPercent} />
+      return <MyPage progressPercent={progressPercent}
+      openAdmin={() => setActiveTab('admin')} />
     }
 
     return (

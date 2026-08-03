@@ -876,3 +876,156 @@
     grid-template-columns: 1fr;
   }
 }
+.admin-entry-button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 16px;
+  border: 1px solid #0f3d2e;
+  border-radius: 13px;
+  background: transparent;
+  color: #0f3d2e;
+  font-weight: 900;
+}
+
+.coach-admin-page {
+  padding-bottom: 30px;
+}
+
+.admin-page-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 24px;
+}
+
+.admin-page-header button {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: white;
+  color: #0f3d2e;
+  font-size: 20px;
+}
+
+.admin-page-header p,
+.admin-form-heading p,
+.admin-member-card p {
+  margin: 0 0 5px;
+  color: #0f3d2e;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+}
+
+.admin-page-header h2,
+.admin-form-heading h3,
+.admin-member-card h3 {
+  margin: 0;
+}
+
+.admin-select-grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.admin-field {
+  display: grid;
+  gap: 8px;
+  color: #26322c;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-field input,
+.admin-field select,
+.admin-field textarea {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #d8ded9;
+  border-radius: 12px;
+  background: white;
+  font: inherit;
+}
+
+.admin-member-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 19px;
+  margin-bottom: 14px;
+  border-radius: 16px;
+  background: #0f3d2e;
+  color: white;
+}
+
+.admin-member-card p {
+  color: #b9d1c4;
+}
+
+.admin-member-card span {
+  font-size: 11px;
+  color: #d5e1da;
+}
+
+.admin-coach-info {
+  display: grid;
+  gap: 5px;
+  text-align: right;
+}
+
+.admin-coach-info strong {
+  font-size: 13px;
+}
+
+.admin-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.admin-status-grid article {
+  padding: 15px;
+  border: 1px solid #dfe4e0;
+  border-radius: 14px;
+  background: white;
+}
+
+.admin-status-grid span {
+  display: block;
+  margin-bottom: 7px;
+  color: #66736c;
+  font-size: 10px;
+}
+
+.admin-status-grid strong {
+  color: #0f3d2e;
+  font-size: 17px;
+}
+
+.admin-status-grid p {
+  margin: 7px 0 0;
+  color: #7a837d;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.admin-program-form {
+  display: grid;
+  gap: 15px;
+  padding: 20px;
+  border-radius: 17px;
+  background: #e2ebe5;
+}
+
+.admin-save-button {
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  border-radius: 12px;
+  background: #0f3d2e;
+  color: white;
+  font-weight: 900;
+}
