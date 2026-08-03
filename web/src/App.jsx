@@ -22,7 +22,160 @@ const workouts = [
   },
 ]
 
-function HomePage({ moveToTraining }) {
+function CheckinPage({ onClose, onComplete }) {
+  const [form, setForm] = useState({
+    condition: 3,
+    sleep: '',
+    soreness: 3,
+    stress: 3,
+    pain: '없음',
+    painArea: '',
+    message: '',
+  })
+
+  const updateForm = (name, value) => {
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+    }))
+  }
+
+  const handleSubmit = (event) => {
+    event.preventDefault()
+
+    const checkin = {
+      ...form,
+      date: new Date().toLocaleDateString('ko-KR'),
+      completedAt: new Date().toISOString(),
+    }
+
+    localStorage.setItem('ntac-daily-checkin', JSON.stringify(checkin))
+    onComplete(checkin)
+  }
+
+  return (
+    <div className="checkin-page">
+      <div className="checkin-header">
+        <button type="button" onClick={onClose}>
+          ←
+        </button>
+
+        <div>
+          <p>DAILY CHECK-IN</p>
+          <h2>오늘의 컨디션</h2>
+        </div>
+      </div>
+
+      <form className="checkin-form" onSubmit={handleSubmit}>
+        <label>
+          오늘 컨디션
+          <span>{form.condition} / 5</span>
+        </label>
+
+        <input
+          type="range"
+          min="1"
+          max="5"
+          value={form.condition}
+          onChange={(event) =>
+            updateForm('condition', Number(event.target.value))
+          }
+        />
+
+        <label>
+          수면시간
+          <input
+            type="number"
+            min="0"
+            max="24"
+            step="0.5"
+            placeholder="예: 7.5"
+            value={form.sleep}
+            onChange={(event) => updateForm('sleep', event.target.value)}
+            required
+          />
+        </label>
+
+        <label>
+          근육통
+          <span>{form.soreness} / 5</span>
+        </label>
+
+        <input
+          type="range"
+          min="1"
+          max="5"
+          value={form.soreness}
+          onChange={(event) =>
+            updateForm('soreness', Number(event.target.value))
+          }
+        />
+
+        <label>
+          스트레스
+          <span>{form.stress} / 5</span>
+        </label>
+
+        <input
+          type="range"
+          min="1"
+          max="5"
+          value={form.stress}
+          onChange={(event) =>
+            updateForm('stress', Number(event.target.value))
+          }
+        />
+
+        <label>
+          통증 여부
+          <select
+            value={form.pain}
+            onChange={(event) => updateForm('pain', event.target.value)}
+          >
+            <option value="없음">없음</option>
+            <option value="가벼움">가벼움</option>
+            <option value="훈련 조절 필요">훈련 조절 필요</option>
+          </select>
+        </label>
+
+        {form.pain !== '없음' && (
+          <label>
+            통증 부위
+            <input
+              type="text"
+              placeholder="예: 오른쪽 어깨"
+              value={form.painArea}
+              onChange={(event) =>
+                updateForm('painArea', event.target.value)
+              }
+              required
+            />
+          </label>
+        )}
+
+        <label>
+          코치에게 전달할 내용
+          <textarea
+            rows="4"
+            placeholder="오늘 컨디션이나 운동 시 참고할 내용을 적어주세요."
+            value={form.message}
+            onChange={(event) => updateForm('message', event.target.value)}
+          />
+        </label>
+
+        <button className="checkin-submit" type="submit">
+          체크인 완료
+        </button>
+      </form>
+    </div>
+  )
+}
+
+function HomePage({
+  moveToTraining,
+  openCheckin,
+  todayCheckin,
+}) {
   return (
     <>
       <section className="welcome">
@@ -34,12 +187,25 @@ function HomePage({ moveToTraining }) {
       <section className="checkin-card">
         <div>
           <p className="section-label">DAILY CHECK-IN</p>
-          <h3>오늘 컨디션은 어떤가요?</h3>
-          <p>훈련 전 컨디션을 기록해 주세요.</p>
+
+          {todayCheckin ? (
+            <>
+              <h3>오늘 체크인이 완료됐어요.</h3>
+              <p>
+                컨디션 {todayCheckin.condition}점 · 수면{' '}
+                {todayCheckin.sleep}시간
+              </p>
+            </>
+          ) : (
+            <>
+              <h3>오늘 컨디션은 어떤가요?</h3>
+              <p>훈련 전 컨디션을 기록해 주세요.</p>
+            </>
+          )}
         </div>
 
-        <button onClick={() => alert('체크인 화면은 다음 단계에서 만들 예정입니다.')}>
-          체크인하기
+        <button onClick={openCheckin}>
+          {todayCheckin ? '다시 기록' : '체크인하기'}
         </button>
       </section>
 
@@ -57,6 +223,7 @@ function HomePage({ moveToTraining }) {
       <section>
         <div className="section-title">
           <h3>나의 트레이닝</h3>
+
           <button className="text-button" onClick={moveToTraining}>
             전체보기
           </button>
@@ -97,6 +264,7 @@ function TrainingPage() {
             <span className="access-badge">이용 가능</span>
             <strong>RUN</strong>
           </div>
+
           <h3>주간 러닝 프로그램</h3>
           <p>러닝 인터벌과 Zone 2 프로그램</p>
           <button>프로그램 보기</button>
@@ -107,6 +275,7 @@ function TrainingPage() {
             <span className="access-badge">이용 가능</span>
             <strong>BUILD</strong>
           </div>
+
           <h3>하이록스 보강 프로그램</h3>
           <p>개인에게 필요한 근력 및 움직임 보강</p>
           <button>프로그램 보기</button>
@@ -117,6 +286,7 @@ function TrainingPage() {
             <span className="locked-badge">추후 제공</span>
             <strong>COACH CARE</strong>
           </div>
+
           <h3>담당 코치 피드백</h3>
           <p>훈련 기록을 바탕으로 담당 코치가 직접 관리합니다.</p>
           <button disabled>준비 중</button>
@@ -150,7 +320,9 @@ function CommunityPage() {
 
       <button
         className="primary-button"
-        onClick={() => alert('클래스 신청 기능은 다음 단계에서 연결합니다.')}
+        onClick={() =>
+          alert('클래스 신청 기능은 다음 단계에서 연결합니다.')
+        }
       >
         참석 신청하기
       </button>
@@ -198,7 +370,9 @@ function MyPage() {
       <article className="coach-card">
         <p>COACH CARE</p>
         <h3>더 세밀한 코칭이 필요하신가요?</h3>
-        <span>담당 코치가 컨디션과 수행 기록을 확인하고 관리합니다.</span>
+        <span>
+          담당 코치가 컨디션과 수행 기록을 확인하고 관리합니다.
+        </span>
         <button>서비스 알아보기</button>
       </article>
     </section>
@@ -207,13 +381,45 @@ function MyPage() {
 
 function App() {
   const [activeTab, setActiveTab] = useState('home')
+  const [checkinOpen, setCheckinOpen] = useState(false)
+
+  const [todayCheckin, setTodayCheckin] = useState(() => {
+    const savedCheckin = localStorage.getItem('ntac-daily-checkin')
+
+    if (!savedCheckin) {
+      return null
+    }
+
+    try {
+      const parsedCheckin = JSON.parse(savedCheckin)
+      const today = new Date().toLocaleDateString('ko-KR')
+
+      return parsedCheckin.date === today ? parsedCheckin : null
+    } catch {
+      return null
+    }
+  })
 
   const renderPage = () => {
-    if (activeTab === 'training') return <TrainingPage />
-    if (activeTab === 'community') return <CommunityPage />
-    if (activeTab === 'my') return <MyPage />
+    if (activeTab === 'training') {
+      return <TrainingPage />
+    }
 
-    return <HomePage moveToTraining={() => setActiveTab('training')} />
+    if (activeTab === 'community') {
+      return <CommunityPage />
+    }
+
+    if (activeTab === 'my') {
+      return <MyPage />
+    }
+
+    return (
+      <HomePage
+        moveToTraining={() => setActiveTab('training')}
+        openCheckin={() => setCheckinOpen(true)}
+        todayCheckin={todayCheckin}
+      />
+    )
   }
 
   return (
@@ -263,6 +469,16 @@ function App() {
           마이
         </button>
       </nav>
+
+      {checkinOpen && (
+        <CheckinPage
+          onClose={() => setCheckinOpen(false)}
+          onComplete={(checkin) => {
+            setTodayCheckin(checkin)
+            setCheckinOpen(false)
+          }}
+        />
+      )}
     </div>
   )
 }
