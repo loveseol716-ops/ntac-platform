@@ -230,3 +230,242 @@
 .bottom-nav button.active {
   color: #0f3d2e;
 }
+.sub-page {
+  padding-bottom: 30px;
+}
+
+.page-heading {
+  margin-bottom: 26px;
+}
+
+.page-heading p {
+  margin: 0 0 8px;
+  color: #0f3d2e;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.4px;
+}
+
+.page-heading h2 {
+  margin: 0 0 8px;
+  font-size: 26px;
+  letter-spacing: -1px;
+}
+
+.page-heading span {
+  color: #66736c;
+  font-size: 13px;
+}
+
+.feature-list {
+  display: grid;
+  gap: 14px;
+}
+
+.feature-card {
+  padding: 20px;
+  border: 1px solid #dfe4e0;
+  border-radius: 18px;
+  background: white;
+}
+
+.feature-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.feature-card-top strong {
+  color: #0f3d2e;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
+.access-badge,
+.locked-badge {
+  padding: 6px 9px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.access-badge {
+  background: #dce7df;
+  color: #0f3d2e;
+}
+
+.locked-badge {
+  background: #eceeed;
+  color: #7d8580;
+}
+
+.feature-card h3 {
+  margin: 0 0 7px;
+  font-size: 18px;
+}
+
+.feature-card p {
+  margin: 0 0 18px;
+  color: #66736c;
+  font-size: 13px;
+}
+
+.feature-card button,
+.primary-button,
+.coach-card button {
+  width: 100%;
+  padding: 13px;
+  border: 0;
+  border-radius: 12px;
+  background: #0f3d2e;
+  color: white;
+  font-weight: 800;
+}
+
+.feature-card.locked {
+  opacity: 0.65;
+}
+
+.feature-card button:disabled {
+  background: #b7bdb9;
+}
+
+.community-card {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  margin-bottom: 14px;
+  border-radius: 18px;
+  background: #0f3d2e;
+  color: white;
+}
+
+.date-box {
+  display: grid;
+  place-items: center;
+  min-width: 66px;
+  padding: 10px;
+  border-radius: 14px;
+  background: white;
+  color: #0f3d2e;
+}
+
+.date-box strong {
+  font-size: 25px;
+}
+
+.date-box span {
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.community-info p {
+  margin: 3px 0 8px;
+  color: #bad0c4;
+  font-size: 11px;
+}
+
+.community-info h3 {
+  margin: 0 0 6px;
+  font-size: 17px;
+}
+
+.community-info span {
+  color: #d7e2dc;
+  font-size: 12px;
+}
+
+.primary-button {
+  margin-bottom: 16px;
+}
+
+.attendance-card,
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 17px;
+  border: 1px solid #e0e4e1;
+  background: white;
+}
+
+.attendance-card {
+  border-radius: 15px;
+}
+
+.attendance-card span,
+.status-row span {
+  color: #66736c;
+  font-size: 13px;
+}
+
+.membership-card {
+  padding: 22px;
+  margin-bottom: 16px;
+  border-radius: 18px;
+  background: #0f3d2e;
+  color: white;
+}
+
+.membership-card p {
+  margin: 0 0 10px;
+  color: #b9d1c4;
+  font-size: 11px;
+}
+
+.membership-card h3 {
+  margin: 0 0 7px;
+  font-size: 22px;
+}
+
+.membership-card span {
+  color: #d5e1da;
+  font-size: 12px;
+}
+
+.status-list {
+  overflow: hidden;
+  margin-bottom: 18px;
+  border-radius: 16px;
+}
+
+.status-row {
+  border-bottom: 0;
+}
+
+.status-row:last-child {
+  border-bottom: 1px solid #e0e4e1;
+}
+
+.status-row strong {
+  color: #0f3d2e;
+  font-size: 13px;
+}
+
+.coach-card {
+  padding: 21px;
+  border-radius: 18px;
+  background: #e2ebe5;
+}
+
+.coach-card p {
+  margin: 0 0 12px;
+  color: #0f3d2e;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.coach-card h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.coach-card span {
+  display: block;
+  margin-bottom: 18px;
+  color: #66736c;
+  font-size: 12px;
+  line-height: 1.6;
+}
