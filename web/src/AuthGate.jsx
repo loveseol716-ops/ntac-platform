@@ -31,6 +31,34 @@ function AuthGate() {
     setBootMessage,
   ] = useState('')
 
+  const [
+    accountSetupRequired,
+    setAccountSetupRequired,
+  ] = useState(false)
+
+  const [setupName, setSetupName] =
+    useState('')
+
+  const [
+    setupPassword,
+    setSetupPassword,
+  ] = useState('')
+
+  const [
+    setupPasswordConfirm,
+    setSetupPasswordConfirm,
+  ] = useState('')
+
+  const [
+    setupLoading,
+    setSetupLoading,
+  ] = useState(false)
+
+  const [
+    setupError,
+    setSetupError,
+  ] = useState('')
+
   const [email, setEmail] =
     useState('')
 
@@ -95,6 +123,7 @@ function AuthGate() {
       if (!session?.user?.id) {
         setProfile(null)
         setAppComponent(null)
+        setAccountSetupRequired(false)
         setAppLoading(false)
         return
       }
@@ -132,6 +161,32 @@ function AuthGate() {
           throw error
         }
 
+        if (!isMounted) {
+          return
+        }
+
+        setProfile(data)
+
+        const currentName =
+          data.full_name?.trim() ||
+          session.user.user_metadata
+            ?.full_name?.trim() ||
+          ''
+
+        /*
+         * 초대받은 신규 사용자는
+         * 이름이 비어 있으므로 앱 진입 전에
+         * 이름과 비밀번호를 설정한다.
+         */
+        if (!currentName) {
+          setSetupName('')
+          setAccountSetupRequired(true)
+          setAppComponent(null)
+          return
+        }
+
+        setAccountSetupRequired(false)
+
         /*
          * App을 불러오기 전에
          * Supabase 프로그램을 먼저 동기화한다.
@@ -164,8 +219,6 @@ function AuthGate() {
           return
         }
 
-        setProfile(data)
-
         setAppComponent(
           () => appModule.default,
         )
@@ -196,6 +249,97 @@ function AuthGate() {
       isMounted = false
     }
   }, [session?.user?.id])
+
+  const handleAccountSetup = async (
+    event,
+  ) => {
+    event.preventDefault()
+
+    const normalizedName =
+      setupName.trim()
+
+    if (normalizedName.length < 2) {
+      setSetupError(
+        '이름을 두 글자 이상 입력해 주세요.',
+      )
+
+      return
+    }
+
+    if (setupPassword.length < 8) {
+      setSetupError(
+        '비밀번호를 8자 이상 입력해 주세요.',
+      )
+
+      return
+    }
+
+    if (
+      setupPassword !==
+      setupPasswordConfirm
+    ) {
+      setSetupError(
+        '비밀번호가 서로 일치하지 않습니다.',
+      )
+
+      return
+    }
+
+    setSetupLoading(true)
+    setSetupError('')
+
+    try {
+      const {
+        error: userUpdateError,
+      } =
+        await supabase.auth.updateUser({
+          password: setupPassword,
+
+          data: {
+            full_name:
+              normalizedName,
+          },
+        })
+
+      if (userUpdateError) {
+        throw userUpdateError
+      }
+
+      const {
+        error: profileUpdateError,
+      } = await supabase.rpc(
+        'complete_account_profile',
+        {
+          profile_full_name:
+            normalizedName,
+        },
+      )
+
+      if (profileUpdateError) {
+        throw profileUpdateError
+      }
+
+      window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname,
+      )
+
+      window.location.reload()
+    } catch (error) {
+      console.error(
+        '계정 설정 실패:',
+        error,
+      )
+
+      setSetupError(
+        error.message ||
+          '계정 설정을 완료하지 못했습니다.',
+      )
+    } finally {
+      setSetupLoading(false)
+    }
+  }
 
   const handleLogin = async (
     event,
@@ -273,6 +417,123 @@ function AuthGate() {
               '로그인 정보를 확인하고 있습니다.'}
           </p>
         </div>
+      </main>
+    )
+  }
+
+  if (
+    session &&
+    accountSetupRequired
+  ) {
+    return (
+      <main style={styles.page}>
+        <section style={styles.card}>
+          <p style={styles.eyebrow}>
+            WELCOME TO NTAC
+          </p>
+
+          <h1 style={styles.title}>
+            계정 설정
+          </h1>
+
+          <p style={styles.description}>
+            초대받은 계정의 이름과
+            비밀번호를 설정해 주세요.
+          </p>
+
+          <div style={styles.emailBox}>
+            {profile?.email ||
+              session.user.email}
+          </div>
+
+          <form
+            onSubmit={
+              handleAccountSetup
+            }
+            style={styles.form}
+          >
+            <label style={styles.label}>
+              이름
+
+              <input
+                type="text"
+                value={setupName}
+                onChange={(event) =>
+                  setSetupName(
+                    event.target.value,
+                  )
+                }
+                placeholder="이름 입력"
+                autoComplete="name"
+                required
+                style={styles.input}
+              />
+            </label>
+
+            <label style={styles.label}>
+              새 비밀번호
+
+              <input
+                type="password"
+                value={setupPassword}
+                onChange={(event) =>
+                  setSetupPassword(
+                    event.target.value,
+                  )
+                }
+                placeholder="8자 이상 입력"
+                autoComplete="new-password"
+                minLength="8"
+                required
+                style={styles.input}
+              />
+            </label>
+
+            <label style={styles.label}>
+              비밀번호 확인
+
+              <input
+                type="password"
+                value={
+                  setupPasswordConfirm
+                }
+                onChange={(event) =>
+                  setSetupPasswordConfirm(
+                    event.target.value,
+                  )
+                }
+                placeholder="비밀번호 다시 입력"
+                autoComplete="new-password"
+                minLength="8"
+                required
+                style={styles.input}
+              />
+            </label>
+
+            {setupError && (
+              <p style={styles.error}>
+                {setupError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={setupLoading}
+              style={{
+                ...styles.button,
+
+                opacity:
+                  setupLoading
+                    ? 0.6
+                    : 1,
+              }}
+            >
+              {setupLoading
+                ? '계정 설정 중...'
+                : '계정 설정 완료'}
+            </button>
+          </form>
+        </section>
       </main>
     )
   }
@@ -484,6 +745,17 @@ const styles = {
     margin: '0 0 28px',
     color: '#66736e',
     lineHeight: 1.5,
+  },
+
+  emailBox: {
+    margin: '-10px 0 22px',
+    padding: '12px 14px',
+    borderRadius: '12px',
+    background: '#eef3f0',
+    color: '#33463f',
+    fontSize: '14px',
+    fontWeight: '700',
+    overflowWrap: 'anywhere',
   },
 
   form: {
