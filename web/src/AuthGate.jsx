@@ -65,8 +65,10 @@ function AuthGate() {
   const [password, setPassword] =
     useState('')
 
-  const [loginLoading, setLoginLoading] =
-    useState(false)
+  const [
+    loginLoading,
+    setLoginLoading,
+  ] = useState(false)
 
   const [
     errorMessage,
@@ -80,7 +82,8 @@ function AuthGate() {
       const {
         data,
         error,
-      } = await supabase.auth.getSession()
+      } =
+        await supabase.auth.getSession()
 
       if (!isMounted) {
         return
@@ -129,6 +132,8 @@ function AuthGate() {
       }
 
       setAppLoading(true)
+      setErrorMessage('')
+
       setBootMessage(
         '회원 정보와 최신 프로그램을 불러오고 있습니다.',
       )
@@ -148,7 +153,8 @@ function AuthGate() {
               membership,
               membership_status,
               coach_care,
-              coach_name
+              coach_name,
+              onboarding_completed
             `,
           )
           .eq(
@@ -167,21 +173,22 @@ function AuthGate() {
 
         setProfile(data)
 
-        const currentName =
-          data.full_name?.trim() ||
-          session.user.user_metadata
-            ?.full_name?.trim() ||
-          ''
-
         /*
-         * 초대받은 신규 사용자는
-         * 이름이 비어 있으므로 앱 진입 전에
+         * onboarding_completed가 false인
+         * 초대 계정은 앱으로 들어가기 전에
          * 이름과 비밀번호를 설정한다.
          */
-        if (!currentName) {
-          setSetupName('')
+        if (
+          data.onboarding_completed !==
+          true
+        ) {
+          setSetupName(
+            data.full_name || '',
+          )
+
           setAccountSetupRequired(true)
           setAppComponent(null)
+
           return
         }
 
@@ -189,7 +196,7 @@ function AuthGate() {
 
         /*
          * App을 불러오기 전에
-         * Supabase 프로그램을 먼저 동기화한다.
+         * 최신 프로그램을 동기화한다.
          */
         try {
           await loadWeeklyProgramsFromSupabase()
@@ -208,10 +215,6 @@ function AuthGate() {
           )
         }
 
-        /*
-         * 프로그램 동기화가 끝난 뒤
-         * App.jsx를 불러온다.
-         */
         const appModule =
           await import('./App.jsx')
 
@@ -389,11 +392,6 @@ function AuthGate() {
       return
     }
 
-    /*
-     * 다른 계정으로 로그인할 때
-     * 이전 계정의 프로그램 모듈이 남지 않도록
-     * 페이지를 새로 시작한다.
-     */
     window.location.reload()
   }
 
@@ -437,8 +435,8 @@ function AuthGate() {
           </h1>
 
           <p style={styles.description}>
-            초대받은 계정의 이름과
-            비밀번호를 설정해 주세요.
+            이름과 새 비밀번호를
+            설정해 주세요.
           </p>
 
           <div style={styles.emailBox}>
