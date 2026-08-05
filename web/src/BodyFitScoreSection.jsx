@@ -81,6 +81,7 @@ function getGradeDescription(grade) {
 
 function BodyFitScoreSection({
   memberId,
+  mode = 'records',
 }) {
   const [records, setRecords] =
     useState([])
@@ -257,7 +258,8 @@ function BodyFitScoreSection({
       }))
 
       setFormOpen(
-        nextRecords.length === 0,
+        mode === 'records' &&
+          nextRecords.length === 0,
       )
 
       setLoading(false)
@@ -268,7 +270,7 @@ function BodyFitScoreSection({
     return () => {
       isMounted = false
     }
-  }, [memberId])
+  }, [memberId, mode])
 
   const updateForm = (
     name,
@@ -407,10 +409,117 @@ function BodyFitScoreSection({
 
   if (loading) {
     return (
-      <article style={styles.card}>
+      <article style={styles.loadingCard}>
         Body Fit Score를 불러오는
         중입니다.
       </article>
+    )
+  }
+
+  if (mode === 'summary') {
+    return (
+      <section style={styles.summarySection}>
+        <div style={styles.summaryHeading}>
+          <div>
+            <p style={styles.eyebrow}>
+              BODY FIT SCORE
+            </p>
+
+            <h3 style={styles.summaryTitle}>
+              최신 체성분 점수
+            </h3>
+          </div>
+
+          <span style={styles.summaryHint}>
+            기록 탭에서 상세 확인
+          </span>
+        </div>
+
+        {errorMessage && (
+          <article style={styles.error}>
+            {errorMessage}
+          </article>
+        )}
+
+        {latestRecord ? (
+          <article style={styles.scoreCard}>
+            <div style={styles.scoreTop}>
+              <div>
+                <p style={styles.scoreLabel}>
+                  CURRENT SCORE
+                </p>
+
+                <div style={styles.scoreValue}>
+                  <strong>
+                    {
+                      latestRecord
+                        .body_fit_total_score
+                    }
+                  </strong>
+
+                  <span>/ 100</span>
+                </div>
+              </div>
+
+              <div style={styles.gradeBox}>
+                <span>GRADE</span>
+
+                <strong>
+                  {
+                    latestRecord
+                      .body_fit_grade
+                  }
+                </strong>
+              </div>
+            </div>
+
+            <p style={styles.gradeDescription}>
+              {getGradeDescription(
+                latestRecord
+                  .body_fit_grade,
+              )}
+            </p>
+
+            <div style={styles.measurementMeta}>
+              <span>
+                {formatDate(
+                  latestRecord
+                    .measured_at,
+                )}
+              </span>
+
+              {scoreDifference !==
+                null && (
+                <strong>
+                  이전 대비{' '}
+                  {scoreDifference > 0
+                    ? `+${scoreDifference}`
+                    : scoreDifference}
+                  점
+                </strong>
+              )}
+            </div>
+          </article>
+        ) : (
+          <article style={styles.summaryEmpty}>
+            <div>
+              <span style={styles.emptyBadge}>
+                NO SCORE
+              </span>
+
+              <h3>
+                아직 측정 기록이
+                없습니다.
+              </h3>
+
+              <p>
+                기록 탭에서 첫 Body Fit
+                Score를 등록해 주세요.
+              </p>
+            </div>
+          </article>
+        )}
+      </section>
     )
   }
 
@@ -423,13 +532,12 @@ function BodyFitScoreSection({
           </p>
 
           <h3 style={styles.title}>
-            HYROX 체성분 점수
+            체성분 기록
           </h3>
 
           <p style={styles.description}>
-            현재 체성분이 하이브리드
-            퍼포먼스에 얼마나 적합한지
-            확인합니다.
+            새로운 측정 결과를 등록하고
+            점수 변화를 확인합니다.
           </p>
         </div>
 
@@ -633,7 +741,11 @@ function BodyFitScoreSection({
           <button
             type="submit"
             disabled={saving}
-            style={styles.saveButton}
+            style={{
+              ...styles.saveButton,
+              opacity:
+                saving ? 0.6 : 1,
+            }}
           >
             {saving
               ? '계산 및 저장 중...'
@@ -916,7 +1028,32 @@ const styles = {
   section: {
     display: 'grid',
     gap: '14px',
-    marginTop: '22px',
+    marginTop: '18px',
+  },
+
+  summarySection: {
+    display: 'grid',
+    gap: '12px',
+    marginTop: '20px',
+  },
+
+  summaryHeading: {
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: '12px',
+  },
+
+  summaryTitle: {
+    margin: 0,
+    color: '#10251e',
+    fontSize: '18px',
+  },
+
+  summaryHint: {
+    color: '#7b8681',
+    fontSize: '10px',
+    fontWeight: '800',
   },
 
   heading: {
@@ -958,6 +1095,15 @@ const styles = {
     fontSize: '11px',
     fontWeight: '900',
     cursor: 'pointer',
+  },
+
+  loadingCard: {
+    marginTop: '18px',
+    padding: '18px',
+    borderRadius: '18px',
+    background: '#ffffff',
+    color: '#66736e',
+    fontSize: '13px',
   },
 
   card: {
@@ -1172,6 +1318,14 @@ const styles = {
     padding: '19px',
     borderRadius: '18px',
     background: '#f1f4f2',
+  },
+
+  summaryEmpty: {
+    display: 'grid',
+    gap: '8px',
+    padding: '18px',
+    borderRadius: '18px',
+    background: '#ffffff',
   },
 
   emptyBadge: {

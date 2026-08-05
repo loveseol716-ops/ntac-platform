@@ -1005,6 +1005,60 @@ function ProgramDetailPage({
   )
 }
 
+const myPageTabs = [
+  {
+    id: 'status',
+    label: '내 상태',
+  },
+  {
+    id: 'records',
+    label: '기록',
+  },
+  {
+    id: 'settings',
+    label: '설정',
+  },
+]
+
+const myPageStyles = {
+  tabs: {
+    display: 'grid',
+    gridTemplateColumns:
+      'repeat(3, minmax(0, 1fr))',
+    gap: '6px',
+    margin: '22px 0 4px',
+    padding: '5px',
+    borderRadius: '15px',
+    background: '#e7ece9',
+  },
+
+  tabButton: {
+    minHeight: '42px',
+    padding: '9px 8px',
+    border: 'none',
+    borderRadius: '11px',
+    background: 'transparent',
+    color: '#66736e',
+    fontSize: '13px',
+    fontWeight: '900',
+    cursor: 'pointer',
+  },
+
+  activeTabButton: {
+    background: '#ffffff',
+    color: '#0b3d2e',
+    boxShadow:
+      '0 2px 10px rgba(11, 61, 46, 0.08)',
+  },
+
+  sectionIntro: {
+    margin: '17px 0 0',
+    color: '#73807b',
+    fontSize: '12px',
+    lineHeight: 1.5,
+  },
+}
+
 function MyPage({
   member,
   settings,
@@ -1012,6 +1066,11 @@ function MyPage({
   openAdmin,
   isAdmin,
 }) {
+  const [
+    activeSection,
+    setActiveSection,
+  ] = useState('status')
+
   return (
     <section className="sub-page">
       <div className="page-heading">
@@ -1020,96 +1079,177 @@ function MyPage({
         <h2>마이페이지</h2>
 
         <span>
-          나의 이용 상품과 관리 현황을
+          내 상태와 기록, 계정 설정을
           확인합니다.
         </span>
       </div>
 
-      <article className="membership-card">
-        <p>현재 이용 상품</p>
+      <div
+        style={myPageStyles.tabs}
+        role="tablist"
+        aria-label="마이페이지 메뉴"
+      >
+        {myPageTabs.map((tab) => {
+          const isActive =
+            activeSection === tab.id
 
-        <h3>
-          {settings.membership}
-        </h3>
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() =>
+                setActiveSection(tab.id)
+              }
+              style={{
+                ...myPageStyles.tabButton,
 
-        <span>
-          코치 관리와 프로그램 이용
-          권한을 확인하세요.
-        </span>
-      </article>
-
-      <div className="status-list">
-        <div className="status-row">
-          <span>멤버십 상태</span>
-
-          <strong>
-            {getMembershipStatusLabel(
-              settings.membershipStatus,
-            )}
-          </strong>
-        </div>
-
-        <div className="status-row">
-          <span>담당 코치</span>
-
-          <strong>
-            {settings.coach}
-          </strong>
-        </div>
-
-        <div className="status-row">
-          <span>COACH CARE</span>
-
-          <strong>
-            {settings.coachCare
-              ? '이용 중'
-              : '미이용'}
-          </strong>
-        </div>
-
-        <div className="status-row">
-          <span>이번 주 수행률</span>
-
-          <strong>
-            {progressPercent}%
-          </strong>
-        </div>
+                ...(isActive
+                  ? myPageStyles
+                      .activeTabButton
+                  : {}),
+              }}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
       </div>
 
-<BodyFitScoreSection
-  memberId={member.id}
-/>
+      {activeSection === 'status' && (
+        <>
+          <p
+            style={
+              myPageStyles.sectionIntro
+            }
+          >
+            현재 이용 상품과 코칭 상태,
+            최신 Body Fit Score를 한눈에
+            확인합니다.
+          </p>
 
-<ProfileEditSection />
+          <article className="membership-card">
+            <p>현재 이용 상품</p>
 
-<PasswordChangeSection />
+            <h3>
+              {settings.membership}
+            </h3>
 
-      <article className="coach-card">
-        <p>COACH CARE</p>
+            <span>
+              코치 관리와 프로그램 이용
+              권한을 확인하세요.
+            </span>
+          </article>
 
-        <h3>
-          더 세밀한 코칭이
-          필요하신가요?
-        </h3>
+          <div className="status-list">
+            <div className="status-row">
+              <span>멤버십 상태</span>
 
-        <span>
-          담당 코치가 컨디션과 수행
-          기록을 확인하고 관리합니다.
-        </span>
+              <strong>
+                {getMembershipStatusLabel(
+                  settings.membershipStatus,
+                )}
+              </strong>
+            </div>
 
-        <button type="button">
-          서비스 알아보기
-        </button>
-      </article>
+            <div className="status-row">
+              <span>담당 코치</span>
 
-      {isAdmin && (
-        <button
-          className="admin-entry-button"
-          type="button"
-          onClick={openAdmin}
-        >
-          관리자 열기
-        </button>
+              <strong>
+                {settings.coach}
+              </strong>
+            </div>
+
+            <div className="status-row">
+              <span>COACH CARE</span>
+
+              <strong>
+                {settings.coachCare
+                  ? '이용 중'
+                  : '미이용'}
+              </strong>
+            </div>
+
+            <div className="status-row">
+              <span>이번 주 수행률</span>
+
+              <strong>
+                {progressPercent}%
+              </strong>
+            </div>
+          </div>
+
+          <BodyFitScoreSection
+            memberId={member.id}
+            mode="summary"
+          />
+
+          <article className="coach-card">
+            <p>COACH CARE</p>
+
+            <h3>
+              더 세밀한 코칭이
+              필요하신가요?
+            </h3>
+
+            <span>
+              담당 코치가 컨디션과 수행
+              기록을 확인하고 관리합니다.
+            </span>
+
+            <button type="button">
+              서비스 알아보기
+            </button>
+          </article>
+
+          {isAdmin && (
+            <button
+              className="admin-entry-button"
+              type="button"
+              onClick={openAdmin}
+            >
+              관리자 열기
+            </button>
+          )}
+        </>
+      )}
+
+      {activeSection === 'records' && (
+        <>
+          <p
+            style={
+              myPageStyles.sectionIntro
+            }
+          >
+            새 체성분 기록을 등록하고,
+            항목별 점수와 이전 측정
+            결과를 확인합니다.
+          </p>
+
+          <BodyFitScoreSection
+            memberId={member.id}
+            mode="records"
+          />
+        </>
+      )}
+
+      {activeSection === 'settings' && (
+        <>
+          <p
+            style={
+              myPageStyles.sectionIntro
+            }
+          >
+            개인정보와 로그인
+            비밀번호를 안전하게
+            관리합니다.
+          </p>
+
+          <ProfileEditSection />
+
+          <PasswordChangeSection />
+        </>
       )}
     </section>
   )
