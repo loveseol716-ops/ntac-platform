@@ -130,6 +130,745 @@ function getMembershipStatusLabel(
   return '이용 중'
 }
 
+function getUniqueWorkoutRecordCount(
+  workoutRecords,
+  calendarWorkoutRecords,
+) {
+  const uniqueKeys = new Set()
+
+  const addRecord = (
+    record,
+    fallbackKey,
+  ) => {
+    if (!record) {
+      return
+    }
+
+    const recordKey =
+      record.id ||
+      record.eventId ||
+      record.event_id ||
+      `${
+        record.sessionId ||
+        record.session_id ||
+        fallbackKey ||
+        'session'
+      }-${
+        record.workoutDate ||
+        record.workout_date ||
+        record.date ||
+        record.completedAt ||
+        record.completed_at ||
+        record.createdAt ||
+        record.created_at ||
+        ''
+      }`
+
+    uniqueKeys.add(recordKey)
+  }
+
+  Object.entries(
+    workoutRecords || {},
+  ).forEach(([key, record]) => {
+    addRecord(record, key)
+  })
+
+  Object.entries(
+    calendarWorkoutRecords || {},
+  ).forEach(([key, record]) => {
+    addRecord(record, key)
+  })
+
+  return uniqueKeys.size
+}
+
+function getAchievementBadge(
+  completedCount,
+) {
+  if (completedCount === 1) {
+    return {
+      icon: '⚡',
+      title: 'FIRST STEP',
+      description:
+        'NTAC에서 첫 번째 훈련을 완료했습니다.',
+    }
+  }
+
+  if (completedCount === 5) {
+    return {
+      icon: '🔥',
+      title: 'MOMENTUM',
+      description:
+        '누적 5개의 훈련을 완료했습니다.',
+    }
+  }
+
+  if (completedCount === 10) {
+    return {
+      icon: '🏅',
+      title: 'CONSISTENCY',
+      description:
+        '누적 10개의 훈련을 완료했습니다.',
+    }
+  }
+
+  return null
+}
+
+function WorkoutCompletionModal({
+  result,
+  onClose,
+}) {
+  if (!result) {
+    return null
+  }
+
+  const progressPercent =
+    result.weeklyTotal > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (
+              result.weeklyCompleted /
+              result.weeklyTotal
+            ) * 100,
+          ),
+        )
+      : 0
+
+  const confettiPieces = [
+    '◆',
+    '●',
+    '▲',
+    '■',
+    '◆',
+    '●',
+    '▲',
+    '■',
+    '◆',
+    '●',
+    '▲',
+    '■',
+  ]
+
+  return (
+    <div
+      style={completionStyles.overlay}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="workout-completion-title"
+    >
+      <style>
+        {`
+          @keyframes ntacModalIn {
+            from {
+              opacity: 0;
+              transform: translateY(24px) scale(0.94);
+            }
+
+            to {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
+          }
+
+          @keyframes ntacCheckIn {
+            0% {
+              opacity: 0;
+              transform: scale(0.35) rotate(-15deg);
+            }
+
+            70% {
+              transform: scale(1.12) rotate(3deg);
+            }
+
+            100% {
+              opacity: 1;
+              transform: scale(1) rotate(0deg);
+            }
+          }
+
+          @keyframes ntacConfettiFall {
+            0% {
+              opacity: 0;
+              transform: translateY(-10vh) rotate(0deg);
+            }
+
+            12% {
+              opacity: 1;
+            }
+
+            100% {
+              opacity: 0;
+              transform: translateY(105vh) rotate(560deg);
+            }
+          }
+        `}
+      </style>
+
+      <div
+        style={
+          completionStyles.confettiLayer
+        }
+        aria-hidden="true"
+      >
+        {confettiPieces.map(
+          (piece, index) => (
+            <span
+              key={`${piece}-${index}`}
+              style={{
+                ...completionStyles.confettiPiece,
+
+                left:
+                  `${6 + index * 8}%`,
+
+                animationDelay:
+                  `${
+                    (index % 5) *
+                    0.18
+                  }s`,
+
+                color:
+                  index % 3 === 0
+                    ? '#f1d786'
+                    : index % 3 === 1
+                      ? '#65c49a'
+                      : '#ffffff',
+              }}
+            >
+              {piece}
+            </span>
+          ),
+        )}
+      </div>
+
+      <article
+        style={completionStyles.modal}
+      >
+        <div
+          style={completionStyles.check}
+        >
+          ✓
+        </div>
+
+        <p
+          style={
+            completionStyles.eyebrow
+          }
+        >
+          {result.weekComplete
+            ? 'WEEK COMPLETE'
+            : 'SESSION COMPLETE'}
+        </p>
+
+        <h2
+          id="workout-completion-title"
+          style={
+            completionStyles.title
+          }
+        >
+          {result.weekComplete
+            ? '이번 주 훈련을 모두 해냈어요.'
+            : '오늘의 세션을 완료했어요.'}
+        </h2>
+
+        <div
+          style={
+            completionStyles.workoutCard
+          }
+        >
+          {result.workoutType && (
+            <span
+              style={
+                completionStyles.workoutType
+              }
+            >
+              {result.workoutType}
+            </span>
+          )}
+
+          <strong
+            style={
+              completionStyles.workoutTitle
+            }
+          >
+            {result.workoutTitle}
+          </strong>
+        </div>
+
+        <div
+          style={
+            completionStyles.stats
+          }
+        >
+          <div
+            style={
+              completionStyles.statItem
+            }
+          >
+            <span
+              style={
+                completionStyles.statLabel
+              }
+            >
+              수행 RPE
+            </span>
+
+            <strong
+              style={
+                completionStyles.statValue
+              }
+            >
+              {result.rpe}
+            </strong>
+          </div>
+
+          <div
+            style={
+              completionStyles.statItem
+            }
+          >
+            <span
+              style={
+                completionStyles.statLabel
+              }
+            >
+              이번 주
+            </span>
+
+            <strong
+              style={
+                completionStyles.statValue
+              }
+            >
+              {result.weeklyCompleted}
+              {' / '}
+              {result.weeklyTotal}
+            </strong>
+          </div>
+
+          <div
+            style={
+              completionStyles.statItem
+            }
+          >
+            <span
+              style={
+                completionStyles.statLabel
+              }
+            >
+              누적 완료
+            </span>
+
+            <strong
+              style={
+                completionStyles.statValue
+              }
+            >
+              {result.lifetimeCompleted}
+            </strong>
+          </div>
+        </div>
+
+        {result.weeklyTotal > 0 && (
+          <div
+            style={
+              completionStyles.progressSection
+            }
+          >
+            <div
+              style={
+                completionStyles.progressHead
+              }
+            >
+              <span>
+                주간 훈련 달성률
+              </span>
+
+              <strong>
+                {progressPercent}%
+              </strong>
+            </div>
+
+            <div
+              style={
+                completionStyles.progressTrack
+              }
+            >
+              <div
+                style={{
+                  ...completionStyles.progressValue,
+
+                  width:
+                    `${progressPercent}%`,
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {result.weekComplete && (
+          <div
+            style={
+              completionStyles.weekCard
+            }
+          >
+            <span
+              style={
+                completionStyles.weekEyebrow
+              }
+            >
+              FULL WEEK ACHIEVED
+            </span>
+
+            <strong
+              style={
+                completionStyles.weekTitle
+              }
+            >
+              계획한 훈련을 모두
+              완수했습니다.
+            </strong>
+
+            <p
+              style={
+                completionStyles.weekText
+              }
+            >
+              이번 주에도 꾸준하게
+              자신의 피트니스 여정을
+              이어갔습니다.
+            </p>
+          </div>
+        )}
+
+        {result.unlockedBadge && (
+          <div
+            style={
+              completionStyles.badgeCard
+            }
+          >
+            <div
+              style={
+                completionStyles.badgeIcon
+              }
+            >
+              {
+                result.unlockedBadge
+                  .icon
+              }
+            </div>
+
+            <div
+              style={
+                completionStyles.badgeContent
+              }
+            >
+              <span
+                style={
+                  completionStyles.badgeEyebrow
+                }
+              >
+                NEW ACHIEVEMENT
+              </span>
+
+              <strong
+                style={
+                  completionStyles.badgeTitle
+                }
+              >
+                {
+                  result.unlockedBadge
+                    .title
+                }
+              </strong>
+
+              <p
+                style={
+                  completionStyles.badgeText
+                }
+              >
+                {
+                  result.unlockedBadge
+                    .description
+                }
+              </p>
+            </div>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={onClose}
+          style={
+            completionStyles.closeButton
+          }
+        >
+          좋아, 홈으로 돌아가기
+        </button>
+      </article>
+    </div>
+  )
+}
+
+const completionStyles = {
+  overlay: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 40000,
+    display: 'grid',
+    placeItems: 'center',
+    boxSizing: 'border-box',
+    padding: '20px',
+    background:
+      'rgba(4, 22, 16, 0.78)',
+    backdropFilter: 'blur(9px)',
+    WebkitBackdropFilter:
+      'blur(9px)',
+  },
+
+  confettiLayer: {
+    position: 'absolute',
+    inset: 0,
+    overflow: 'hidden',
+    pointerEvents: 'none',
+  },
+
+  confettiPiece: {
+    position: 'absolute',
+    top: '-10vh',
+    fontSize: '15px',
+    animation:
+      'ntacConfettiFall 2.7s linear infinite',
+  },
+
+  modal: {
+    position: 'relative',
+    zIndex: 2,
+    width: '100%',
+    maxWidth: '420px',
+    maxHeight:
+      'calc(100vh - 40px)',
+    overflowY: 'auto',
+    boxSizing: 'border-box',
+    padding: '28px 22px 22px',
+    borderRadius: '26px',
+    background: '#ffffff',
+    color: '#10251e',
+    textAlign: 'center',
+    boxShadow:
+      '0 28px 80px rgba(0, 0, 0, 0.34)',
+    animation:
+      'ntacModalIn 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.12)',
+  },
+
+  check: {
+    display: 'grid',
+    placeItems: 'center',
+    width: '76px',
+    height: '76px',
+    margin: '0 auto 18px',
+    borderRadius: '50%',
+    background: '#0b3d2e',
+    color: '#ffffff',
+    fontSize: '38px',
+    fontWeight: 900,
+    lineHeight: 1,
+    boxShadow:
+      '0 13px 30px rgba(11, 61, 46, 0.23)',
+    animation:
+      'ntacCheckIn 0.55s cubic-bezier(0.2, 1.4, 0.4, 1)',
+  },
+
+  eyebrow: {
+    margin: '0 0 7px',
+    color: '#0b6b4f',
+    fontSize: '10px',
+    fontWeight: 900,
+    letterSpacing: '0.16em',
+  },
+
+  title: {
+    margin: 0,
+    color: '#10251e',
+    fontSize: '23px',
+    lineHeight: 1.3,
+    letterSpacing: '-0.04em',
+  },
+
+  workoutCard: {
+    display: 'grid',
+    gap: '4px',
+    marginTop: '17px',
+    padding: '14px',
+    borderRadius: '15px',
+    background: '#f1f5f3',
+  },
+
+  workoutType: {
+    color: '#0b6b4f',
+    fontSize: '9px',
+    fontWeight: 900,
+    letterSpacing: '0.1em',
+  },
+
+  workoutTitle: {
+    color: '#243a32',
+    fontSize: '14px',
+    lineHeight: 1.45,
+  },
+
+  stats: {
+    display: 'grid',
+    gridTemplateColumns:
+      'repeat(3, minmax(0, 1fr))',
+    gap: '8px',
+    marginTop: '13px',
+  },
+
+  statItem: {
+    display: 'grid',
+    gap: '5px',
+    padding: '12px 6px',
+    borderRadius: '14px',
+    background: '#f5f7f6',
+  },
+
+  statLabel: {
+    color: '#7b8681',
+    fontSize: '9px',
+    fontWeight: 800,
+  },
+
+  statValue: {
+    color: '#0b3d2e',
+    fontSize: '19px',
+    fontWeight: 900,
+  },
+
+  progressSection: {
+    display: 'grid',
+    gap: '8px',
+    marginTop: '16px',
+    textAlign: 'left',
+  },
+
+  progressHead: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent:
+      'space-between',
+    color: '#65716c',
+    fontSize: '11px',
+    fontWeight: 800,
+  },
+
+  progressTrack: {
+    height: '9px',
+    overflow: 'hidden',
+    borderRadius: '999px',
+    background: '#e3e9e6',
+  },
+
+  progressValue: {
+    height: '100%',
+    borderRadius: '999px',
+    background:
+      'linear-gradient(90deg, #0b3d2e, #15906a)',
+    transition: 'width 0.65s ease',
+  },
+
+  weekCard: {
+    display: 'grid',
+    gap: '5px',
+    marginTop: '16px',
+    padding: '16px',
+    borderRadius: '17px',
+    background: '#0b3d2e',
+    color: '#ffffff',
+    textAlign: 'left',
+  },
+
+  weekEyebrow: {
+    color: '#a9cbbd',
+    fontSize: '9px',
+    fontWeight: 900,
+    letterSpacing: '0.12em',
+  },
+
+  weekTitle: {
+    fontSize: '14px',
+  },
+
+  weekText: {
+    margin: 0,
+    color: '#d8e7e1',
+    fontSize: '11px',
+    lineHeight: 1.5,
+  },
+
+  badgeCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '13px',
+    marginTop: '15px',
+    padding: '15px',
+    border:
+      '1px solid #d5e4dd',
+    borderRadius: '17px',
+    background: '#edf5f1',
+    textAlign: 'left',
+  },
+
+  badgeIcon: {
+    display: 'grid',
+    placeItems: 'center',
+    flex: '0 0 50px',
+    width: '50px',
+    height: '50px',
+    borderRadius: '50%',
+    background: '#0b3d2e',
+    fontSize: '23px',
+  },
+
+  badgeContent: {
+    display: 'grid',
+    gap: '3px',
+  },
+
+  badgeEyebrow: {
+    color: '#0b6b4f',
+    fontSize: '8px',
+    fontWeight: 900,
+    letterSpacing: '0.11em',
+  },
+
+  badgeTitle: {
+    color: '#17342a',
+    fontSize: '14px',
+  },
+
+  badgeText: {
+    margin: 0,
+    color: '#65716c',
+    fontSize: '10px',
+    lineHeight: 1.45,
+  },
+
+  closeButton: {
+    width: '100%',
+    minHeight: '50px',
+    marginTop: '18px',
+    border: 'none',
+    borderRadius: '14px',
+    background: '#0b3d2e',
+    color: '#ffffff',
+    fontSize: '14px',
+    fontWeight: 900,
+    cursor: 'pointer',
+  },
+}
+
 function CheckinPage({
   onClose,
   onComplete,
@@ -826,10 +1565,6 @@ function ProgramDetailPage({
           type: session.type,
         },
       )
-
-      alert(
-        '운동 기록이 Supabase에 저장되었습니다.',
-      )
     } catch (error) {
       console.error(
         '운동 기록 저장 실패:',
@@ -1473,6 +2208,11 @@ function App({
     setCheckinOpen,
   ] = useState(false)
 
+  const [
+    completionResult,
+    setCompletionResult,
+  ] = useState(null)
+
   const {
     todayCheckin,
     workoutRecords,
@@ -1596,6 +2336,145 @@ function App({
             totalAssignments
           ) * 100,
         )
+
+  const lifetimeCompletedCount =
+    getUniqueWorkoutRecordCount(
+      workoutRecords,
+      calendarWorkoutRecords,
+    )
+
+  const completeWorkoutWithCelebration =
+    async (
+      sessionId,
+      rpe,
+      calendarInfo = {},
+    ) => {
+      const calendarEventId =
+        calendarInfo.calendarEventId ||
+        ''
+
+      const workoutDate =
+        calendarInfo.workoutDate ||
+        ''
+
+      const matchingCalendarEvent =
+        weeklyAssignments.find(
+          (event) =>
+            event.id ===
+              calendarEventId ||
+            (
+              event.sessionId ===
+                sessionId &&
+              event.date ===
+                workoutDate
+            ),
+        )
+
+      const existingRecord =
+        calendarEventId
+          ? calendarWorkoutRecords[
+              calendarEventId
+            ]
+          : workoutRecords[
+              sessionId
+            ]
+
+      const savedRecord =
+        await completeWorkout(
+          sessionId,
+          rpe,
+          calendarInfo,
+        )
+
+      const isNewCompletion =
+        !existingRecord
+
+      const belongsToCurrentWeek =
+        Boolean(
+          matchingCalendarEvent,
+        )
+
+      const nextWeeklyCompleted =
+        belongsToCurrentWeek &&
+        isNewCompletion
+          ? Math.min(
+              totalAssignments,
+              completedCount + 1,
+            )
+          : completedCount
+
+      const nextLifetimeCompleted =
+        isNewCompletion
+          ? lifetimeCompletedCount + 1
+          : lifetimeCompletedCount
+
+      const didCompleteWeek =
+        belongsToCurrentWeek &&
+        isNewCompletion &&
+        totalAssignments > 0 &&
+        nextWeeklyCompleted >=
+          totalAssignments
+
+      setCompletionResult({
+        workoutTitle:
+          calendarInfo.title ||
+          matchingCalendarEvent
+            ?.title ||
+          selectedRunTrainer
+            ?.session?.title ||
+          savedRecord.title ||
+          '오늘의 훈련',
+
+        workoutType:
+          calendarInfo.type ||
+          matchingCalendarEvent
+            ?.type ||
+          selectedRunTrainer
+            ?.session?.type ||
+          savedRecord.type ||
+          '',
+
+        rpe: Number(rpe),
+
+        weeklyCompleted:
+          nextWeeklyCompleted,
+
+        weeklyTotal:
+          totalAssignments,
+
+        weekComplete:
+          didCompleteWeek,
+
+        lifetimeCompleted:
+          nextLifetimeCompleted,
+
+        unlockedBadge:
+          isNewCompletion
+            ? getAchievementBadge(
+                nextLifetimeCompleted,
+              )
+            : null,
+      })
+
+      return savedRecord
+    }
+
+  const closeCompletionModal = () => {
+    setCompletionResult(null)
+    setSelectedProgram(null)
+    setSelectedRunTrainer(null)
+    setActiveTab('home')
+  }
+
+  const completionModal =
+    completionResult ? (
+      <WorkoutCompletionModal
+        result={completionResult}
+        onClose={
+          closeCompletionModal
+        }
+      />
+    ) : null
 
   const upcomingAccessibleTrainings =
     allTrainingEvents
@@ -1826,31 +2705,35 @@ function App({
 
   if (selectedRunTrainer) {
     return (
-      <RunTrainerPage
-        member={currentMember}
-        session={
-          selectedRunTrainer.session
-        }
-        programKey={
-          selectedRunTrainer
-            .session
-            .runTrainerKey
-        }
-        calendarEventId={
-          selectedRunTrainer
-            .calendarEventId
-        }
-        workoutDate={
-          selectedRunTrainer
-            .workoutDate
-        }
-        onClose={() =>
-          setSelectedRunTrainer(null)
-        }
-        onComplete={
-          completeWorkout
-        }
-      />
+      <>
+        <RunTrainerPage
+          member={currentMember}
+          session={
+            selectedRunTrainer.session
+          }
+          programKey={
+            selectedRunTrainer
+              .session
+              .runTrainerKey
+          }
+          calendarEventId={
+            selectedRunTrainer
+              .calendarEventId
+          }
+          workoutDate={
+            selectedRunTrainer
+              .workoutDate
+          }
+          onClose={() =>
+            setSelectedRunTrainer(null)
+          }
+          onComplete={
+            completeWorkoutWithCelebration
+          }
+        />
+
+        {completionModal}
+      </>
     )
   }
 
@@ -1955,9 +2838,11 @@ function App({
             startRunTrainer
           }
           onComplete={
-            completeWorkout
+            completeWorkoutWithCelebration
           }
         />
+
+        {completionModal}
       </div>
     )
   }
@@ -2062,6 +2947,8 @@ function App({
           }
         />
       )}
+
+      {completionModal}
     </div>
   )
 }
