@@ -698,6 +698,7 @@ function PersonalPlan({
 function ProgramDetailPage({
   member,
   program,
+  selectedWorkout,
   sessionId,
   calendarEventId,
   workoutDate,
@@ -718,12 +719,54 @@ function ProgramDetailPage({
     setSavingSessionId,
   ] = useState(null)
 
-  const visibleSessions = sessionId
-    ? program.sessions.filter(
-        (session) =>
-          session.id === sessionId,
-      )
-    : program.sessions
+  const matchedSessions = sessionId
+  ? program.sessions.filter(
+      (session) =>
+        session.id === sessionId,
+    )
+  : program.sessions
+
+const calendarSession =
+  selectedWorkout
+    ? [
+        {
+          id:
+            selectedWorkout.sessionId ||
+            sessionId ||
+            calendarEventId,
+
+          type:
+            selectedWorkout.sessionType ||
+            selectedWorkout.type ||
+            'TRAINING',
+
+          title:
+            selectedWorkout.title ||
+            '오늘의 훈련',
+
+          subtitle:
+            selectedWorkout.subtitle ||
+            selectedWorkout.description ||
+            '',
+
+          targetRpe:
+            selectedWorkout.targetRpe ||
+            '',
+
+          sections:
+            Array.isArray(
+              selectedWorkout.sections,
+            )
+              ? selectedWorkout.sections
+              : [],
+        },
+      ]
+    : []
+
+const visibleSessions =
+  matchedSessions.length > 0
+    ? matchedSessions
+    : calendarSession
 
   const completeSession = async (
     session,
@@ -1732,9 +1775,16 @@ const [
 
   if (selectedProgram) {
     const selectedProgramData =
-      programs[
-        selectedProgram.programId
-      ]
+      programs[selectedProgram.programId]
+
+      const selectedWorkout =
+  allTrainingEvents.find(
+    (event) =>
+      event.id ===
+        selectedProgram.calendarEventId ||
+      event.sessionId ===
+        selectedProgram.sessionId,
+  ) || null
 
     if (!selectedProgramData) {
       return (
@@ -1781,6 +1831,7 @@ const [
           program={
             selectedProgramData
           }
+          selectedWorkout={selectedWorkout}
           sessionId={
             selectedProgram.sessionId
           }
