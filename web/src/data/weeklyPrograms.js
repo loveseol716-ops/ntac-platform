@@ -91,8 +91,11 @@ const defaultWeeklyPrograms = [
 
       {
         date: '2026-08-04',
-        category: 'RUN',
-        sessionType: 'INTERVAL',
+category: 'RUN',
+sessionType: 'INTERVAL',
+
+runTrainerEnabled: true,
+runTrainerKey: '2026-w32-run-800m',
 
         title: '800m Interval',
         subtitle: '10km 페이스보다 5–10초 빠르게',
@@ -164,8 +167,12 @@ const defaultWeeklyPrograms = [
 
       {
         date: '2026-08-06',
-        category: 'RUN',
-        sessionType: 'INTERVAL',
+category: 'RUN',
+sessionType: 'INTERVAL',
+
+runTrainerEnabled: true,
+runTrainerKey:
+  '2026-w32-run-threshold-6min',
 
         title: 'Threshold Interval',
         subtitle: '지속 가능한 빠른 페이스 적응',

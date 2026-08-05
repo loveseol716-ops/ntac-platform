@@ -19,65 +19,203 @@ function normalizeTargets(targets) {
     : []
 }
 
+/*
+ * RUN 카테고리이면서
+ * INTERVAL 세션인지 확인한다.
+ */
+function isRunIntervalWorkout(
+  workout,
+) {
+  const category = String(
+    workout.category || '',
+  ).toUpperCase()
+
+  const sessionType = String(
+    workout.sessionType ||
+      workout.type ||
+      '',
+  ).toUpperCase()
+
+  return (
+    category === 'RUN' &&
+    (
+      workout.runTrainerEnabled ===
+        true ||
+      sessionType.includes(
+        'INTERVAL',
+      )
+    )
+  )
+}
+
+/*
+ * 기존 Supabase 프로그램에
+ * runTrainerKey가 저장되어 있지 않아도
+ * 프로그램 제목과 설명으로 연결한다.
+ */
+function resolveRunTrainerKey(
+  workout,
+) {
+  const explicitKey = String(
+    workout.runTrainerKey || '',
+  ).trim()
+
+  if (explicitKey) {
+    return explicitKey
+  }
+
+  const title = String(
+    workout.title || '',
+  ).toLowerCase()
+
+  const subtitle = String(
+    workout.subtitle || '',
+  ).toLowerCase()
+
+  const description = String(
+    workout.description || '',
+  ).toLowerCase()
+
+  const sessionType = String(
+    workout.sessionType ||
+      workout.type ||
+      '',
+  ).toLowerCase()
+
+  const workoutText = [
+    title,
+    subtitle,
+    description,
+    sessionType,
+  ].join(' ')
+
+  /*
+   * 800m Interval
+   */
+  if (
+    workoutText.includes('800m') &&
+    workoutText.includes(
+      'interval',
+    )
+  ) {
+    return '2026-w32-run-800m'
+  }
+
+  /*
+   * 6분 Threshold Interval
+   */
+  if (
+    workoutText.includes(
+      'threshold',
+    ) ||
+    workoutText.includes('6분')
+  ) {
+    return (
+      '2026-w32-run-threshold-6min'
+    )
+  }
+
+  return ''
+}
+
 function createSessions(category) {
+  const normalizedCategory =
+    String(category).toUpperCase()
+
   return publishedWorkouts
     .filter(
       (workout) =>
-        workout.category === category,
+        String(
+          workout.category || '',
+        ).toUpperCase() ===
+        normalizedCategory,
     )
-    .map((workout) => ({
-      id: workout.sessionId,
+    .map((workout) => {
+      const runTrainerKey =
+        resolveRunTrainerKey(
+          workout,
+        )
 
-      eventId:
-        workout.eventId ||
-        workout.id ||
-        '',
+      const runTrainerEnabled =
+        isRunIntervalWorkout(
+          workout,
+        ) &&
+        Boolean(
+          runTrainerKey,
+        )
 
-      weekKey:
-        workout.weekKey ||
-        workout.week_key ||
-        '',
+      return {
+        id:
+          workout.sessionId,
 
-      type:
-        workout.sessionType ||
-        workout.category,
+        eventId:
+          workout.eventId ||
+          workout.id ||
+          '',
 
-      title: workout.title,
+        weekKey:
+          workout.weekKey ||
+          workout.week_key ||
+          workout.weekId ||
+          '',
 
-      subtitle:
-        workout.subtitle ||
-        workout.description,
+        type:
+          workout.sessionType ||
+          workout.category,
 
-      targetRpe:
-        workout.targetRpe || '',
+        title:
+          workout.title,
 
-      targets:
-        normalizeTargets(
-          workout.targets,
-        ),
+        subtitle:
+          workout.subtitle ||
+          workout.description,
 
-      sections:
-        normalizeSections(
-          workout.sections,
-        ),
-    }))
+        targetRpe:
+          workout.targetRpe ||
+          '',
+
+        targets:
+          normalizeTargets(
+            workout.targets,
+          ),
+
+        sections:
+          normalizeSections(
+            workout.sections,
+          ),
+
+        runTrainerEnabled,
+
+        runTrainerKey,
+      }
+    })
 }
 
 export const programs = {
   run: {
     eyebrow: 'RUN PROGRAM',
-    title: '주간 러닝 프로그램',
+
+    title:
+      '주간 러닝 프로그램',
+
     description:
       '이번 주 공개된 러닝 프로그램',
-    sessions: createSessions('RUN'),
+
+    sessions:
+      createSessions('RUN'),
   },
 
   build: {
     eyebrow: 'BUILD PROGRAM',
-    title: '하이록스 보강 프로그램',
+
+    title:
+      '하이록스 보강 프로그램',
+
     description:
       '이번 주 공개된 하이록스 보강 프로그램',
-    sessions: createSessions('BUILD'),
+
+    sessions:
+      createSessions('BUILD'),
   },
 }
 
@@ -90,7 +228,8 @@ let memberOverrideCache = {
 
 function normalizeOverride(row) {
   return {
-    overrideId: row.id,
+    overrideId:
+      row.id,
 
     eventId:
       row.event_id || '',
@@ -146,9 +285,12 @@ export async function loadMemberProgramOverrides(
       'user_id',
       memberId,
     )
-    .order('updated_at', {
-      ascending: false,
-    })
+    .order(
+      'updated_at',
+      {
+        ascending: false,
+      },
+    )
 
   if (error) {
     console.error(
@@ -162,29 +304,34 @@ export async function loadMemberProgramOverrides(
   const byEventId = {}
   const bySessionId = {}
 
-  ;(data || []).forEach((row) => {
-    const override =
-      normalizeOverride(row)
+  ;(data || []).forEach(
+    (row) => {
+      const override =
+        normalizeOverride(row)
 
-    if (
-      row.event_id &&
-      !byEventId[row.event_id]
-    ) {
-      byEventId[row.event_id] =
-        override
-    }
+      if (
+        row.event_id &&
+        !byEventId[
+          row.event_id
+        ]
+      ) {
+        byEventId[
+          row.event_id
+        ] = override
+      }
 
-    if (
-      row.session_id &&
-      !bySessionId[
-        row.session_id
-      ]
-    ) {
-      bySessionId[
-        row.session_id
-      ] = override
-    }
-  })
+      if (
+        row.session_id &&
+        !bySessionId[
+          row.session_id
+        ]
+      ) {
+        bySessionId[
+          row.session_id
+        ] = override
+      }
+    },
+  )
 
   loadedMemberId = memberId
 
@@ -211,30 +358,37 @@ function createLegacyTargets(data) {
       'targetPace',
       '목표 페이스',
     ],
+
     [
       'treadmillSpeed',
       '트레드밀 속도',
     ],
+
     [
       'duration',
       '운동 시간·거리',
     ],
+
     [
       'repetitions',
       '반복 횟수',
     ],
+
     [
       'recovery',
       '회복 시간',
     ],
+
     [
       'targetLoad',
       '목표 중량',
     ],
+
     [
       'exerciseNote',
       '운동 변경',
     ],
+
     [
       'volumeNote',
       '볼륨 조정',
@@ -248,18 +402,27 @@ function createLegacyTargets(data) {
         data[key] !== null &&
         data[key] !== '',
     )
-    .map(([key, label]) => ({
-      label,
-      value: String(data[key]),
-    }))
+    .map(
+      ([key, label]) => ({
+        label,
+        value:
+          String(data[key]),
+      }),
+    )
 }
 
 function getOverrideTargets(data) {
-  if (Array.isArray(data.targets)) {
+  if (
+    Array.isArray(
+      data.targets,
+    )
+  ) {
     return data.targets
   }
 
-  return createLegacyTargets(data)
+  return createLegacyTargets(
+    data,
+  )
 }
 
 export function getPersonalizedSession(
@@ -269,7 +432,8 @@ export function getPersonalizedSession(
 ) {
   if (
     !memberId ||
-    loadedMemberId !== memberId
+    loadedMemberId !==
+      memberId
   ) {
     return {
       ...session,
@@ -279,7 +443,8 @@ export function getPersonalizedSession(
           session.targets,
         ),
 
-      isPersonalized: false,
+      isPersonalized:
+        false,
     }
   }
 
@@ -311,7 +476,8 @@ export function getPersonalizedSession(
           session.targets,
         ),
 
-      isPersonalized: false,
+      isPersonalized:
+        false,
     }
   }
 
@@ -331,35 +497,51 @@ export function getPersonalizedSession(
         : session.title,
 
     subtitle:
-      data.subtitle !== undefined
+      data.subtitle !==
+      undefined
         ? data.subtitle
         : session.subtitle,
 
     targetRpe:
-      data.targetRpe !== undefined
+      data.targetRpe !==
+      undefined
         ? data.targetRpe
         : session.targetRpe,
 
     targets:
-      personalizedTargets.length > 0
+      personalizedTargets
+        .length > 0
         ? personalizedTargets
         : normalizeTargets(
             session.targets,
           ),
 
     sections:
-      Array.isArray(data.sections)
+      Array.isArray(
+        data.sections,
+      )
         ? data.sections
         : normalizeSections(
             session.sections,
           ),
+
+    /*
+     * 개인 프로그램이 적용돼도
+     * 런트레이너 연결 정보는 유지한다.
+     */
+    runTrainerEnabled:
+      session.runTrainerEnabled,
+
+    runTrainerKey:
+      session.runTrainerKey,
 
     coachNote:
       override.coachNote ||
       data.coachNote ||
       '',
 
-    isPersonalized: true,
+    isPersonalized:
+      true,
 
     personalizationMode:
       data.personalizedProgram

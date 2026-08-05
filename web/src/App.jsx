@@ -5,6 +5,7 @@ import {
 
 import './App.css'
 
+import RunTrainerPage from './runTrainer/RunTrainerPage.jsx'
 import RunningPaceSection from './RunningPaceSection'
 import ProfileEditSection from './ProfileEditSection'
 import PasswordChangeSection from './PasswordChangeSection'
@@ -704,6 +705,7 @@ function ProgramDetailPage({
   calendarRecords,
   personalizationError,
   onBack,
+  onStartRunTrainer,
   onComplete,
 }) {
   const [
@@ -872,6 +874,34 @@ function ProgramDetailPage({
                   member={member}
                 />
 
+                {String(session.type || '')
+  .toUpperCase()
+  .includes('INTERVAL') && (
+  <button
+    className="run-trainer-button"
+    type="button"
+    onClick={openRunTrainer}
+  >
+    <div className="run-trainer-button-text">
+      <span>GUIDED RUN</span>
+
+      <strong>
+        런트레이너 시작
+      </strong>
+
+      <p>
+        구간과 페이스를 실시간으로
+        안내받으며 운동하세요.
+      </p>
+    </div>
+
+    <div className="run-trainer-play">
+      ▶
+    </div>
+  </button>
+)}
+
+
                 <div className="training-sections">
                   {session.sections.map(
                     (section) => (
@@ -914,6 +944,25 @@ function ProgramDetailPage({
                     ),
                   )}
                 </div>
+
+                {session.runTrainerEnabled &&
+                  !isCompleted && (
+                    <button
+                      className="run-trainer-button"
+                      type="button"
+                      onClick={() =>
+                        onStartRunTrainer(
+                          session,
+                          {
+                            calendarEventId,
+                            workoutDate,
+                          },
+                        )
+                      }
+                    >
+                      런트레이너 시작
+                    </button>
+                  )}
 
                 {isCompleted ? (
                   <div className="completed-record">
@@ -1275,14 +1324,19 @@ function App({
   ] = useState('home')
 
   const [
-    selectedProgram,
-    setSelectedProgram,
-  ] = useState(null)
+  selectedProgram,
+  setSelectedProgram,
+] = useState(null)
 
-  const [
-    personalizationVersion,
-    setPersonalizationVersion,
-  ] = useState(0)
+const [
+  selectedRunTrainer,
+  setSelectedRunTrainer,
+] = useState(null)
+
+const [
+  personalizationVersion,
+  setPersonalizationVersion,
+] = useState(0)
 
   const [
     personalizationError,
@@ -1310,6 +1364,21 @@ function App({
   } = getCurrentMemberAccess(
     profile,
   )
+
+  const startRunTrainer = (
+  session,
+  context = {},
+) => {
+  setSelectedRunTrainer({
+    session,
+
+    calendarEventId:
+      context.calendarEventId || '',
+
+    workoutDate:
+      context.workoutDate || '',
+  })
+}
 
   useEffect(() => {
     let isMounted = true
@@ -1631,6 +1700,36 @@ function App({
     )
   }
 
+  if (selectedRunTrainer) {
+  return (
+    <RunTrainerPage
+      member={currentMember}
+      session={
+        selectedRunTrainer.session
+      }
+      programKey={
+        selectedRunTrainer
+          .session
+          .runTrainerKey
+      }
+      calendarEventId={
+        selectedRunTrainer
+          .calendarEventId
+      }
+      workoutDate={
+        selectedRunTrainer
+          .workoutDate
+      }
+      onClose={() =>
+        setSelectedRunTrainer(null)
+      }
+      onComplete={
+        completeWorkout
+      }
+    />
+  )
+}
+
   if (selectedProgram) {
     const selectedProgramData =
       programs[
@@ -1702,12 +1801,14 @@ function App({
             personalizationError
           }
           onBack={() =>
-            setSelectedProgram(null)
-          }
-          onComplete={
-            completeWorkout
-          }
-        />
+  setSelectedProgram(null)
+}
+onStartRunTrainer={
+  startRunTrainer
+}
+onComplete={
+  completeWorkout
+}/>
       </div>
     )
   }
