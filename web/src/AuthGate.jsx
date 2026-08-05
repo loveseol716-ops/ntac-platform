@@ -9,6 +9,22 @@ import {
   loadWeeklyProgramsFromSupabase,
 } from './data/weeklyPrograms.js'
 
+const trainingGoalOptions = [
+  'HYROX 첫 완주',
+  'HYROX 기록 향상',
+  '러닝 능력 향상',
+  '근력 향상',
+  '전반적인 체력 향상',
+  '체성분 개선',
+]
+
+const trainingExperienceOptions = [
+  '6개월 미만',
+  '6개월 이상 1년 미만',
+  '1년 이상 3년 미만',
+  '3년 이상',
+]
+
 function AuthGate() {
   const [session, setSession] =
     useState(undefined)
@@ -38,6 +54,57 @@ function AuthGate() {
 
   const [setupName, setSetupName] =
     useState('')
+
+  const [setupSex, setSetupSex] =
+    useState('')
+
+  const [
+    setupBirthDate,
+    setSetupBirthDate,
+  ] = useState('')
+
+  const [setupPhone, setSetupPhone] =
+    useState('')
+
+  const [
+    setupTrainingGoal,
+    setSetupTrainingGoal,
+  ] = useState('')
+
+  const [
+    setupTrainingExperience,
+    setSetupTrainingExperience,
+  ] = useState('')
+
+  const [
+    setupBodyFitEnabled,
+    setSetupBodyFitEnabled,
+  ] = useState(false)
+
+  const [
+    setupMeasurementMethod,
+    setSetupMeasurementMethod,
+  ] = useState('inbody')
+
+  const [
+    setupHeightCm,
+    setSetupHeightCm,
+  ] = useState('')
+
+  const [
+    setupWeightKg,
+    setSetupWeightKg,
+  ] = useState('')
+
+  const [
+    setupBodyFatPercent,
+    setSetupBodyFatPercent,
+  ] = useState('')
+
+  const [
+    setupPrivacyConsent,
+    setSetupPrivacyConsent,
+  ] = useState(false)
 
   const [
     setupPassword,
@@ -154,7 +221,13 @@ function AuthGate() {
               membership_status,
               coach_care,
               coach_name,
-              onboarding_completed
+              onboarding_completed,
+              sex,
+              birth_date,
+              phone,
+              training_goal,
+              training_experience,
+              privacy_consent_at
             `,
           )
           .eq(
@@ -173,11 +246,6 @@ function AuthGate() {
 
         setProfile(data)
 
-        /*
-         * onboarding_completed가 false인
-         * 초대 계정은 앱으로 들어가기 전에
-         * 이름과 비밀번호를 설정한다.
-         */
         if (
           data.onboarding_completed !==
           true
@@ -186,18 +254,40 @@ function AuthGate() {
             data.full_name || '',
           )
 
+          setSetupSex(
+            data.sex || '',
+          )
+
+          setSetupBirthDate(
+            data.birth_date || '',
+          )
+
+          setSetupPhone(
+            data.phone || '',
+          )
+
+          setSetupTrainingGoal(
+            data.training_goal || '',
+          )
+
+          setSetupTrainingExperience(
+            data.training_experience ||
+              '',
+          )
+
+          setSetupPrivacyConsent(
+            Boolean(
+              data.privacy_consent_at,
+            ),
+          )
+
           setAccountSetupRequired(true)
           setAppComponent(null)
-
           return
         }
 
         setAccountSetupRequired(false)
 
-        /*
-         * App을 불러오기 전에
-         * 최신 프로그램을 동기화한다.
-         */
         try {
           await loadWeeklyProgramsFromSupabase()
 
@@ -261,11 +351,64 @@ function AuthGate() {
     const normalizedName =
       setupName.trim()
 
+    const normalizedPhone =
+      setupPhone.replace(
+        /[^0-9]/g,
+        '',
+      )
+
     if (normalizedName.length < 2) {
       setSetupError(
         '이름을 두 글자 이상 입력해 주세요.',
       )
+      return
+    }
 
+    if (!setupSex) {
+      setSetupError(
+        '성별을 선택해 주세요.',
+      )
+      return
+    }
+
+    if (!setupBirthDate) {
+      setSetupError(
+        '생년월일을 입력해 주세요.',
+      )
+      return
+    }
+
+    if (
+      new Date(setupBirthDate) >
+      new Date()
+    ) {
+      setSetupError(
+        '생년월일을 정확하게 입력해 주세요.',
+      )
+      return
+    }
+
+    if (
+      normalizedPhone.length < 10 ||
+      normalizedPhone.length > 11
+    ) {
+      setSetupError(
+        '휴대전화 번호를 정확하게 입력해 주세요.',
+      )
+      return
+    }
+
+    if (!setupTrainingGoal) {
+      setSetupError(
+        '운동 목표를 선택해 주세요.',
+      )
+      return
+    }
+
+    if (!setupTrainingExperience) {
+      setSetupError(
+        '운동 경력을 선택해 주세요.',
+      )
       return
     }
 
@@ -273,7 +416,6 @@ function AuthGate() {
       setSetupError(
         '비밀번호를 8자 이상 입력해 주세요.',
       )
-
       return
     }
 
@@ -284,8 +426,64 @@ function AuthGate() {
       setSetupError(
         '비밀번호가 서로 일치하지 않습니다.',
       )
-
       return
+    }
+
+    if (!setupPrivacyConsent) {
+      setSetupError(
+        '개인정보 수집 및 이용에 동의해 주세요.',
+      )
+      return
+    }
+
+    let bodyHeightCm = null
+    let bodyWeightKg = null
+    let bodyFatPercent = null
+
+    if (setupBodyFitEnabled) {
+      bodyHeightCm =
+        Number(setupHeightCm)
+
+      bodyWeightKg =
+        Number(setupWeightKg)
+
+      bodyFatPercent =
+        Number(
+          setupBodyFatPercent,
+        )
+
+      if (
+        !bodyHeightCm ||
+        bodyHeightCm < 100 ||
+        bodyHeightCm > 250
+      ) {
+        setSetupError(
+          '키를 정확하게 입력해 주세요.',
+        )
+        return
+      }
+
+      if (
+        !bodyWeightKg ||
+        bodyWeightKg < 25 ||
+        bodyWeightKg > 300
+      ) {
+        setSetupError(
+          '몸무게를 정확하게 입력해 주세요.',
+        )
+        return
+      }
+
+      if (
+        !bodyFatPercent ||
+        bodyFatPercent < 1 ||
+        bodyFatPercent > 70
+      ) {
+        setSetupError(
+          '체지방률을 정확하게 입력해 주세요.',
+        )
+        return
+      }
     }
 
     setSetupLoading(true)
@@ -315,6 +513,33 @@ function AuthGate() {
         {
           profile_full_name:
             normalizedName,
+
+          profile_sex:
+            setupSex,
+
+          profile_birth_date:
+            setupBirthDate,
+
+          profile_phone:
+            normalizedPhone,
+
+          profile_training_goal:
+            setupTrainingGoal,
+
+          profile_training_experience:
+            setupTrainingExperience,
+
+          body_height_cm:
+            bodyHeightCm,
+
+          body_weight_kg:
+            bodyWeightKg,
+
+          body_fat_percent:
+            bodyFatPercent,
+
+          body_measurement_method:
+            setupMeasurementMethod,
         },
       )
 
@@ -388,7 +613,6 @@ function AuthGate() {
       alert(
         '로그아웃에 실패했습니다.',
       )
-
       return
     }
 
@@ -424,19 +648,20 @@ function AuthGate() {
     accountSetupRequired
   ) {
     return (
-      <main style={styles.page}>
-        <section style={styles.card}>
+      <main style={styles.setupPage}>
+        <section style={styles.setupCard}>
           <p style={styles.eyebrow}>
             WELCOME TO NTAC
           </p>
 
           <h1 style={styles.title}>
-            계정 설정
+            계정 및 개인정보 설정
           </h1>
 
           <p style={styles.description}>
-            이름과 새 비밀번호를
-            설정해 주세요.
+            정확한 회원 관리와 개인화된
+            훈련 제공을 위해 기본 정보를
+            등록해 주세요.
           </p>
 
           <div style={styles.emailBox}>
@@ -450,62 +675,393 @@ function AuthGate() {
             }
             style={styles.form}
           >
-            <label style={styles.label}>
-              이름
+            <div style={styles.formSection}>
+              <div>
+                <p style={styles.sectionEyebrow}>
+                  BASIC PROFILE
+                </p>
 
+                <h3 style={styles.sectionTitle}>
+                  기본 정보
+                </h3>
+              </div>
+
+              <label style={styles.label}>
+                이름
+
+                <input
+                  type="text"
+                  value={setupName}
+                  onChange={(event) =>
+                    setSetupName(
+                      event.target.value,
+                    )
+                  }
+                  placeholder="이름 입력"
+                  autoComplete="name"
+                  required
+                  style={styles.input}
+                />
+              </label>
+
+              <label style={styles.label}>
+                성별
+
+                <select
+                  value={setupSex}
+                  onChange={(event) =>
+                    setSetupSex(
+                      event.target.value,
+                    )
+                  }
+                  required
+                  style={styles.input}
+                >
+                  <option value="">
+                    선택
+                  </option>
+
+                  <option value="male">
+                    남성
+                  </option>
+
+                  <option value="female">
+                    여성
+                  </option>
+                </select>
+              </label>
+
+              <label style={styles.label}>
+                생년월일
+
+                <input
+                  type="date"
+                  value={
+                    setupBirthDate
+                  }
+                  onChange={(event) =>
+                    setSetupBirthDate(
+                      event.target.value,
+                    )
+                  }
+                  required
+                  style={styles.input}
+                />
+              </label>
+
+              <label style={styles.label}>
+                휴대전화 번호
+
+                <input
+                  type="tel"
+                  value={setupPhone}
+                  onChange={(event) =>
+                    setSetupPhone(
+                      event.target.value,
+                    )
+                  }
+                  placeholder="01012345678"
+                  autoComplete="tel"
+                  required
+                  style={styles.input}
+                />
+              </label>
+            </div>
+
+            <div style={styles.formSection}>
+              <div>
+                <p style={styles.sectionEyebrow}>
+                  TRAINING PROFILE
+                </p>
+
+                <h3 style={styles.sectionTitle}>
+                  훈련 정보
+                </h3>
+              </div>
+
+              <label style={styles.label}>
+                주요 운동 목표
+
+                <select
+                  value={
+                    setupTrainingGoal
+                  }
+                  onChange={(event) =>
+                    setSetupTrainingGoal(
+                      event.target.value,
+                    )
+                  }
+                  required
+                  style={styles.input}
+                >
+                  <option value="">
+                    선택
+                  </option>
+
+                  {trainingGoalOptions.map(
+                    (goal) => (
+                      <option
+                        key={goal}
+                        value={goal}
+                      >
+                        {goal}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </label>
+
+              <label style={styles.label}>
+                운동 경력
+
+                <select
+                  value={
+                    setupTrainingExperience
+                  }
+                  onChange={(event) =>
+                    setSetupTrainingExperience(
+                      event.target.value,
+                    )
+                  }
+                  required
+                  style={styles.input}
+                >
+                  <option value="">
+                    선택
+                  </option>
+
+                  {trainingExperienceOptions.map(
+                    (experience) => (
+                      <option
+                        key={experience}
+                        value={experience}
+                      >
+                        {experience}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </label>
+            </div>
+
+            <div style={styles.formSection}>
+              <label style={styles.toggleField}>
+                <input
+                  type="checkbox"
+                  checked={
+                    setupBodyFitEnabled
+                  }
+                  onChange={(event) =>
+                    setSetupBodyFitEnabled(
+                      event.target.checked,
+                    )
+                  }
+                />
+
+                <span>
+                  <strong>
+                    초기 Body Fit Score
+                    등록
+                  </strong>
+
+                  <small>
+                    지금 입력하지 않아도
+                    마이페이지에서 나중에
+                    등록할 수 있습니다.
+                  </small>
+                </span>
+              </label>
+
+              {setupBodyFitEnabled && (
+                <div style={styles.bodyFitBox}>
+                  <p style={styles.sectionEyebrow}>
+                    BODY FIT SCORE
+                  </p>
+
+                  <label style={styles.label}>
+                    측정 방식
+
+                    <select
+                      value={
+                        setupMeasurementMethod
+                      }
+                      onChange={(event) =>
+                        setSetupMeasurementMethod(
+                          event.target.value,
+                        )
+                      }
+                      style={styles.input}
+                    >
+                      <option value="inbody">
+                        인바디
+                      </option>
+
+                      <option value="manual">
+                        직접 입력
+                      </option>
+
+                      <option value="other">
+                        기타 측정
+                      </option>
+                    </select>
+                  </label>
+
+                  <div style={styles.inputGrid}>
+                    <label style={styles.label}>
+                      키(cm)
+
+                      <input
+                        type="number"
+                        min="100"
+                        max="250"
+                        step="0.1"
+                        value={
+                          setupHeightCm
+                        }
+                        onChange={(event) =>
+                          setSetupHeightCm(
+                            event.target.value,
+                          )
+                        }
+                        placeholder="180"
+                        required={
+                          setupBodyFitEnabled
+                        }
+                        style={styles.input}
+                      />
+                    </label>
+
+                    <label style={styles.label}>
+                      몸무게(kg)
+
+                      <input
+                        type="number"
+                        min="25"
+                        max="300"
+                        step="0.1"
+                        value={
+                          setupWeightKg
+                        }
+                        onChange={(event) =>
+                          setSetupWeightKg(
+                            event.target.value,
+                          )
+                        }
+                        placeholder="80"
+                        required={
+                          setupBodyFitEnabled
+                        }
+                        style={styles.input}
+                      />
+                    </label>
+                  </div>
+
+                  <label style={styles.label}>
+                    체지방률(%)
+
+                    <input
+                      type="number"
+                      min="1"
+                      max="70"
+                      step="0.1"
+                      value={
+                        setupBodyFatPercent
+                      }
+                      onChange={(event) =>
+                        setSetupBodyFatPercent(
+                          event.target.value,
+                        )
+                      }
+                      placeholder="20"
+                      required={
+                        setupBodyFitEnabled
+                      }
+                      style={styles.input}
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+
+            <div style={styles.formSection}>
+              <div>
+                <p style={styles.sectionEyebrow}>
+                  SECURITY
+                </p>
+
+                <h3 style={styles.sectionTitle}>
+                  비밀번호 설정
+                </h3>
+              </div>
+
+              <label style={styles.label}>
+                새 비밀번호
+
+                <input
+                  type="password"
+                  value={setupPassword}
+                  onChange={(event) =>
+                    setSetupPassword(
+                      event.target.value,
+                    )
+                  }
+                  placeholder="8자 이상 입력"
+                  autoComplete="new-password"
+                  minLength="8"
+                  required
+                  style={styles.input}
+                />
+              </label>
+
+              <label style={styles.label}>
+                비밀번호 확인
+
+                <input
+                  type="password"
+                  value={
+                    setupPasswordConfirm
+                  }
+                  onChange={(event) =>
+                    setSetupPasswordConfirm(
+                      event.target.value,
+                    )
+                  }
+                  placeholder="비밀번호 다시 입력"
+                  autoComplete="new-password"
+                  minLength="8"
+                  required
+                  style={styles.input}
+                />
+              </label>
+            </div>
+
+            <label style={styles.consentField}>
               <input
-                type="text"
-                value={setupName}
+                type="checkbox"
+                checked={
+                  setupPrivacyConsent
+                }
                 onChange={(event) =>
-                  setSetupName(
-                    event.target.value,
+                  setSetupPrivacyConsent(
+                    event.target.checked,
                   )
                 }
-                placeholder="이름 입력"
-                autoComplete="name"
                 required
-                style={styles.input}
               />
-            </label>
 
-            <label style={styles.label}>
-              새 비밀번호
+              <span>
+                개인정보 수집 및 이용에
+                동의합니다.
 
-              <input
-                type="password"
-                value={setupPassword}
-                onChange={(event) =>
-                  setSetupPassword(
-                    event.target.value,
-                  )
-                }
-                placeholder="8자 이상 입력"
-                autoComplete="new-password"
-                minLength="8"
-                required
-                style={styles.input}
-              />
-            </label>
-
-            <label style={styles.label}>
-              비밀번호 확인
-
-              <input
-                type="password"
-                value={
-                  setupPasswordConfirm
-                }
-                onChange={(event) =>
-                  setSetupPasswordConfirm(
-                    event.target.value,
-                  )
-                }
-                placeholder="비밀번호 다시 입력"
-                autoComplete="new-password"
-                minLength="8"
-                required
-                style={styles.input}
-              />
+                <small>
+                  입력 정보는 회원 식별,
+                  훈련 개인화 및 Body Fit
+                  Score 계산에 사용됩니다.
+                  AI 분석 기능은 추후 별도
+                  동의를 받은 경우에만
+                  적용됩니다.
+                </small>
+              </span>
             </label>
 
             {setupError && (
@@ -528,7 +1084,7 @@ function AuthGate() {
             >
               {setupLoading
                 ? '계정 설정 중...'
-                : '계정 설정 완료'}
+                : 'NTAC 시작하기'}
             </button>
           </form>
         </section>
@@ -692,6 +1248,16 @@ const styles = {
     color: '#ffffff',
   },
 
+  setupPage: {
+    minHeight: '100dvh',
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    padding: '28px 18px 60px',
+    background: '#071f18',
+    color: '#ffffff',
+  },
+
   loadingPage: {
     minHeight: '100dvh',
     display: 'flex',
@@ -726,6 +1292,16 @@ const styles = {
     boxSizing: 'border-box',
   },
 
+  setupCard: {
+    width: '100%',
+    maxWidth: '560px',
+    padding: '30px 22px',
+    borderRadius: '24px',
+    background: '#ffffff',
+    color: '#10251e',
+    boxSizing: 'border-box',
+  },
+
   eyebrow: {
     margin: '0 0 12px',
     fontSize: '12px',
@@ -736,7 +1312,7 @@ const styles = {
 
   title: {
     margin: '0 0 8px',
-    fontSize: '32px',
+    fontSize: '30px',
   },
 
   description: {
@@ -761,6 +1337,28 @@ const styles = {
     gap: '18px',
   },
 
+  formSection: {
+    display: 'grid',
+    gap: '14px',
+    padding: '18px',
+    borderRadius: '17px',
+    background: '#f5f7f6',
+  },
+
+  sectionEyebrow: {
+    margin: '0 0 4px',
+    color: '#0b6b4f',
+    fontSize: '10px',
+    fontWeight: '900',
+    letterSpacing: '0.12em',
+  },
+
+  sectionTitle: {
+    margin: 0,
+    color: '#10251e',
+    fontSize: '18px',
+  },
+
   label: {
     display: 'grid',
     gap: '8px',
@@ -768,13 +1366,53 @@ const styles = {
     fontWeight: '700',
   },
 
+  inputGrid: {
+    display: 'grid',
+    gridTemplateColumns:
+      'repeat(2, minmax(0, 1fr))',
+    gap: '10px',
+  },
+
   input: {
     width: '100%',
+    minWidth: 0,
     boxSizing: 'border-box',
     padding: '14px 16px',
     border: '1px solid #d6dedb',
     borderRadius: '12px',
+    background: '#ffffff',
     fontSize: '16px',
+  },
+
+  toggleField: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '11px',
+    fontSize: '14px',
+    cursor: 'pointer',
+  },
+
+  consentField: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '11px',
+    padding: '16px',
+    borderRadius: '14px',
+    background: '#eef3f0',
+    color: '#33463f',
+    fontSize: '13px',
+    fontWeight: '800',
+    lineHeight: 1.5,
+    cursor: 'pointer',
+  },
+
+  bodyFitBox: {
+    display: 'grid',
+    gap: '13px',
+    padding: '16px',
+    borderRadius: '14px',
+    background: '#e6f0eb',
+    border: '1px solid #c3d8ce',
   },
 
   button: {
@@ -790,7 +1428,7 @@ const styles = {
   },
 
   error: {
-    margin: '0 0 16px',
+    margin: 0,
     color: '#c43d3d',
     fontSize: '14px',
     fontWeight: '700',
