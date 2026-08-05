@@ -719,54 +719,85 @@ function ProgramDetailPage({
     setSavingSessionId,
   ] = useState(null)
 
+  const programSessions =
+    Array.isArray(program?.sessions)
+      ? program.sessions
+      : []
+
   const matchedSessions = sessionId
-  ? program.sessions.filter(
-      (session) =>
-        session.id === sessionId,
-    )
-  : program.sessions
+    ? programSessions.filter(
+        (session) =>
+          session.id === sessionId,
+      )
+    : programSessions
 
-const calendarSession =
-  selectedWorkout
-    ? [
-        {
-          id:
-            selectedWorkout.sessionId ||
-            sessionId ||
-            calendarEventId,
+  const calendarSession =
+    selectedWorkout
+      ? [
+          {
+            id:
+              selectedWorkout.sessionId ||
+              sessionId ||
+              selectedWorkout.id ||
+              calendarEventId ||
+              'calendar-session',
 
-          type:
-            selectedWorkout.sessionType ||
-            selectedWorkout.type ||
-            'TRAINING',
+            type:
+              selectedWorkout.sessionType ||
+              selectedWorkout.type ||
+              'TRAINING',
 
-          title:
-            selectedWorkout.title ||
-            '오늘의 훈련',
+            title:
+              selectedWorkout.title ||
+              '오늘의 훈련',
 
-          subtitle:
-            selectedWorkout.subtitle ||
-            selectedWorkout.description ||
-            '',
+            subtitle:
+              selectedWorkout.subtitle ||
+              selectedWorkout.description ||
+              '',
 
-          targetRpe:
-            selectedWorkout.targetRpe ||
-            '',
+            targetRpe:
+              selectedWorkout.targetRpe ||
+              '',
 
-          sections:
-            Array.isArray(
-              selectedWorkout.sections,
-            )
-              ? selectedWorkout.sections
-              : [],
-        },
-      ]
-    : []
+            sections:
+              Array.isArray(
+                selectedWorkout.sections,
+              )
+                ? selectedWorkout.sections
+                : [],
 
-const visibleSessions =
-  matchedSessions.length > 0
-    ? matchedSessions
-    : calendarSession
+            runTrainerEnabled:
+              Boolean(
+                selectedWorkout
+                  .runTrainerEnabled,
+              ),
+
+            runTrainerKey:
+              selectedWorkout
+                .runTrainerKey ||
+              selectedWorkout
+                .sessionId ||
+              sessionId ||
+              '',
+
+            isPersonalized:
+              Boolean(
+                selectedWorkout
+                  .isPersonalized,
+              ),
+
+            coachNote:
+              selectedWorkout.coachNote ||
+              '',
+          },
+        ]
+      : []
+
+  const visibleSessions =
+    matchedSessions.length > 0
+      ? matchedSessions
+      : calendarSession
 
   const completeSession = async (
     session,
@@ -855,141 +886,107 @@ const visibleSessions =
         </article>
       )}
 
-      <div className="session-list">
-        {visibleSessions.map(
-          (commonSession) => {
-            const session =
-              getPersonalizedSession(
-                commonSession,
-                member.id,
-                calendarEventId,
-              )
+      {visibleSessions.length === 0 ? (
+        <article className="feature-card locked">
+          <span className="locked-badge">
+            PROGRAM DATA ERROR
+          </span>
 
-            const record =
-              calendarEventId
-                ? calendarRecords[
-                    calendarEventId
-                  ]
-                : records[
-                    session.id
-                  ]
+          <h3>
+            운동 내용을 불러오지
+            못했습니다.
+          </h3>
 
-            const isCompleted =
-              Boolean(record)
+          <p>
+            뒤로 돌아가 다시 열어주세요.
+          </p>
+        </article>
+      ) : (
+        <div className="session-list">
+          {visibleSessions.map(
+            (commonSession) => {
+              const session =
+                getPersonalizedSession(
+                  commonSession,
+                  member.id,
+                  calendarEventId,
+                )
 
-            const isSaving =
-              savingSessionId ===
-              session.id
+              const record =
+                calendarEventId
+                  ? calendarRecords[
+                      calendarEventId
+                    ]
+                  : records[
+                      session.id
+                    ]
 
-            return (
-              <article
-                className={
-                  `session-card ${
-                    isCompleted
-                      ? 'completed'
-                      : ''
-                  }`
-                }
-                key={session.id}
-              >
-                <div className="session-top">
-                  <span className="session-tag">
-                    {session.type}
-                  </span>
+              const isCompleted =
+                Boolean(record)
 
-                  {isCompleted && (
-                    <span className="done-badge">
-                      완료
+              const isSaving =
+                savingSessionId ===
+                session.id
+
+              const isIntervalSession =
+                String(
+                  session.type || '',
+                )
+                  .toUpperCase()
+                  .includes('INTERVAL')
+
+              const canStartRunTrainer =
+                !isCompleted &&
+                (
+                  session
+                    .runTrainerEnabled ||
+                  isIntervalSession
+                )
+
+              const sections =
+                Array.isArray(
+                  session.sections,
+                )
+                  ? session.sections
+                  : []
+
+              return (
+                <article
+                  className={
+                    `session-card ${
+                      isCompleted
+                        ? 'completed'
+                        : ''
+                    }`
+                  }
+                  key={session.id}
+                >
+                  <div className="session-top">
+                    <span className="session-tag">
+                      {session.type}
                     </span>
-                  )}
-                </div>
 
-                <h3>
-                  {session.title}
-                </h3>
+                    {isCompleted && (
+                      <span className="done-badge">
+                        완료
+                      </span>
+                    )}
+                  </div>
 
-                <p className="session-subtitle">
-                  {session.subtitle}
-                </p>
+                  <h3>
+                    {session.title}
+                  </h3>
 
-                <PersonalPlan
-                  session={session}
-                  member={member}
-                />
+                  <p className="session-subtitle">
+                    {session.subtitle}
+                  </p>
 
-                {String(session.type || '')
-  .toUpperCase()
-  .includes('INTERVAL') && (
-  <button
-    className="run-trainer-button"
-    type="button"
-    onClick={openRunTrainer}
-  >
-    <div className="run-trainer-button-text">
-      <span>GUIDED RUN</span>
+                  <PersonalPlan
+                    session={session}
+                    member={member}
+                  />
 
-      <strong>
-        런트레이너 시작
-      </strong>
-
-      <p>
-        구간과 페이스를 실시간으로
-        안내받으며 운동하세요.
-      </p>
-    </div>
-
-    <div className="run-trainer-play">
-      ▶
-    </div>
-  </button>
-)}
-
-
-                <div className="training-sections">
-                  {session.sections.map(
-                    (section) => (
-                      <section
-                        className="training-section"
-                        key={
-                          section.title
-                        }
-                      >
-                        <div className="training-section-title">
-                          <span>
-                            {
-                              section.title
-                            }
-                          </span>
-                        </div>
-
-                        <div className="training-items">
-                          {section.items.map(
-                            (
-                              item,
-                              itemIndex,
-                            ) => (
-                              <div
-                                className="training-item"
-                                key={
-                                  `${section.title}-${itemIndex}`
-                                }
-                              >
-                                <span className="training-dot" />
-
-                                <p>
-                                  {item}
-                                </p>
-                              </div>
-                            ),
-                          )}
-                        </div>
-                      </section>
-                    ),
-                  )}
-                </div>
-
-                {session.runTrainerEnabled &&
-                  !isCompleted && (
+                  {canStartRunTrainer && (
                     <button
                       className="run-trainer-button"
                       type="button"
@@ -1003,97 +1000,182 @@ const visibleSessions =
                         )
                       }
                     >
-                      런트레이너 시작
+                      <div className="run-trainer-button-text">
+                        <span>
+                          GUIDED RUN
+                        </span>
+
+                        <strong>
+                          런트레이너 시작
+                        </strong>
+
+                        <p>
+                          구간과 페이스를
+                          실시간으로 안내받으며
+                          운동하세요.
+                        </p>
+                      </div>
+
+                      <div className="run-trainer-play">
+                        ▶
+                      </div>
                     </button>
                   )}
 
-                {isCompleted ? (
-                  <div className="completed-record">
-                    <span>
-                      실제 수행 RPE
-                    </span>
+                  <div className="training-sections">
+                    {sections.length > 0 ? (
+                      sections.map(
+                        (
+                          section,
+                          sectionIndex,
+                        ) => {
+                          const items =
+                            Array.isArray(
+                              section.items,
+                            )
+                              ? section.items
+                              : []
 
-                    <strong>
-                      {record.rpe}
-                    </strong>
+                          return (
+                            <section
+                              className="training-section"
+                              key={
+                                section.title ||
+                                `section-${sectionIndex}`
+                              }
+                            >
+                              <div className="training-section-title">
+                                <span>
+                                  {
+                                    section.title
+                                  }
+                                </span>
+                              </div>
+
+                              <div className="training-items">
+                                {items.map(
+                                  (
+                                    item,
+                                    itemIndex,
+                                  ) => (
+                                    <div
+                                      className="training-item"
+                                      key={
+                                        `${
+                                          section.title ||
+                                          'section'
+                                        }-${itemIndex}`
+                                      }
+                                    >
+                                      <span className="training-dot" />
+
+                                      <p>
+                                        {item}
+                                      </p>
+                                    </div>
+                                  ),
+                                )}
+                              </div>
+                            </section>
+                          )
+                        },
+                      )
+                    ) : (
+                      <p className="session-subtitle">
+                        세부 운동 내용이 아직
+                        등록되지 않았습니다.
+                      </p>
+                    )}
                   </div>
-                ) : (
-                  <>
-                    <label className="rpe-field">
-                      실제 수행 RPE
 
-                      <select
-                        value={
-                          rpeValues[
-                            session.id
-                          ] || ''
-                        }
-                        onChange={(
-                          event,
-                        ) =>
-                          setRpeValues(
-                            (
-                              current,
-                            ) => ({
-                              ...current,
+                  {isCompleted ? (
+                    <div className="completed-record">
+                      <span>
+                        실제 수행 RPE
+                      </span>
 
-                              [session.id]:
-                                event
-                                  .target
-                                  .value,
-                            }),
+                      <strong>
+                        {record.rpe}
+                      </strong>
+                    </div>
+                  ) : (
+                    <>
+                      <label className="rpe-field">
+                        실제 수행 RPE
+
+                        <select
+                          value={
+                            rpeValues[
+                              session.id
+                            ] || ''
+                          }
+                          onChange={(
+                            event,
+                          ) =>
+                            setRpeValues(
+                              (
+                                current,
+                              ) => ({
+                                ...current,
+
+                                [session.id]:
+                                  event
+                                    .target
+                                    .value,
+                              }),
+                            )
+                          }
+                        >
+                          <option value="">
+                            선택
+                          </option>
+
+                          {[
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6,
+                            7,
+                            8,
+                            9,
+                            10,
+                          ].map(
+                            (value) => (
+                              <option
+                                key={value}
+                                value={value}
+                              >
+                                {value}
+                              </option>
+                            ),
+                          )}
+                        </select>
+                      </label>
+
+                      <button
+                        className="complete-button"
+                        type="button"
+                        disabled={isSaving}
+                        onClick={() =>
+                          completeSession(
+                            session,
                           )
                         }
                       >
-                        <option value="">
-                          선택
-                        </option>
-
-                        {[
-                          1,
-                          2,
-                          3,
-                          4,
-                          5,
-                          6,
-                          7,
-                          8,
-                          9,
-                          10,
-                        ].map(
-                          (value) => (
-                            <option
-                              key={value}
-                              value={value}
-                            >
-                              {value}
-                            </option>
-                          ),
-                        )}
-                      </select>
-                    </label>
-
-                    <button
-                      className="complete-button"
-                      type="button"
-                      disabled={isSaving}
-                      onClick={() =>
-                        completeSession(
-                          session,
-                        )
-                      }
-                    >
-                      {isSaving
-                        ? '저장 중...'
-                        : '운동 완료'}
-                    </button>
-                  </>
-                )}
-              </article>
-            )
-          },
-        )}
-      </div>
+                        {isSaving
+                          ? '저장 중...'
+                          : '운동 완료'}
+                      </button>
+                    </>
+                  )}
+                </article>
+              )
+            },
+          )}
+        </div>
+      )}
     </section>
   )
 }
@@ -1328,25 +1410,25 @@ function MyPage({
       )}
 
       {activeSection === 'settings' && (
-  <>
-    <p
-      style={
-        myPageStyles.sectionIntro
-      }
-    >
-      개인정보와 러닝 기준 페이스,
-      로그인 비밀번호를 관리합니다.
-    </p>
+        <>
+          <p
+            style={
+              myPageStyles.sectionIntro
+            }
+          >
+            개인정보와 러닝 기준 페이스,
+            로그인 비밀번호를 관리합니다.
+          </p>
 
-    <RunningPaceSection
-      memberId={member.id}
-    />
+          <RunningPaceSection
+            memberId={member.id}
+          />
 
-    <ProfileEditSection />
+          <ProfileEditSection />
 
-    <PasswordChangeSection />
-  </>
-)}
+          <PasswordChangeSection />
+        </>
+      )}
     </section>
   )
 }
@@ -1355,8 +1437,8 @@ function App({
   profile,
 }) {
   const isAdmin =
-  profile?.role === 'admin' ||
-  profile?.role === 'owner'
+    profile?.role === 'admin' ||
+    profile?.role === 'owner'
 
   const currentMember =
     createCurrentMember(profile)
@@ -1367,19 +1449,19 @@ function App({
   ] = useState('home')
 
   const [
-  selectedProgram,
-  setSelectedProgram,
-] = useState(null)
+    selectedProgram,
+    setSelectedProgram,
+  ] = useState(null)
 
-const [
-  selectedRunTrainer,
-  setSelectedRunTrainer,
-] = useState(null)
+  const [
+    selectedRunTrainer,
+    setSelectedRunTrainer,
+  ] = useState(null)
 
-const [
-  personalizationVersion,
-  setPersonalizationVersion,
-] = useState(0)
+  const [
+    personalizationVersion,
+    setPersonalizationVersion,
+  ] = useState(0)
 
   const [
     personalizationError,
@@ -1409,19 +1491,21 @@ const [
   )
 
   const startRunTrainer = (
-  session,
-  context = {},
-) => {
-  setSelectedRunTrainer({
     session,
+    context = {},
+  ) => {
+    setSelectedRunTrainer({
+      session,
 
-    calendarEventId:
-      context.calendarEventId || '',
+      calendarEventId:
+        context.calendarEventId ||
+        '',
 
-    workoutDate:
-      context.workoutDate || '',
-  })
-}
+      workoutDate:
+        context.workoutDate ||
+        '',
+    })
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -1582,22 +1666,19 @@ const [
       return
     }
 
-    /*
-     * 프로그램을 열 때마다
-     * Supabase에서 최신 개인 설정을
-     * 다시 가져온다.
-     */
     try {
-      await loadMemberProgramOverrides(
-        currentMember.id,
-      )
+      if (currentMember.id) {
+        await loadMemberProgramOverrides(
+          currentMember.id,
+        )
 
-      setPersonalizationError('')
+        setPersonalizationError('')
 
-      setPersonalizationVersion(
-        (current) =>
-          current + 1,
-      )
+        setPersonalizationVersion(
+          (current) =>
+            current + 1,
+        )
+      }
     } catch (error) {
       console.error(
         '개인 프로그램 최신 조회 실패:',
@@ -1645,8 +1726,8 @@ const [
     if (activeTab === 'my') {
       return (
         <MyPage
-  member={currentMember}
-  settings={settings}
+          member={currentMember}
+          settings={settings}
           progressPercent={
             progressPercent
           }
@@ -1744,47 +1825,61 @@ const [
   }
 
   if (selectedRunTrainer) {
-  return (
-    <RunTrainerPage
-      member={currentMember}
-      session={
-        selectedRunTrainer.session
-      }
-      programKey={
-        selectedRunTrainer
-          .session
-          .runTrainerKey
-      }
-      calendarEventId={
-        selectedRunTrainer
-          .calendarEventId
-      }
-      workoutDate={
-        selectedRunTrainer
-          .workoutDate
-      }
-      onClose={() =>
-        setSelectedRunTrainer(null)
-      }
-      onComplete={
-        completeWorkout
-      }
-    />
-  )
-}
+    return (
+      <RunTrainerPage
+        member={currentMember}
+        session={
+          selectedRunTrainer.session
+        }
+        programKey={
+          selectedRunTrainer
+            .session
+            .runTrainerKey
+        }
+        calendarEventId={
+          selectedRunTrainer
+            .calendarEventId
+        }
+        workoutDate={
+          selectedRunTrainer
+            .workoutDate
+        }
+        onClose={() =>
+          setSelectedRunTrainer(null)
+        }
+        onComplete={
+          completeWorkout
+        }
+      />
+    )
+  }
 
   if (selectedProgram) {
     const selectedProgramData =
-      programs[selectedProgram.programId]
+      programs[
+        selectedProgram.programId
+      ]
 
-      const selectedWorkout =
-  allTrainingEvents.find(
-    (event) =>
-      event.id ===
-        selectedProgram.calendarEventId ||
-      event.sessionId ===
-        selectedProgram.sessionId,
-  ) || null
+    const selectedWorkout =
+      allTrainingEvents.find(
+        (event) => {
+          if (
+            selectedProgram
+              .calendarEventId
+          ) {
+            return (
+              event.id ===
+              selectedProgram
+                .calendarEventId
+            )
+          }
+
+          return (
+            event.sessionId ===
+            selectedProgram.sessionId
+          )
+        },
+      ) || null
 
     if (!selectedProgramData) {
       return (
@@ -1831,7 +1926,9 @@ const [
           program={
             selectedProgramData
           }
-          selectedWorkout={selectedWorkout}
+          selectedWorkout={
+            selectedWorkout
+          }
           sessionId={
             selectedProgram.sessionId
           }
@@ -1852,14 +1949,15 @@ const [
             personalizationError
           }
           onBack={() =>
-  setSelectedProgram(null)
-}
-onStartRunTrainer={
-  startRunTrainer
-}
-onComplete={
-  completeWorkout
-}/>
+            setSelectedProgram(null)
+          }
+          onStartRunTrainer={
+            startRunTrainer
+          }
+          onComplete={
+            completeWorkout
+          }
+        />
       </div>
     )
   }
