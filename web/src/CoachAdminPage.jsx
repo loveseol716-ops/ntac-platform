@@ -5,7 +5,9 @@ import {
 } from 'react'
 
 import WeeklyProgramAdmin from './WeeklyProgramAdmin'
+import PersonalProgramAdmin from './PersonalProgramAdmin'
 import CommunityAdmin from './CommunityAdmin'
+import AdminAccessManagement from './AdminAccessManagement'
 import { supabase } from './lib/supabase.js'
 
 const adminTabs = [
@@ -18,8 +20,16 @@ const adminTabs = [
     label: '프로그램 관리',
   },
   {
+    id: 'personal',
+    label: '개인 프로그램',
+  },
+  {
     id: 'community',
     label: '커뮤니티 관리',
+  },
+  {
+    id: 'access',
+    label: '권한 관리',
   },
 ]
 
@@ -138,6 +148,11 @@ function CoachAdminPage({
     setActiveAdminTab,
   ] = useState('members')
 
+  const [
+    membersRefreshKey,
+    setMembersRefreshKey,
+  ] = useState(0)
+
   const [members, setMembers] =
     useState([])
 
@@ -255,7 +270,7 @@ function CoachAdminPage({
             coach_name
           `,
         )
-        .neq('role', 'admin')
+        .eq('role', 'member')
         .order('full_name', {
           ascending: true,
         })
@@ -288,7 +303,7 @@ function CoachAdminPage({
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [membersRefreshKey])
 
   useEffect(() => {
     if (membersLoading) {
@@ -427,8 +442,7 @@ function CoachAdminPage({
           )
 
           setErrorMessage(
-            checkinResult.error
-              .message,
+            checkinResult.error.message,
           )
         }
 
@@ -439,8 +453,7 @@ function CoachAdminPage({
           )
 
           setErrorMessage(
-            workoutResult.error
-              .message,
+            workoutResult.error.message,
           )
         }
 
@@ -569,13 +582,17 @@ function CoachAdminPage({
         .update({
           full_name:
             memberSettings.fullName.trim(),
+
           membership:
             memberSettings.membership,
+
           membership_status:
             memberSettings
               .membershipStatus,
+
           coach_care:
             memberSettings.coachCare,
+
           coach_name:
             memberSettings.coachName
               .trim() || '미배정',
@@ -628,15 +645,19 @@ function CoachAdminPage({
       setMemberSettings({
         fullName:
           data.full_name || '',
+
         membership:
           data.membership ||
           'NTAC RUN',
+
         membershipStatus:
           data.membership_status ||
           'active',
+
         coachCare: Boolean(
           data.coach_care,
         ),
+
         coachName:
           data.coach_name ||
           '미배정',
@@ -754,7 +775,9 @@ function CoachAdminPage({
                       color: '#66736e',
                     }}
                   >
-                    전체 {members.length}명 · 검색 결과{' '}
+                    전체 {members.length}명
+                    {' · '}
+                    검색 결과{' '}
                     {filteredMembers.length}명
                   </span>
 
@@ -1042,8 +1065,7 @@ function CoachAdminPage({
 
                                 <div className="dashboard-message">
                                   <span>
-                                    코치에게 전달한
-                                    내용
+                                    코치에게 전달한 내용
                                   </span>
 
                                   <p>
@@ -1484,8 +1506,8 @@ function CoachAdminPage({
         </button>
 
         <div>
-          <p>NTAC COACH</p>
-          <h2>코치 관리자</h2>
+          <p>NTAC ADMIN</p>
+          <h2>관리자</h2>
         </div>
       </div>
 
@@ -1493,8 +1515,8 @@ function CoachAdminPage({
         style={{
           display: 'grid',
           gridTemplateColumns:
-            'repeat(3, 1fr)',
-          gap: '8px',
+            'repeat(5, minmax(0, 1fr))',
+          gap: '6px',
           margin: '18px 0 24px',
           padding: '6px',
           borderRadius: '16px',
@@ -1515,8 +1537,9 @@ function CoachAdminPage({
                 )
               }
               style={{
-                minHeight: '44px',
-                padding: '10px 6px',
+                minWidth: 0,
+                minHeight: '48px',
+                padding: '8px 4px',
                 border: 'none',
                 borderRadius: '12px',
                 background: isActive
@@ -1525,9 +1548,11 @@ function CoachAdminPage({
                 color: isActive
                   ? '#ffffff'
                   : '#33463f',
-                fontSize: '12px',
+                fontSize: '10px',
                 fontWeight: '800',
+                lineHeight: 1.25,
                 cursor: 'pointer',
+                wordBreak: 'keep-all',
               }}
             >
               {tab.label}
@@ -1546,8 +1571,25 @@ function CoachAdminPage({
       )}
 
       {activeAdminTab ===
+        'personal' && (
+        <PersonalProgramAdmin />
+      )}
+
+      {activeAdminTab ===
         'community' && (
         <CommunityAdmin />
+      )}
+
+      {activeAdminTab ===
+        'access' && (
+        <AdminAccessManagement
+          onAccessChanged={() =>
+            setMembersRefreshKey(
+              (current) =>
+                current + 1,
+            )
+          }
+        />
       )}
     </section>
   )
