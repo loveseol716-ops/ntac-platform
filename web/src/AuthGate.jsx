@@ -9,6 +9,9 @@ import {
   loadWeeklyProgramsFromSupabase,
 } from './data/weeklyPrograms.js'
 
+const PASSWORD_RECOVERY_REDIRECT_URL =
+  'https://loveseol716-ops.github.io/ntac-platform/'
+
 const trainingGoalOptions = [
   'HYROX 첫 완주',
   'HYROX 기록 향상',
@@ -51,6 +54,56 @@ function AuthGate() {
     accountSetupRequired,
     setAccountSetupRequired,
   ] = useState(false)
+
+  const [
+    authView,
+    setAuthView,
+  ] = useState('login')
+
+  const [
+    recoveryMode,
+    setRecoveryMode,
+  ] = useState(false)
+
+  const [
+    recoveryEmail,
+    setRecoveryEmail,
+  ] = useState('')
+
+  const [
+    recoverySending,
+    setRecoverySending,
+  ] = useState(false)
+
+  const [
+    recoveryError,
+    setRecoveryError,
+  ] = useState('')
+
+  const [
+    recoveryMessage,
+    setRecoveryMessage,
+  ] = useState('')
+
+  const [
+    recoveryPassword,
+    setRecoveryPassword,
+  ] = useState('')
+
+  const [
+    recoveryPasswordConfirm,
+    setRecoveryPasswordConfirm,
+  ] = useState('')
+
+  const [
+    recoveryUpdating,
+    setRecoveryUpdating,
+  ] = useState(false)
+
+  const [
+    loginNotice,
+    setLoginNotice,
+  ] = useState('')
 
   const [setupName, setSetupName] =
     useState('')
@@ -175,7 +228,17 @@ function AuthGate() {
       data: { subscription },
     } =
       supabase.auth.onAuthStateChange(
-        (_event, nextSession) => {
+        (event, nextSession) => {
+          if (
+            event ===
+            'PASSWORD_RECOVERY'
+          ) {
+            setRecoveryMode(true)
+            setAuthView('login')
+            setRecoveryError('')
+            setRecoveryMessage('')
+          }
+
           setSession(nextSession)
         },
       )
@@ -190,6 +253,14 @@ function AuthGate() {
     let isMounted = true
 
     const prepareApp = async () => {
+      if (recoveryMode) {
+        setProfile(null)
+        setAppComponent(null)
+        setAccountSetupRequired(false)
+        setAppLoading(false)
+        return
+      }
+
       if (!session?.user?.id) {
         setProfile(null)
         setAppComponent(null)
@@ -341,7 +412,10 @@ function AuthGate() {
     return () => {
       isMounted = false
     }
-  }, [session?.user?.id])
+  }, [
+    session?.user?.id,
+    recoveryMode,
+  ])
 
   const handleAccountSetup = async (
     event,
@@ -576,6 +650,7 @@ function AuthGate() {
 
     setLoginLoading(true)
     setErrorMessage('')
+    setLoginNotice('')
 
     const { error } =
       await supabase.auth
@@ -598,6 +673,140 @@ function AuthGate() {
     setLoginLoading(false)
   }
 
+  const handleRecoveryEmailSubmit =
+    async (event) => {
+      event.preventDefault()
+
+      const normalizedEmail =
+        recoveryEmail.trim()
+
+      setRecoveryError('')
+      setRecoveryMessage('')
+
+      if (!normalizedEmail) {
+        setRecoveryError(
+          '이메일을 입력해 주세요.',
+        )
+        return
+      }
+
+      setRecoverySending(true)
+
+      try {
+        const { error } =
+          await supabase.auth
+            .resetPasswordForEmail(
+              normalizedEmail,
+              {
+                redirectTo:
+                  PASSWORD_RECOVERY_REDIRECT_URL,
+              },
+            )
+
+        if (error) {
+          throw error
+        }
+
+        setRecoveryMessage(
+          '등록된 이메일이라면 비밀번호 재설정 메일이 발송됩니다. 메일함과 스팸함을 확인해 주세요.',
+        )
+      } catch (error) {
+        console.error(
+          '복구 이메일 발송 실패:',
+          error,
+        )
+
+        setRecoveryError(
+          error.message ||
+            '복구 이메일을 발송하지 못했습니다.',
+        )
+      } finally {
+        setRecoverySending(false)
+      }
+    }
+
+  const handleRecoveryPasswordUpdate =
+    async (event) => {
+      event.preventDefault()
+
+      setRecoveryError('')
+      setRecoveryMessage('')
+
+      if (
+        recoveryPassword.length < 8
+      ) {
+        setRecoveryError(
+          '새 비밀번호를 8자 이상 입력해 주세요.',
+        )
+        return
+      }
+
+      if (
+        recoveryPassword !==
+        recoveryPasswordConfirm
+      ) {
+        setRecoveryError(
+          '새 비밀번호가 서로 일치하지 않습니다.',
+        )
+        return
+      }
+
+      setRecoveryUpdating(true)
+
+      try {
+        const { error: updateError } =
+          await supabase.auth
+            .updateUser({
+              password:
+                recoveryPassword,
+            })
+
+        if (updateError) {
+          throw updateError
+        }
+
+        const { error: signOutError } =
+          await supabase.auth.signOut({
+            scope: 'local',
+          })
+
+        if (signOutError) {
+          console.error(
+            '복구 후 로그아웃 실패:',
+            signOutError,
+          )
+        }
+
+        window.history.replaceState(
+          {},
+          document.title,
+          import.meta.env.BASE_URL,
+        )
+
+        setRecoveryMode(false)
+        setSession(null)
+        setRecoveryPassword('')
+        setRecoveryPasswordConfirm('')
+        setAuthView('login')
+
+        setLoginNotice(
+          '비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.',
+        )
+      } catch (error) {
+        console.error(
+          '비밀번호 재설정 실패:',
+          error,
+        )
+
+        setRecoveryError(
+          error.message ||
+            '비밀번호를 변경하지 못했습니다. 복구 링크를 다시 요청해 주세요.',
+        )
+      } finally {
+        setRecoveryUpdating(false)
+      }
+    }
+
   const handleLogout = async () => {
     const { error } =
       await supabase.auth.signOut({
@@ -619,10 +828,129 @@ function AuthGate() {
     window.location.reload()
   }
 
+  if (session === undefined) {
+    return (
+      <main style={styles.loadingPage}>
+        <div style={styles.loadingCard}>
+          <p style={styles.eyebrow}>
+            NTAC PLATFORM
+          </p>
+
+          <h2 style={styles.loadingTitle}>
+            앱을 준비하고 있습니다.
+          </h2>
+
+          <p style={styles.description}>
+            로그인 정보를 확인하고 있습니다.
+          </p>
+        </div>
+      </main>
+    )
+  }
+
   if (
-    session === undefined ||
-    appLoading
+    recoveryMode &&
+    session
   ) {
+    return (
+      <main style={styles.page}>
+        <section style={styles.card}>
+          <p style={styles.eyebrow}>
+            PASSWORD RECOVERY
+          </p>
+
+          <h1 style={styles.title}>
+            새 비밀번호 설정
+          </h1>
+
+          <p style={styles.description}>
+            앞으로 사용할 새 비밀번호를
+            입력해 주세요.
+          </p>
+
+          <div style={styles.emailBox}>
+            {session.user.email}
+          </div>
+
+          <form
+            onSubmit={
+              handleRecoveryPasswordUpdate
+            }
+            style={styles.form}
+          >
+            <label style={styles.label}>
+              새 비밀번호
+
+              <input
+                type="password"
+                value={
+                  recoveryPassword
+                }
+                onChange={(event) =>
+                  setRecoveryPassword(
+                    event.target.value,
+                  )
+                }
+                placeholder="8자 이상 입력"
+                autoComplete="new-password"
+                minLength="8"
+                required
+                style={styles.input}
+              />
+            </label>
+
+            <label style={styles.label}>
+              새 비밀번호 확인
+
+              <input
+                type="password"
+                value={
+                  recoveryPasswordConfirm
+                }
+                onChange={(event) =>
+                  setRecoveryPasswordConfirm(
+                    event.target.value,
+                  )
+                }
+                placeholder="새 비밀번호 다시 입력"
+                autoComplete="new-password"
+                minLength="8"
+                required
+                style={styles.input}
+              />
+            </label>
+
+            {recoveryError && (
+              <p style={styles.errorBox}>
+                {recoveryError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={
+                recoveryUpdating
+              }
+              style={{
+                ...styles.button,
+
+                opacity:
+                  recoveryUpdating
+                    ? 0.6
+                    : 1,
+              }}
+            >
+              {recoveryUpdating
+                ? '변경 중...'
+                : '새 비밀번호 저장'}
+            </button>
+          </form>
+        </section>
+      </main>
+    )
+  }
+
+  if (appLoading) {
     return (
       <main style={styles.loadingPage}>
         <div style={styles.loadingCard}>
@@ -636,7 +964,7 @@ function AuthGate() {
 
           <p style={styles.description}>
             {bootMessage ||
-              '로그인 정보를 확인하고 있습니다.'}
+              '회원 정보를 확인하고 있습니다.'}
           </p>
         </div>
       </main>
@@ -860,8 +1188,7 @@ function AuthGate() {
 
                 <span>
                   <strong>
-                    초기 Body Fit Score
-                    등록
+                    초기 Body Fit Score 등록
                   </strong>
 
                   <small>
@@ -1093,6 +1420,96 @@ function AuthGate() {
   }
 
   if (!session) {
+    if (authView === 'forgot') {
+      return (
+        <main style={styles.page}>
+          <section style={styles.card}>
+            <p style={styles.eyebrow}>
+              PASSWORD RECOVERY
+            </p>
+
+            <h1 style={styles.title}>
+              비밀번호 찾기
+            </h1>
+
+            <p style={styles.description}>
+              가입한 이메일을 입력하면
+              비밀번호 재설정 링크를
+              보내드립니다.
+            </p>
+
+            <form
+              onSubmit={
+                handleRecoveryEmailSubmit
+              }
+              style={styles.form}
+            >
+              <label style={styles.label}>
+                이메일
+
+                <input
+                  type="email"
+                  value={recoveryEmail}
+                  onChange={(event) =>
+                    setRecoveryEmail(
+                      event.target.value,
+                    )
+                  }
+                  placeholder="이메일 입력"
+                  autoComplete="email"
+                  required
+                  style={styles.input}
+                />
+              </label>
+
+              {recoveryError && (
+                <p style={styles.errorBox}>
+                  {recoveryError}
+                </p>
+              )}
+
+              {recoveryMessage && (
+                <p style={styles.successBox}>
+                  {recoveryMessage}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={
+                  recoverySending
+                }
+                style={{
+                  ...styles.button,
+
+                  opacity:
+                    recoverySending
+                      ? 0.6
+                      : 1,
+                }}
+              >
+                {recoverySending
+                  ? '메일 발송 중...'
+                  : '재설정 메일 보내기'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthView('login')
+                  setRecoveryError('')
+                  setRecoveryMessage('')
+                }}
+                style={styles.secondaryButton}
+              >
+                로그인으로 돌아가기
+              </button>
+            </form>
+          </section>
+        </main>
+      )
+    }
+
     return (
       <main style={styles.page}>
         <section style={styles.card}>
@@ -1149,8 +1566,14 @@ function AuthGate() {
             </label>
 
             {errorMessage && (
-              <p style={styles.error}>
+              <p style={styles.errorBox}>
                 {errorMessage}
+              </p>
+            )}
+
+            {loginNotice && (
+              <p style={styles.successBox}>
+                {loginNotice}
               </p>
             )}
 
@@ -1169,6 +1592,22 @@ function AuthGate() {
               {loginLoading
                 ? '로그인 중...'
                 : '로그인'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setRecoveryEmail(
+                  email.trim(),
+                )
+
+                setRecoveryError('')
+                setRecoveryMessage('')
+                setAuthView('forgot')
+              }}
+              style={styles.linkButton}
+            >
+              비밀번호를 잊으셨나요?
             </button>
           </form>
         </section>
@@ -1427,10 +1866,56 @@ const styles = {
     cursor: 'pointer',
   },
 
+  secondaryButton: {
+    width: '100%',
+    padding: '14px',
+    border: '1px solid #d6dedb',
+    borderRadius: '12px',
+    background: '#ffffff',
+    color: '#33463f',
+    fontSize: '14px',
+    fontWeight: '800',
+    cursor: 'pointer',
+  },
+
+  linkButton: {
+    width: '100%',
+    padding: '4px',
+    border: 'none',
+    background: 'transparent',
+    color: '#0b6b4f',
+    fontSize: '14px',
+    fontWeight: '800',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+  },
+
   error: {
     margin: 0,
     color: '#c43d3d',
     fontSize: '14px',
+    fontWeight: '700',
+    lineHeight: 1.5,
+  },
+
+  errorBox: {
+    margin: 0,
+    padding: '12px',
+    borderRadius: '10px',
+    background: '#fff0f0',
+    color: '#c43d3d',
+    fontSize: '13px',
+    fontWeight: '700',
+    lineHeight: 1.5,
+  },
+
+  successBox: {
+    margin: 0,
+    padding: '12px',
+    borderRadius: '10px',
+    background: '#eaf5ef',
+    color: '#0b6b4f',
+    fontSize: '13px',
     fontWeight: '700',
     lineHeight: 1.5,
   },
