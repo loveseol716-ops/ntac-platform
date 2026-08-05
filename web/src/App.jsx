@@ -1,7 +1,12 @@
-import { useState } from 'react'
+import {
+  useEffect,
+  useState,
+} from 'react'
+
 import './App.css'
 
 import CoachAdminPage from './CoachAdminPage'
+import BodyFitScoreSection from './BodyFitScoreSection'
 import TrainingPage from './pages/TrainingPage'
 import CommunityPage from './pages/CommunityPage'
 import useMemberRecords from './useMemberRecords.js'
@@ -16,6 +21,7 @@ import {
 
 import {
   getPersonalizedSession,
+  loadMemberProgramOverrides,
   programs,
 } from './data/programs'
 
@@ -51,7 +57,8 @@ function createCurrentMember(profile) {
     profile?.email?.split('@')[0] ||
     'NTAC 멤버'
 
-  const compactName = name.replace(/\s/g, '')
+  const compactName =
+    name.replace(/\s/g, '')
 
   return {
     id: profile?.id || '',
@@ -63,14 +70,16 @@ function createCurrentMember(profile) {
         .toUpperCase() || 'NT',
 
     membership:
-      profile?.membership || 'NTAC RUN',
+      profile?.membership ||
+      'NTAC RUN',
   }
 }
 
 function loadMemberSettings(profile) {
   return {
     membership:
-      profile?.membership || 'NTAC RUN',
+      profile?.membership ||
+      'NTAC RUN',
 
     membershipStatus:
       profile?.membership_status ||
@@ -80,11 +89,14 @@ function loadMemberSettings(profile) {
       Boolean(profile?.coach_care),
 
     coach:
-      profile?.coach_name || '미배정',
+      profile?.coach_name ||
+      '미배정',
   }
 }
 
-function getCurrentMemberAccess(profile) {
+function getCurrentMemberAccess(
+  profile,
+) {
   const settings =
     loadMemberSettings(profile)
 
@@ -100,7 +112,9 @@ function getCurrentMemberAccess(profile) {
   }
 }
 
-function getMembershipStatusLabel(status) {
+function getMembershipStatusLabel(
+  status,
+) {
   if (status === 'paused') {
     return '일시정지'
   }
@@ -117,29 +131,35 @@ function CheckinPage({
   onComplete,
   todayCheckin,
 }) {
-  const [form, setForm] = useState({
-    condition:
-      todayCheckin?.condition ?? 3,
+  const [form, setForm] =
+    useState({
+      condition:
+        todayCheckin?.condition ??
+        3,
 
-    sleep:
-      todayCheckin?.sleep?.toString() ||
-      '',
+      sleep:
+        todayCheckin?.sleep
+          ?.toString() || '',
 
-    soreness:
-      todayCheckin?.soreness ?? 3,
+      soreness:
+        todayCheckin?.soreness ??
+        3,
 
-    stress:
-      todayCheckin?.stress ?? 3,
+      stress:
+        todayCheckin?.stress ?? 3,
 
-    pain:
-      todayCheckin?.pain || '없음',
+      pain:
+        todayCheckin?.pain ||
+        '없음',
 
-    painArea:
-      todayCheckin?.painArea || '',
+      painArea:
+        todayCheckin?.painArea ||
+        '',
 
-    message:
-      todayCheckin?.message || '',
-  })
+      message:
+        todayCheckin?.message ||
+        '',
+    })
 
   const [
     submitting,
@@ -416,7 +436,6 @@ function HomePage({
         </span>
       </section>
 
-
       {recordsLoading && (
         <article className="feature-card">
           <h3>
@@ -461,10 +480,12 @@ function HomePage({
 
               <p>
                 컨디션{' '}
-                {todayCheckin.condition}점
+                {todayCheckin.condition}
+                점
                 {' · '}
                 수면{' '}
-                {todayCheckin.sleep}시간
+                {todayCheckin.sleep}
+                시간
               </p>
             </>
           ) : (
@@ -528,7 +549,8 @@ function HomePage({
         </div>
 
         <div className="workout-list">
-          {homeTrainings.length > 0 ? (
+          {homeTrainings.length >
+          0 ? (
             homeTrainings.map(
               (workout) => {
                 const record =
@@ -641,63 +663,24 @@ function PersonalPlan({
     <div className="personal-plan">
       <div className="personal-plan-head">
         <div>
-          <p>PERSONAL TARGET</p>
+          <p>
+            PERSONALIZED PROGRAM
+          </p>
 
           <h4>
-            {member.name}님의 개인 목표
+            {member.name}님을 위해
+            조정된 프로그램
           </h4>
         </div>
 
         <span>개인화 적용</span>
       </div>
 
-      <div className="personal-grid">
-        {session.targetPace && (
-          <div className="personal-item">
-            <span>목표 페이스</span>
-
-            <strong>
-              {session.targetPace}
-            </strong>
-          </div>
-        )}
-
-        {session.treadmillSpeed && (
-          <div className="personal-item">
-            <span>
-              트레드밀 속도
-            </span>
-
-            <strong>
-              {
-                session.treadmillSpeed
-              }
-            </strong>
-          </div>
-        )}
-
-        {session.targetLoad && (
-          <div className="personal-item">
-            <span>목표 중량</span>
-
-            <strong>
-              {session.targetLoad}
-            </strong>
-          </div>
-        )}
-
-        <div className="personal-item">
-          <span>목표 RPE</span>
-
-          <strong>
-            {session.targetRpe}
-          </strong>
-        </div>
-      </div>
-
       {session.coachNote && (
         <div className="coach-note">
-          <span>COACH NOTE</span>
+          <span>
+            COACH NOTE
+          </span>
 
           <p>
             {session.coachNote}
@@ -716,6 +699,7 @@ function ProgramDetailPage({
   workoutDate,
   records,
   calendarRecords,
+  personalizationError,
   onBack,
   onComplete,
 }) {
@@ -805,6 +789,24 @@ function ProgramDetailPage({
         {program.description}
       </p>
 
+      {personalizationError && (
+        <article className="feature-card locked">
+          <span className="locked-badge">
+            PERSONAL DATA ERROR
+          </span>
+
+          <h3>
+            개인 설정을 불러오지
+            못했습니다.
+          </h3>
+
+          <p>
+            공통 프로그램을 표시하고
+            있습니다.
+          </p>
+        </article>
+      )}
+
       <div className="session-list">
         {visibleSessions.map(
           (commonSession) => {
@@ -812,6 +814,7 @@ function ProgramDetailPage({
               getPersonalizedSession(
                 commonSession,
                 member.id,
+                calendarEventId,
               )
 
             const record =
@@ -1001,6 +1004,7 @@ function ProgramDetailPage({
 }
 
 function MyPage({
+  member,
   settings,
   progressPercent,
   openAdmin,
@@ -1027,8 +1031,8 @@ function MyPage({
         </h3>
 
         <span>
-          코치 관리와 프로그램 이용 권한을
-          확인하세요.
+          코치 관리와 프로그램 이용
+          권한을 확인하세요.
         </span>
       </article>
 
@@ -1070,6 +1074,10 @@ function MyPage({
         </div>
       </div>
 
+<BodyFitScoreSection
+  memberId={member.id}
+/>
+
       <article className="coach-card">
         <p>COACH CARE</p>
 
@@ -1079,8 +1087,8 @@ function MyPage({
         </h3>
 
         <span>
-          담당 코치가 컨디션과 수행 기록을
-          확인하고 관리합니다.
+          담당 코치가 컨디션과 수행
+          기록을 확인하고 관리합니다.
         </span>
 
         <button type="button">
@@ -1094,7 +1102,7 @@ function MyPage({
           type="button"
           onClick={openAdmin}
         >
-          코치 관리자 열기
+          관리자 열기
         </button>
       )}
     </section>
@@ -1105,7 +1113,8 @@ function App({
   profile,
 }) {
   const isAdmin =
-    profile?.role === 'admin'
+  profile?.role === 'admin' ||
+  profile?.role === 'owner'
 
   const currentMember =
     createCurrentMember(profile)
@@ -1119,6 +1128,16 @@ function App({
     selectedProgram,
     setSelectedProgram,
   ] = useState(null)
+
+  const [
+    personalizationVersion,
+    setPersonalizationVersion,
+  ] = useState(0)
+
+  const [
+    personalizationError,
+    setPersonalizationError,
+  ] = useState('')
 
   const [
     checkinOpen,
@@ -1141,6 +1160,50 @@ function App({
   } = getCurrentMemberAccess(
     profile,
   )
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadPersonalization =
+      async () => {
+        if (!currentMember.id) {
+          return
+        }
+
+        try {
+          await loadMemberProgramOverrides(
+            currentMember.id,
+          )
+
+          if (isMounted) {
+            setPersonalizationError('')
+
+            setPersonalizationVersion(
+              (current) =>
+                current + 1,
+            )
+          }
+        } catch (error) {
+          console.error(
+            '개인 프로그램 초기 조회 실패:',
+            error,
+          )
+
+          if (isMounted) {
+            setPersonalizationError(
+              error.message ||
+                '개인 프로그램을 불러오지 못했습니다.',
+            )
+          }
+        }
+      }
+
+    loadPersonalization()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentMember.id])
 
   const todayKey =
     getDateKey()
@@ -1229,7 +1292,7 @@ function App({
             nextTrainingDate,
         )
 
-  const openProgram = (
+  const openProgram = async (
     programId,
     sessionId = null,
     calendarEventId = null,
@@ -1257,6 +1320,34 @@ function App({
       return
     }
 
+    /*
+     * 프로그램을 열 때마다
+     * Supabase에서 최신 개인 설정을
+     * 다시 가져온다.
+     */
+    try {
+      await loadMemberProgramOverrides(
+        currentMember.id,
+      )
+
+      setPersonalizationError('')
+
+      setPersonalizationVersion(
+        (current) =>
+          current + 1,
+      )
+    } catch (error) {
+      console.error(
+        '개인 프로그램 최신 조회 실패:',
+        error,
+      )
+
+      setPersonalizationError(
+        error.message ||
+          '개인 프로그램을 불러오지 못했습니다.',
+      )
+    }
+
     setSelectedProgram({
       programId,
       sessionId,
@@ -1273,9 +1364,7 @@ function App({
         <TrainingPage
           settings={settings}
           access={access}
-          openProgram={
-            openProgram
-          }
+          openProgram={openProgram}
         />
       )
     }
@@ -1294,15 +1383,14 @@ function App({
     if (activeTab === 'my') {
       return (
         <MyPage
-          settings={settings}
+  member={currentMember}
+  settings={settings}
           progressPercent={
             progressPercent
           }
           isAdmin={isAdmin}
           openAdmin={() =>
-            setActiveTab(
-              'admin',
-            )
+            setActiveTab('admin')
           }
         />
       )
@@ -1327,13 +1415,9 @@ function App({
         progressPercent={
           progressPercent
         }
-        openProgram={
-          openProgram
-        }
+        openProgram={openProgram}
         moveToTraining={() =>
-          setActiveTab(
-            'training',
-          )
+          setActiveTab('training')
         }
         homeTrainings={
           homeTrainings
@@ -1376,9 +1460,7 @@ function App({
               className="admin-entry-button"
               type="button"
               onClick={() =>
-                setActiveTab(
-                  'my',
-                )
+                setActiveTab('my')
               }
             >
               마이페이지로 돌아가기
@@ -1392,9 +1474,7 @@ function App({
       <div className="app">
         <CoachAdminPage
           onClose={() =>
-            setActiveTab(
-              'my',
-            )
+            setActiveTab('my')
           }
         />
       </div>
@@ -1415,7 +1495,8 @@ function App({
               <p>PROGRAM ERROR</p>
 
               <h2>
-                프로그램을 찾을 수 없습니다.
+                프로그램을 찾을 수
+                없습니다.
               </h2>
             </div>
 
@@ -1436,6 +1517,17 @@ function App({
     return (
       <div className="app">
         <ProgramDetailPage
+          key={
+            `${
+              selectedProgram.programId
+            }-${
+              selectedProgram
+                .calendarEventId ||
+              selectedProgram
+                .sessionId ||
+              'all'
+            }-${personalizationVersion}`
+          }
           member={currentMember}
           program={
             selectedProgramData
@@ -1444,7 +1536,8 @@ function App({
             selectedProgram.sessionId
           }
           calendarEventId={
-            selectedProgram.calendarEventId
+            selectedProgram
+              .calendarEventId
           }
           workoutDate={
             selectedProgram.workoutDate
@@ -1454,6 +1547,9 @@ function App({
           }
           calendarRecords={
             calendarWorkoutRecords
+          }
+          personalizationError={
+            personalizationError
           }
           onBack={() =>
             setSelectedProgram(null)
@@ -1510,15 +1606,12 @@ function App({
         <button
           type="button"
           className={
-            activeTab ===
-            'training'
+            activeTab === 'training'
               ? 'active'
               : ''
           }
           onClick={() =>
-            setActiveTab(
-              'training',
-            )
+            setActiveTab('training')
           }
         >
           트레이닝
@@ -1562,9 +1655,7 @@ function App({
             todayCheckin
           }
           onClose={() =>
-            setCheckinOpen(
-              false,
-            )
+            setCheckinOpen(false)
           }
           onComplete={
             submitCheckin
