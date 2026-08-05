@@ -5,6 +5,7 @@ import {
 
 import './App.css'
 
+import PasswordChangeSection from './PasswordChangeSection'
 import CoachAdminPage from './CoachAdminPage'
 import BodyFitScoreSection from './BodyFitScoreSection'
 import TrainingPage from './pages/TrainingPage'
@@ -1077,6 +1078,8 @@ function MyPage({
 <BodyFitScoreSection
   memberId={member.id}
 />
+
+<PasswordChangeSection />
 
       <article className="coach-card">
         <p>COACH CARE</p>
