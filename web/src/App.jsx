@@ -5,6 +5,7 @@ import {
 
 import './App.css'
 
+import RunningPaceSection from './RunningPaceSection'
 import ProfileEditSection from './ProfileEditSection'
 import PasswordChangeSection from './PasswordChangeSection'
 import CoachAdminPage from './CoachAdminPage'
@@ -1235,22 +1236,25 @@ function MyPage({
       )}
 
       {activeSection === 'settings' && (
-        <>
-          <p
-            style={
-              myPageStyles.sectionIntro
-            }
-          >
-            개인정보와 로그인
-            비밀번호를 안전하게
-            관리합니다.
-          </p>
+  <>
+    <p
+      style={
+        myPageStyles.sectionIntro
+      }
+    >
+      개인정보와 러닝 기준 페이스,
+      로그인 비밀번호를 관리합니다.
+    </p>
 
-          <ProfileEditSection />
+    <RunningPaceSection
+      memberId={member.id}
+    />
 
-          <PasswordChangeSection />
-        </>
-      )}
+    <ProfileEditSection />
+
+    <PasswordChangeSection />
+  </>
+)}
     </section>
   )
 }
