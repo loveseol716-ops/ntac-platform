@@ -3,6 +3,7 @@ import {
   useState,
 } from 'react'
 
+import ReloadPrompt from './ReloadPrompt.jsx'
 import { supabase } from './lib/supabase.js'
 
 import {
@@ -1649,6 +1650,8 @@ function AuthGate() {
 
   return (
     <>
+      <ReloadPrompt />
+      
       <div style={styles.accountBar}>
         <span style={styles.roleBadge}>
           {profile.role?.toUpperCase() ||

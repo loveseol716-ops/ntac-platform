@@ -1,0 +1,72 @@
+.update-prompt {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 86px;
+  z-index: 20000;
+
+  display: grid;
+  gap: 14px;
+
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 18px;
+
+  border-radius: 20px;
+  background: #0b3d2e;
+  color: #ffffff;
+
+  box-shadow:
+    0 18px 45px
+    rgba(0, 0, 0, 0.24);
+}
+
+.update-prompt span {
+  display: block;
+  margin-bottom: 5px;
+
+  color: #a9cabb;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.3px;
+}
+
+.update-prompt strong {
+  display: block;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.update-prompt p {
+  margin: 5px 0 0;
+
+  color: #d5e5de;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.update-prompt-actions {
+  display: grid;
+  grid-template-columns:
+    0.8fr 1.2fr;
+  gap: 8px;
+}
+
+.update-prompt-actions button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.update-later-button {
+  background:
+    rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.update-now-button {
+  background: #ffffff;
+  color: #0b3d2e;
+}
