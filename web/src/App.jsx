@@ -5,6 +5,7 @@ import {
 
 import './App.css'
 
+import ProfileEditSection from './ProfileEditSection'
 import PasswordChangeSection from './PasswordChangeSection'
 import CoachAdminPage from './CoachAdminPage'
 import BodyFitScoreSection from './BodyFitScoreSection'
@@ -1078,6 +1079,8 @@ function MyPage({
 <BodyFitScoreSection
   memberId={member.id}
 />
+
+<ProfileEditSection />
 
 <PasswordChangeSection />
 
