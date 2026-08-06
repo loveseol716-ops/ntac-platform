@@ -32,58 +32,70 @@ const REQUEST_SELECT = `
   updated_at
 `
 
-function getCurrentMonthKey(
+export function getCurrentMonthKey(
   date = new Date(),
 ) {
-  return [
-    date.getFullYear(),
+  const year =
+    date.getFullYear()
 
+  const month =
     String(
       date.getMonth() + 1,
-    ).padStart(2, '0'),
+    ).padStart(2, '0')
 
-    '01',
-  ].join('-')
+  return `${year}-${month}-01`
 }
 
 function normalizeRequest(row) {
+  const status =
+    row?.status ||
+    'REQUESTED'
+
   return {
-    id: row.id,
+    id:
+      row?.id || '',
 
     memberId:
-      row.member_id,
+      row?.member_id || '',
 
     coachName:
-      row.coach_name || '미배정',
+      row?.coach_name ||
+      '미배정',
 
     requestMonth:
-      row.request_month,
+      row?.request_month || '',
 
     message:
-      row.request_message || '',
+      row?.request_message || '',
 
-    status:
-      row.status || 'REQUESTED',
+    status,
 
     statusLabel:
       COACH_REQUEST_STATUS[
-        row.status
-      ]?.label || '요청 접수',
+        status
+      ]?.label ||
+      '요청 접수',
 
     isRead:
-      Boolean(row.is_read),
+      Boolean(
+        row?.is_read,
+      ),
 
     requestedAt:
-      row.requested_at,
+      row?.requested_at ||
+      null,
 
     contactedAt:
-      row.contacted_at,
+      row?.contacted_at ||
+      null,
 
     completedAt:
-      row.completed_at,
+      row?.completed_at ||
+      null,
 
     updatedAt:
-      row.updated_at,
+      row?.updated_at ||
+      null,
   }
 }
 
@@ -97,7 +109,7 @@ async function getCurrentUser() {
     throw error
   }
 
-  if (!data.user) {
+  if (!data?.user) {
     throw new Error(
       '로그인 정보를 찾을 수 없습니다.',
     )
@@ -117,7 +129,9 @@ export async function loadMyCoachSessionRequests() {
     .from(
       'coach_session_requests',
     )
-    .select(REQUEST_SELECT)
+    .select(
+      REQUEST_SELECT,
+    )
     .eq(
       'member_id',
       user.id,
@@ -133,9 +147,14 @@ export async function loadMyCoachSessionRequests() {
     throw error
   }
 
-  return (
-    data || []
-  ).map(normalizeRequest)
+  const rows =
+    Array.isArray(data)
+      ? data
+      : []
+
+  return rows.map(
+    normalizeRequest,
+  )
 }
 
 export async function loadCurrentMonthCoachRequest() {
@@ -152,7 +171,9 @@ export async function loadCurrentMonthCoachRequest() {
     .from(
       'coach_session_requests',
     )
-    .select(REQUEST_SELECT)
+    .select(
+      REQUEST_SELECT,
+    )
     .eq(
       'member_id',
       user.id,
@@ -189,36 +210,25 @@ export async function createCoachSessionRequest({
     )
   }
 
+  const normalizedCoachName =
+    String(
+      coachName || '',
+    ).trim()
+
   if (
-    !coachName ||
-    coachName === '미배정'
+    !normalizedCoachName ||
+    normalizedCoachName ===
+      '미배정'
   ) {
     throw new Error(
       '담당 코치가 배정되지 않았습니다.',
     )
   }
 
-  const currentMonth =
-    getCurrentMonthKey()
-
-  const payload = {
-    member_id: user.id,
-
-    coach_name:
-      coachName.trim(),
-
-    request_month:
-      currentMonth,
-
-    request_message:
-      message?.trim() || null,
-
-    status:
-      'REQUESTED',
-
-    is_read:
-      false,
-  }
+  const requestMessage =
+    String(
+      message || '',
+    ).trim()
 
   const {
     data,
@@ -227,13 +237,35 @@ export async function createCoachSessionRequest({
     .from(
       'coach_session_requests',
     )
-    .insert(payload)
-    .select(REQUEST_SELECT)
+    .insert({
+      member_id:
+        user.id,
+
+      coach_name:
+        normalizedCoachName,
+
+      request_month:
+        getCurrentMonthKey(),
+
+      request_message:
+        requestMessage ||
+        null,
+
+      status:
+        'REQUESTED',
+
+      is_read:
+        false,
+    })
+    .select(
+      REQUEST_SELECT,
+    )
     .single()
 
   if (error) {
     if (
-      error.code === '23505'
+      error.code ===
+      '23505'
     ) {
       throw new Error(
         '이번 달 코치 세션은 이미 요청했습니다.',
@@ -243,28 +275,21 @@ export async function createCoachSessionRequest({
     throw error
   }
 
-  return normalizeRequest(data)
+  return normalizeRequest(
+    data,
+  )
 }
 
 export async function loadAllCoachSessionRequests() {
   const {
-    data,
-    error,
+    data: requestRows,
+    error: requestError,
   } = await supabase
     .from(
       'coach_session_requests',
     )
     .select(
-      `
-        ${REQUEST_SELECT},
-        profiles!coach_session_requests_member_id_fkey (
-          id,
-          full_name,
-          email,
-          membership,
-          coach_name
-        )
-      `,
+      REQUEST_SELECT,
     )
     .order(
       'requested_at',
@@ -273,26 +298,102 @@ export async function loadAllCoachSessionRequests() {
       },
     )
 
-  if (error) {
-    throw error
+  if (requestError) {
+    throw requestError
   }
 
-  return (
-    data || []
-  ).map((row) => ({
-    ...normalizeRequest(row),
+  const safeRequestRows =
+    Array.isArray(
+      requestRows,
+    )
+      ? requestRows
+      : []
 
-    memberName:
-      row.profiles?.full_name ||
-      row.profiles?.email ||
-      '이름 없는 멤버',
+  const memberIds = [
+    ...new Set(
+      safeRequestRows
+        .map(
+          (row) =>
+            row.member_id,
+        )
+        .filter(Boolean),
+    ),
+  ]
 
-    memberEmail:
-      row.profiles?.email || '',
+  let profilesById =
+    new Map()
 
-    membership:
-      row.profiles?.membership || '',
-  }))
+  if (
+    memberIds.length > 0
+  ) {
+    const {
+      data: profileRows,
+      error: profileError,
+    } = await supabase
+      .from('profiles')
+      .select(
+        `
+          id,
+          full_name,
+          email,
+          membership,
+          coach_name
+        `,
+      )
+      .in(
+        'id',
+        memberIds,
+      )
+
+    if (profileError) {
+      throw profileError
+    }
+
+    const safeProfileRows =
+      Array.isArray(
+        profileRows,
+      )
+        ? profileRows
+        : []
+
+    profilesById =
+      new Map(
+        safeProfileRows.map(
+          (profile) => [
+            profile.id,
+            profile,
+          ],
+        ),
+      )
+  }
+
+  return safeRequestRows.map(
+    (row) => {
+      const profile =
+        profilesById.get(
+          row.member_id,
+        ) || null
+
+      return {
+        ...normalizeRequest(
+          row,
+        ),
+
+        memberName:
+          profile?.full_name ||
+          profile?.email ||
+          '이름 없는 멤버',
+
+        memberEmail:
+          profile?.email ||
+          '',
+
+        membership:
+          profile?.membership ||
+          '',
+      }
+    },
+  )
 }
 
 export async function markCoachSessionRequestRead(
@@ -318,14 +419,18 @@ export async function markCoachSessionRequestRead(
       'id',
       requestId,
     )
-    .select(REQUEST_SELECT)
+    .select(
+      REQUEST_SELECT,
+    )
     .single()
 
   if (error) {
     throw error
   }
 
-  return normalizeRequest(data)
+  return normalizeRequest(
+    data,
+  )
 }
 
 export async function updateCoachSessionRequestStatus(
@@ -356,12 +461,20 @@ export async function updateCoachSessionRequestStatus(
     is_read: true,
   }
 
-  if (status === 'CONTACTED') {
-    payload.contacted_at = now
+  if (
+    status ===
+    'CONTACTED'
+  ) {
+    payload.contacted_at =
+      now
   }
 
-  if (status === 'COMPLETED') {
-    payload.completed_at = now
+  if (
+    status ===
+    'COMPLETED'
+  ) {
+    payload.completed_at =
+      now
   }
 
   const {
@@ -376,49 +489,72 @@ export async function updateCoachSessionRequestStatus(
       'id',
       requestId,
     )
-    .select(REQUEST_SELECT)
+    .select(
+      REQUEST_SELECT,
+    )
     .single()
 
   if (error) {
     throw error
   }
 
-  return normalizeRequest(data)
+  return normalizeRequest(
+    data,
+  )
 }
 
 export function subscribeToCoachSessionRequests(
   onChange,
+  channelKey = 'default',
 ) {
-  const channel = supabase
-    .channel(
-      'coach-session-request-alerts',
-    )
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table:
-          'coach_session_requests',
-      },
-      (payload) => {
-        if (
-          typeof onChange ===
-          'function'
-        ) {
-          onChange(payload)
-        }
-      },
-    )
-    .subscribe()
+  const safeChannelKey =
+    String(channelKey)
+      .replace(
+        /[^a-zA-Z0-9-_]/g,
+        '-',
+      )
+
+  const randomKey =
+    Math.random()
+      .toString(36)
+      .slice(2, 8)
+
+  const channelName = [
+    'coach-session-requests',
+    safeChannelKey,
+    Date.now(),
+    randomKey,
+  ].join('-')
+
+  const channel =
+    supabase
+      .channel(
+        channelName,
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table:
+            'coach_session_requests',
+        },
+        (payload) => {
+          if (
+            typeof onChange ===
+            'function'
+          ) {
+            onChange(
+              payload,
+            )
+          }
+        },
+      )
+      .subscribe()
 
   return () => {
     supabase.removeChannel(
       channel,
     )
   }
-}
-
-export {
-  getCurrentMonthKey,
 }

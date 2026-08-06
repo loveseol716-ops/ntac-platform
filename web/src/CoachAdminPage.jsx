@@ -246,48 +246,54 @@ function CoachAdminPage({
   const updateCoachRequestCount = (
     requests,
   ) => {
-    const unreadCount = (
-      requests || []
-    ).filter(
-      (request) =>
-        !request.isRead &&
-        request.status ===
-          'REQUESTED',
-    ).length
-
     setCoachRequestCount(
-      unreadCount,
+      (
+        Array.isArray(requests)
+          ? requests
+          : []
+      ).filter(
+        (request) =>
+          !request.isRead &&
+          request.status ===
+            'REQUESTED',
+      ).length,
     )
   }
 
-  const refreshCoachRequestCount =
-    async () => {
-      try {
-        const requests =
-          await loadAllCoachSessionRequests()
-
-        updateCoachRequestCount(
-          requests,
-        )
-      } catch (error) {
-        console.error(
-          '코치 세션 요청 알림 조회 실패:',
-          error,
-        )
-      }
-    }
-
   useEffect(() => {
-    refreshCoachRequestCount()
+    let isMounted = true
+
+    const refreshCount =
+      async () => {
+        try {
+          const requests =
+            await loadAllCoachSessionRequests()
+
+          if (isMounted) {
+            updateCoachRequestCount(
+              requests,
+            )
+          }
+        } catch (error) {
+          console.error(
+            '1:1 요청 알림 조회 실패:',
+            error,
+          )
+        }
+      }
+
+    refreshCount()
 
     const unsubscribe =
       subscribeToCoachSessionRequests(
-        () => {
-          refreshCoachRequestCount()
-        },
+        refreshCount,
+        'admin-badge',
       )
 
-    return unsubscribe
+    return () => {
+      isMounted = false
+      unsubscribe()
+    }
   }, [])
 
   const filteredMembers = useMemo(() => {
@@ -1720,7 +1726,6 @@ function CoachAdminPage({
                           : '#ffffff',
                       fontSize:
                         '9px',
-                      lineHeight: 1,
                     }}
                   >
                     {
@@ -1755,6 +1760,11 @@ function CoachAdminPage({
       {activeAdminTab ===
         'coachRequests' && (
         <CoachSessionRequestAdmin
+          onBack={() =>
+            setActiveAdminTab(
+              'members',
+            )
+          }
           onRequestsChanged={
             updateCoachRequestCount
           }
