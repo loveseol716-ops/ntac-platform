@@ -1990,6 +1990,67 @@ const session = {
   )
 }
 
+const servicePlans = [
+  {
+    id: 'NTAC RUN',
+    eyebrow: 'RUN TRAINING',
+    price: '39,000원',
+    description:
+      '개인 기준 페이스에 맞춘 러닝 프로그램과 런트레이너를 이용하는 서비스입니다.',
+    features: [
+      '개인 기준 페이스 기반 러닝 프로그램',
+      '구간과 페이스를 안내하는 런트레이너',
+    ],
+  },
+  {
+    id: 'NTAC BUILD',
+    eyebrow: 'HYROX BUILD',
+    price: '79,000원',
+    description:
+      'RUN 전체 기능과 함께 하이록스 주요 종목 수행을 위한 근력·보강 프로그램을 제공합니다.',
+    features: [
+      'NTAC RUN 전체 기능',
+      '하이록스 중심 근력·보강 프로그램',
+    ],
+  },
+  {
+    id: 'NTAC COMPLETE',
+    eyebrow: 'ONLINE + COMMUNITY',
+    price: '119,000원',
+    description:
+      'RUN과 BUILD 전체 기능에 매주 함께 진행하는 하이록스 커뮤니티 클래스가 포함됩니다.',
+    features: [
+      'NTAC RUN + BUILD 전체 기능',
+      '주 1회 하이록스 커뮤니티 클래스',
+    ],
+  },
+  {
+    id: 'NTAC ATHLETE',
+    eyebrow: 'FULL COACH CARE',
+    price: '189,000원',
+    description:
+      '훈련 결과와 컨디션을 담당 코치가 지속적으로 관리하는 NTAC의 가장 완전한 코치 케어 서비스입니다.',
+    features: [
+      'NTAC COMPLETE 전체 기능',
+      '주간 코치 리포트',
+      '월 1회 코치 1:1 세션',
+      '담당 코치 관리',
+    ],
+    featured: true,
+  },
+  {
+    id: 'NTAC COMMUNITY',
+    eyebrow: 'OFFLINE CLASS',
+    price: '89,000원',
+    description:
+      '함께 하이록스를 경험하고 훈련하는 오프라인 커뮤니티 클래스 중심 서비스입니다.',
+    features: [
+      '주 1회 하이록스 커뮤니티 클래스',
+      '하이록스 종목과 레이스 형식 훈련',
+    ],
+  },
+]
+
 const myPageTabs = [
   {
     id: 'status',
@@ -1998,6 +2059,10 @@ const myPageTabs = [
   {
     id: 'records',
     label: '기록',
+  },
+  {
+    id: 'services',
+    label: '서비스',
   },
   {
     id: 'settings',
@@ -2009,7 +2074,7 @@ const myPageStyles = {
   tabs: {
     display: 'grid',
     gridTemplateColumns:
-      'repeat(3, minmax(0, 1fr))',
+      'repeat(4, minmax(0, 1fr))',
     gap: '6px',
     margin: '22px 0 4px',
     padding: '5px',
@@ -2044,6 +2109,259 @@ const myPageStyles = {
   },
 }
 
+function ServiceGuideSection({
+  currentMembership,
+}) {
+  return (
+    <section
+      style={{
+        display: 'grid',
+        gap: '13px',
+        marginTop: '17px',
+      }}
+    >
+      <div>
+        <p
+          style={{
+            margin: '0 0 6px',
+            color: '#0b6b4f',
+            fontSize: '10px',
+            fontWeight: '900',
+            letterSpacing: '0.12em',
+          }}
+        >
+          NTAC MEMBERSHIP
+        </p>
+
+        <h3
+          style={{
+            margin: 0,
+            color: '#17352c',
+            fontSize: '22px',
+            letterSpacing: '-0.03em',
+          }}
+        >
+          나에게 맞는 서비스를 확인하세요.
+        </h3>
+
+        <p
+          style={{
+            margin: '9px 0 0',
+            color: '#71807a',
+            fontSize: '13px',
+            lineHeight: 1.65,
+          }}
+        >
+          러닝부터 하이록스 커뮤니티, 담당 코치의
+          지속적인 관리까지 필요한 범위에 따라 선택할 수
+          있습니다.
+        </p>
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gap: '11px',
+        }}
+      >
+        {servicePlans.map((plan) => {
+          const isCurrent =
+            currentMembership === plan.id
+
+          const isFeatured =
+            Boolean(plan.featured)
+
+          return (
+            <article
+              key={plan.id}
+              style={{
+                display: 'grid',
+                gap: '14px',
+                padding: '19px',
+                border: isCurrent
+                  ? '2px solid #0b3d2e'
+                  : isFeatured
+                    ? '1px solid #9cbcaf'
+                    : '1px solid #dce5e1',
+                borderRadius: '19px',
+                background: isCurrent
+                  ? '#0b3d2e'
+                  : isFeatured
+                    ? '#edf5f1'
+                    : '#ffffff',
+                color: isCurrent
+                  ? '#ffffff'
+                  : '#17352c',
+                boxShadow: isCurrent
+                  ? '0 15px 34px rgba(11, 61, 46, 0.18)'
+                  : 'none',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                }}
+              >
+                <div>
+                  <span
+                    style={{
+                      display: 'block',
+                      color: isCurrent
+                        ? '#a9cbbd'
+                        : '#0b6b4f',
+                      fontSize: '9px',
+                      fontWeight: '900',
+                      letterSpacing: '0.11em',
+                    }}
+                  >
+                    {plan.eyebrow}
+                  </span>
+
+                  <h4
+                    style={{
+                      margin: '6px 0 0',
+                      fontSize: '19px',
+                      letterSpacing: '-0.02em',
+                    }}
+                  >
+                    {plan.id}
+                  </h4>
+                </div>
+
+                {isCurrent && (
+                  <span
+                    style={{
+                      flexShrink: 0,
+                      padding: '6px 9px',
+                      borderRadius: '999px',
+                      background: '#ffffff',
+                      color: '#0b3d2e',
+                      fontSize: '9px',
+                      fontWeight: '900',
+                    }}
+                  >
+                    현재 이용 중
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <strong
+                  style={{
+                    display: 'block',
+                    fontSize: '25px',
+                    letterSpacing: '-0.04em',
+                  }}
+                >
+                  {plan.price}
+                </strong>
+
+                <span
+                  style={{
+                    display: 'block',
+                    marginTop: '3px',
+                    color: isCurrent
+                      ? '#c6dcd3'
+                      : '#7d8a85',
+                    fontSize: '10px',
+                    fontWeight: '700',
+                  }}
+                >
+                  월 이용료 · 앱 결제 기능 준비 중
+                </span>
+              </div>
+
+              <p
+                style={{
+                  margin: 0,
+                  color: isCurrent
+                    ? '#e2eee9'
+                    : '#5f7069',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  lineHeight: 1.65,
+                }}
+              >
+                {plan.description}
+              </p>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gap: '8px',
+                }}
+              >
+                {plan.features.map((feature) => (
+                  <div
+                    key={feature}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      color: isCurrent
+                        ? '#dceae4'
+                        : '#324b42',
+                      fontSize: '12px',
+                      fontWeight: '800',
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        color: isCurrent
+                          ? '#8ed0b5'
+                          : '#0b6b4f',
+                      }}
+                    >
+                      ✓
+                    </span>
+
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </article>
+          )
+        })}
+      </div>
+
+      <article
+        style={{
+          padding: '17px',
+          borderRadius: '16px',
+          background: '#eef2f0',
+        }}
+      >
+        <strong
+          style={{
+            display: 'block',
+            color: '#17352c',
+            fontSize: '13px',
+          }}
+        >
+          상품 변경 안내
+        </strong>
+
+        <p
+          style={{
+            margin: '6px 0 0',
+            color: '#697872',
+            fontSize: '12px',
+            lineHeight: 1.6,
+          }}
+        >
+          현재는 앱에서 바로 결제하지 않습니다. 상품 변경과
+          가입은 담당 코치에게 문의해 주세요.
+        </p>
+      </article>
+    </section>
+  )
+}
+
 function MyPage({
   member,
   settings,
@@ -2066,8 +2384,8 @@ function MyPage({
         <h2>마이페이지</h2>
 
         <span>
-          내 상태와 기록, 계정 설정을
-          확인합니다.
+          내 상태와 기록, 서비스 안내와
+          계정 설정을 확인합니다.
         </span>
       </div>
 
@@ -2231,6 +2549,26 @@ function MyPage({
           <BodyFitScoreSection
             memberId={member.id}
             mode="records"
+          />
+        </>
+      )}
+
+      {activeSection === 'services' && (
+        <>
+          <p
+            style={
+              myPageStyles.sectionIntro
+            }
+          >
+            NTAC가 제공하는 서비스와 월 이용료를
+            확인합니다. 현재 이용 중인 상품은 진한
+            초록색으로 표시됩니다.
+          </p>
+
+          <ServiceGuideSection
+            currentMembership={
+              settings.membership
+            }
           />
         </>
       )}
