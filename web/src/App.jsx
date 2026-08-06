@@ -11,6 +11,7 @@ import ProfileEditSection from './ProfileEditSection.jsx'
 import PasswordChangeSection from './PasswordChangeSection.jsx'
 import CoachAdminPage from './CoachAdminPage.jsx'
 import WeeklyAthleteReportPage from './WeeklyAthleteReportPage.jsx'
+import CoachSessionRequestSection from './CoachSessionRequestSection.jsx'
 import BodyFitScoreSection from './BodyFitScoreSection.jsx'
 import TrainingPage from './pages/TrainingPage.jsx'
 import CommunityPage from './pages/CommunityPage.jsx'
@@ -2197,6 +2198,11 @@ function MyPage({
                 : 'ATHLETE 서비스 보기'}
             </button>
           </article>
+
+          <CoachSessionRequestSection
+            member={member}
+            settings={settings}
+          />
 
           {isAdmin && (
             <button

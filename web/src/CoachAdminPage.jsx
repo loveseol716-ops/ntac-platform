@@ -4,11 +4,16 @@ import {
   useState,
 } from 'react'
 
-import WeeklyProgramAdmin from './WeeklyProgramAdmin'
-import PersonalProgramAdmin from './PersonalProgramAdmin'
-import CommunityAdmin from './CommunityAdmin'
-import AdminAccessManagement from './AdminAccessManagement'
-import WeeklyAthleteReportAdmin from './WeeklyAthleteReportAdmin'
+import WeeklyProgramAdmin from './WeeklyProgramAdmin.jsx'
+import PersonalProgramAdmin from './PersonalProgramAdmin.jsx'
+import CommunityAdmin from './CommunityAdmin.jsx'
+import AdminAccessManagement from './AdminAccessManagement.jsx'
+import WeeklyAthleteReportAdmin from './WeeklyAthleteReportAdmin.jsx'
+import CoachSessionRequestAdmin from './CoachSessionRequestAdmin.jsx'
+import {
+  loadAllCoachSessionRequests,
+  subscribeToCoachSessionRequests,
+} from './data/coachSessionRequests.js'
 import { supabase } from './lib/supabase.js'
 
 const adminTabs = [
@@ -27,6 +32,10 @@ const adminTabs = [
   {
     id: 'reports',
     label: '주간 리포트',
+  },
+  {
+    id: 'coachRequests',
+    label: '1:1 요청',
   },
   {
     id: 'community',
@@ -178,6 +187,11 @@ function CoachAdminPage({
     setMembersRefreshKey,
   ] = useState(0)
 
+  const [
+    coachRequestCount,
+    setCoachRequestCount,
+  ] = useState(0)
+
   const [members, setMembers] =
     useState([])
 
@@ -228,6 +242,53 @@ function CoachAdminPage({
     errorMessage,
     setErrorMessage,
   ] = useState('')
+
+  const updateCoachRequestCount = (
+    requests,
+  ) => {
+    const unreadCount = (
+      requests || []
+    ).filter(
+      (request) =>
+        !request.isRead &&
+        request.status ===
+          'REQUESTED',
+    ).length
+
+    setCoachRequestCount(
+      unreadCount,
+    )
+  }
+
+  const refreshCoachRequestCount =
+    async () => {
+      try {
+        const requests =
+          await loadAllCoachSessionRequests()
+
+        updateCoachRequestCount(
+          requests,
+        )
+      } catch (error) {
+        console.error(
+          '코치 세션 요청 알림 조회 실패:',
+          error,
+        )
+      }
+    }
+
+  useEffect(() => {
+    refreshCoachRequestCount()
+
+    const unsubscribe =
+      subscribeToCoachSessionRequests(
+        () => {
+          refreshCoachRequestCount()
+        },
+      )
+
+    return unsubscribe
+  }, [])
 
   const filteredMembers = useMemo(() => {
     const keyword = memberSearch
@@ -1626,7 +1687,47 @@ function CoachAdminPage({
                 wordBreak: 'keep-all',
               }}
             >
-              {tab.label}
+              <span>
+                {tab.label}
+              </span>
+
+              {tab.id ===
+                'coachRequests' &&
+                coachRequestCount > 0 && (
+                  <strong
+                    style={{
+                      display:
+                        'inline-grid',
+                      placeItems:
+                        'center',
+                      minWidth:
+                        '18px',
+                      height:
+                        '18px',
+                      marginLeft:
+                        '4px',
+                      padding:
+                        '0 4px',
+                      borderRadius:
+                        '999px',
+                      background:
+                        isActive
+                          ? '#ffffff'
+                          : '#d93f35',
+                      color:
+                        isActive
+                          ? '#0b3d2e'
+                          : '#ffffff',
+                      fontSize:
+                        '9px',
+                      lineHeight: 1,
+                    }}
+                  >
+                    {
+                      coachRequestCount
+                    }
+                  </strong>
+                )}
             </button>
           )
         })}
@@ -1649,6 +1750,15 @@ function CoachAdminPage({
       {activeAdminTab ===
         'reports' && (
         <WeeklyAthleteReportAdmin />
+      )}
+
+      {activeAdminTab ===
+        'coachRequests' && (
+        <CoachSessionRequestAdmin
+          onRequestsChanged={
+            updateCoachRequestCount
+          }
+        />
       )}
 
       {activeAdminTab ===
