@@ -6,13 +6,14 @@ import {
 import './App.css'
 
 import RunTrainerPage from './runTrainer/RunTrainerPage.jsx'
-import RunningPaceSection from './RunningPaceSection'
-import ProfileEditSection from './ProfileEditSection'
-import PasswordChangeSection from './PasswordChangeSection'
-import CoachAdminPage from './CoachAdminPage'
-import BodyFitScoreSection from './BodyFitScoreSection'
-import TrainingPage from './pages/TrainingPage'
-import CommunityPage from './pages/CommunityPage'
+import RunningPaceSection from './RunningPaceSection.jsx'
+import ProfileEditSection from './ProfileEditSection.jsx'
+import PasswordChangeSection from './PasswordChangeSection.jsx'
+import CoachAdminPage from './CoachAdminPage.jsx'
+import WeeklyAthleteReportPage from './WeeklyAthleteReportPage.jsx'
+import BodyFitScoreSection from './BodyFitScoreSection.jsx'
+import TrainingPage from './pages/TrainingPage.jsx'
+import CommunityPage from './pages/CommunityPage.jsx'
 import useMemberRecords from './useMemberRecords.js'
 
 import {
@@ -21,13 +22,13 @@ import {
   getDateKey,
   getWeekRange,
   isTrainingAssignment,
-} from './data/trainingSchedule'
+} from './data/trainingSchedule.js'
 
 import {
   getPersonalizedSession,
   loadMemberProgramOverrides,
   programs,
-} from './data/programs'
+} from './data/programs.js'
 
 const accessByMembership = {
   'NTAC RUN': {
@@ -46,6 +47,14 @@ const accessByMembership = {
     run: true,
     build: true,
     community: true,
+  },
+
+  'NTAC ATHLETE': {
+    run: true,
+    build: true,
+    community: true,
+    weeklyReport: true,
+    coachCare: true,
   },
 
   'NTAC COMMUNITY': {
@@ -1556,15 +1565,51 @@ function ProgramDetailPage({
 
     try {
       await onComplete(
-        session.id,
-        Number(selectedRpe),
-        {
-          calendarEventId,
-          workoutDate,
-          title: session.title,
-          type: session.type,
-        },
-      )
+  session.id,
+  Number(selectedRpe),
+  {
+    calendarEventId:
+      calendarEventId ||
+      selectedWorkout?.id ||
+      selectedWorkout?.eventId ||
+      '',
+
+    workoutDate:
+      workoutDate ||
+      selectedWorkout?.date ||
+      '',
+
+    title:
+      session.title ||
+      selectedWorkout?.title ||
+      '',
+
+    type:
+      session.type ||
+      selectedWorkout?.type ||
+      '',
+
+    targetRpe:
+      session.targetRpe ||
+      selectedWorkout?.targetRpe ||
+      '',
+
+    targetRpeLabel:
+      session.targetRpe ||
+      selectedWorkout?.targetRpe ||
+      '',
+
+    weekId:
+      session.weekId ||
+      selectedWorkout?.weekId ||
+      '',
+
+    weekType:
+      session.weekType ||
+      selectedWorkout?.weekType ||
+      '',
+  },
+)
     } catch (error) {
       console.error(
         '운동 기록 저장 실패:',
@@ -1640,12 +1685,41 @@ function ProgramDetailPage({
         <div className="session-list">
           {visibleSessions.map(
             (commonSession) => {
-              const session =
-                getPersonalizedSession(
-                  commonSession,
-                  member.id,
-                  calendarEventId,
-                )
+              const personalizedSession =
+  getPersonalizedSession(
+    commonSession,
+    member.id,
+    calendarEventId,
+  )
+
+const session = {
+  ...personalizedSession,
+
+  targetRpe:
+    personalizedSession.targetRpe ||
+    selectedWorkout?.targetRpe ||
+    '',
+
+  weekId:
+    personalizedSession.weekId ||
+    selectedWorkout?.weekId ||
+    '',
+
+  weekLabel:
+    personalizedSession.weekLabel ||
+    selectedWorkout?.weekLabel ||
+    '',
+
+  weekType:
+    personalizedSession.weekType ||
+    selectedWorkout?.weekType ||
+    '',
+
+  weekTypeLabel:
+    personalizedSession.weekTypeLabel ||
+    selectedWorkout?.weekTypeLabel ||
+    '',
+}
 
               const record =
                 calendarEventId
@@ -1972,7 +2046,9 @@ const myPageStyles = {
 function MyPage({
   member,
   settings,
+  access,
   progressPercent,
+  openWeeklyReport,
   openAdmin,
   isAdmin,
 }) {
@@ -2096,20 +2172,29 @@ function MyPage({
           />
 
           <article className="coach-card">
-            <p>COACH CARE</p>
+            <p>
+              ATHLETE WEEKLY REPORT
+            </p>
 
             <h3>
-              더 세밀한 코칭이
-              필요하신가요?
+              {access?.weeklyReport
+                ? '이번 주 코치 리포트를 확인하세요.'
+                : '훈련 반응을 코치에게 관리받아보세요.'}
             </h3>
 
             <span>
-              담당 코치가 컨디션과 수행
-              기록을 확인하고 관리합니다.
+              목표 RPE와 실제 수행,
+              컨디션과 회복 상태를 분석해
+              다음 훈련 방향을 전달합니다.
             </span>
 
-            <button type="button">
-              서비스 알아보기
+            <button
+              type="button"
+              onClick={openWeeklyReport}
+            >
+              {access?.weeklyReport
+                ? '주간 리포트 확인'
+                : 'ATHLETE 서비스 보기'}
             </button>
           </article>
 
@@ -2607,8 +2692,14 @@ function App({
         <MyPage
           member={currentMember}
           settings={settings}
+          access={access}
           progressPercent={
             progressPercent
+          }
+          openWeeklyReport={() =>
+            setActiveTab(
+              'weekly-report',
+            )
           }
           isAdmin={isAdmin}
           openAdmin={() =>
@@ -2653,6 +2744,21 @@ function App({
         }
         recordsError={
           recordsError
+        }
+      />
+    )
+  }
+
+  if (
+    activeTab ===
+    'weekly-report'
+  ) {
+    return (
+      <WeeklyAthleteReportPage
+        member={currentMember}
+        access={access}
+        onBack={() =>
+          setActiveTab('my')
         }
       />
     )

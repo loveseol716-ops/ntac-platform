@@ -288,6 +288,15 @@ function RunTrainerPage({
     remainingTime > 0 &&
     remainingTime <= 10
 
+  const sessionTargetRpe =
+    session?.targetRpe ||
+    (
+      program?.targetRpeMin &&
+      program?.targetRpeMax
+        ? `${program.targetRpeMin}–${program.targetRpeMax}`
+        : ''
+    )
+
   const initializeAudio =
     useCallback(() => {
       if (
@@ -750,12 +759,40 @@ function RunTrainerPage({
             selectedRpe,
           ),
           {
-            calendarEventId,
-            workoutDate,
+            calendarEventId:
+              calendarEventId ||
+              session?.eventId ||
+              session?.id ||
+              '',
+
+            workoutDate:
+              workoutDate ||
+              session?.date ||
+              '',
+
             title:
-              session.title,
+              session?.title ||
+              program.title ||
+              '런트레이닝',
+
             type:
-              session.type,
+              session?.type ||
+              session?.sessionType ||
+              'RUN',
+
+            targetRpe:
+              sessionTargetRpe,
+
+            targetRpeLabel:
+              sessionTargetRpe,
+
+            weekId:
+              session?.weekId ||
+              '',
+
+            weekType:
+              session?.weekType ||
+              '',
           },
         )
       }

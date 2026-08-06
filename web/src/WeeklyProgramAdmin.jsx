@@ -5,6 +5,9 @@ import {
 } from 'react'
 
 import {
+  DEFAULT_WEEK_TYPE,
+  WEEK_TYPE_OPTIONS,
+  getWeekTypeLabel,
   getWeeklyPrograms,
   loadWeeklyProgramsFromSupabase,
   saveWeeklyProgramToSupabase,
@@ -19,28 +22,41 @@ const sessionTypeOptions = [
 ]
 
 function cloneData(value) {
-  return JSON.parse(JSON.stringify(value))
+  return JSON.parse(
+    JSON.stringify(value),
+  )
 }
 
 function parseDateKey(dateKey) {
-  return new Date(`${dateKey}T00:00:00`)
+  return new Date(
+    `${dateKey}T00:00:00`,
+  )
 }
 
 function formatDateKey(date) {
   return [
     date.getFullYear(),
-    String(date.getMonth() + 1).padStart(
-      2,
-      '0',
-    ),
-    String(date.getDate()).padStart(2, '0'),
+
+    String(
+      date.getMonth() + 1,
+    ).padStart(2, '0'),
+
+    String(
+      date.getDate(),
+    ).padStart(2, '0'),
   ].join('-')
 }
 
-function addDays(dateKey, amount) {
-  const date = parseDateKey(dateKey)
+function addDays(
+  dateKey,
+  amount,
+) {
+  const date =
+    parseDateKey(dateKey)
 
-  date.setDate(date.getDate() + amount)
+  date.setDate(
+    date.getDate() + amount,
+  )
 
   return formatDateKey(date)
 }
@@ -51,26 +67,38 @@ function getMondayDateKey(
   const mondayIndex =
     (date.getDay() + 6) % 7
 
-  const monday = new Date(date)
+  const monday =
+    new Date(date)
 
   monday.setDate(
-    date.getDate() - mondayIndex,
+    date.getDate() -
+      mondayIndex,
   )
 
   return formatDateKey(monday)
 }
 
-function getWeekStartDate(week) {
-  const dates = week.workouts
-    .map((workout) => workout.date)
+function getWeekStartDate(
+  week,
+) {
+  const dates = (
+    week.workouts || []
+  )
+    .map(
+      (workout) =>
+        workout.date,
+    )
     .filter(Boolean)
     .sort()
 
   return dates[0] || ''
 }
 
-function getIsoWeekId(dateKey) {
-  const localDate = parseDateKey(dateKey)
+function getIsoWeekId(
+  dateKey,
+) {
+  const localDate =
+    parseDateKey(dateKey)
 
   const date = new Date(
     Date.UTC(
@@ -81,18 +109,29 @@ function getIsoWeekId(dateKey) {
   )
 
   const dayNumber =
-    (date.getUTCDay() + 6) % 7
+    (date.getUTCDay() + 6) %
+    7
 
   date.setUTCDate(
-    date.getUTCDate() - dayNumber + 3,
+    date.getUTCDate() -
+      dayNumber +
+      3,
   )
 
-  const firstThursday = new Date(
-    Date.UTC(date.getUTCFullYear(), 0, 4),
-  )
+  const firstThursday =
+    new Date(
+      Date.UTC(
+        date.getUTCFullYear(),
+        0,
+        4,
+      ),
+    )
 
   const firstDayNumber =
-    (firstThursday.getUTCDay() + 6) % 7
+    (
+      firstThursday.getUTCDay() +
+      6
+    ) % 7
 
   firstThursday.setUTCDate(
     firstThursday.getUTCDate() -
@@ -103,24 +142,32 @@ function getIsoWeekId(dateKey) {
   const weekNumber =
     1 +
     Math.round(
-      (date.getTime() -
-        firstThursday.getTime()) /
-        604800000,
+      (
+        date.getTime() -
+        firstThursday.getTime()
+      ) / 604800000,
     )
 
-  return `${date.getUTCFullYear()}-W${String(
+  return `${
+    date.getUTCFullYear()
+  }-W${String(
     weekNumber,
   ).padStart(2, '0')}`
 }
 
-function getWeekLabel(dateKey) {
-  const date = parseDateKey(dateKey)
+function getWeekLabel(
+  dateKey,
+) {
+  const date =
+    parseDateKey(dateKey)
 
-  const month = date.getMonth() + 1
+  const month =
+    date.getMonth() + 1
 
-  const weekOfMonth = Math.ceil(
-    date.getDate() / 7,
-  )
+  const weekOfMonth =
+    Math.ceil(
+      date.getDate() / 7,
+    )
 
   return `${month}월 ${weekOfMonth}주차`
 }
@@ -131,10 +178,12 @@ function createSections() {
       title: 'WARM UP',
       items: [''],
     },
+
     {
       title: 'MAIN',
       items: [''],
     },
+
     {
       title: 'COOL DOWN',
       items: [''],
@@ -153,60 +202,112 @@ function createWorkout({
     category,
     sessionType,
     title,
+
     subtitle: '',
     description: '',
     targetRpe: '',
-    sections: createSections(),
+
+    sections:
+      createSections(),
   }
 }
 
-function createDefaultWeek(startDate) {
+function createDefaultWeek(
+  startDate,
+) {
   return {
-    weekId: getIsoWeekId(startDate),
-    label: getWeekLabel(startDate),
+    weekId:
+      getIsoWeekId(startDate),
+
+    label:
+      getWeekLabel(startDate),
+
+    weekType:
+      DEFAULT_WEEK_TYPE,
+
     published: false,
 
     workouts: [
       createWorkout({
         date: startDate,
         category: 'RUN',
-        sessionType: 'ZONE 2',
-        title: 'Zone 2 Running',
+        sessionType:
+          'ZONE 2',
+        title:
+          'Zone 2 Running',
       }),
 
       createWorkout({
         date: startDate,
         category: 'BUILD',
-        sessionType: 'STRENGTH',
-        title: 'Strength A',
+        sessionType:
+          'STRENGTH',
+        title:
+          'Strength A',
       }),
 
       createWorkout({
-        date: addDays(startDate, 1),
+        date:
+          addDays(
+            startDate,
+            1,
+          ),
+
         category: 'RUN',
-        sessionType: 'INTERVAL',
-        title: 'Interval A',
+
+        sessionType:
+          'INTERVAL',
+
+        title:
+          'Interval A',
       }),
 
       createWorkout({
-        date: addDays(startDate, 2),
+        date:
+          addDays(
+            startDate,
+            2,
+          ),
+
         category: 'RUN',
-        sessionType: 'INDOOR ZONE 2',
-        title: 'Indoor Zone 2',
+
+        sessionType:
+          'INDOOR ZONE 2',
+
+        title:
+          'Indoor Zone 2',
       }),
 
       createWorkout({
-        date: addDays(startDate, 3),
+        date:
+          addDays(
+            startDate,
+            3,
+          ),
+
         category: 'RUN',
-        sessionType: 'INTERVAL',
-        title: 'Interval B',
+
+        sessionType:
+          'INTERVAL',
+
+        title:
+          'Interval B',
       }),
 
       createWorkout({
-        date: addDays(startDate, 4),
+        date:
+          addDays(
+            startDate,
+            4,
+          ),
+
         category: 'BUILD',
-        sessionType: 'STRENGTH',
-        title: 'Strength B',
+
+        sessionType:
+          'STRENGTH',
+
+        title:
+          'Strength B',
       }),
     ],
   }
@@ -216,91 +317,159 @@ function copyWeekToNext(
   week,
   shiftDays = 7,
 ) {
-  const copiedWeek = cloneData(week)
+  const copiedWeek =
+    cloneData(week)
 
   const currentStartDate =
-    getWeekStartDate(copiedWeek)
+    getWeekStartDate(
+      copiedWeek,
+    )
 
-  const nextStartDate = addDays(
-    currentStartDate,
-    shiftDays,
-  )
+  const nextStartDate =
+    addDays(
+      currentStartDate,
+      shiftDays,
+    )
 
   return {
     ...copiedWeek,
-    weekId: getIsoWeekId(nextStartDate),
-    label: getWeekLabel(nextStartDate),
+
+    weekId:
+      getIsoWeekId(
+        nextStartDate,
+      ),
+
+    label:
+      getWeekLabel(
+        nextStartDate,
+      ),
+
+    weekType:
+      copiedWeek.weekType ||
+      DEFAULT_WEEK_TYPE,
+
     published: false,
 
-    workouts: copiedWeek.workouts.map(
-      (workout) => {
-        const {
-          sessionId,
-          eventId,
-          ...workoutWithoutIds
-        } = workout
+    workouts:
+      copiedWeek.workouts.map(
+        (workout) => {
+          const {
+            sessionId,
+            eventId,
+            ...workoutWithoutIds
+          } = workout
 
-        return {
-          ...workoutWithoutIds,
+          return {
+            ...workoutWithoutIds,
 
-          date: addDays(
-            workout.date,
-            shiftDays,
-          ),
-        }
-      },
-    ),
+            date:
+              addDays(
+                workout.date,
+                shiftDays,
+              ),
+          }
+        },
+      ),
   }
 }
 
-function normalizePrograms(programs) {
-  return programs.map((week) => ({
-    ...week,
+function normalizePrograms(
+  programs,
+) {
+  return programs.map(
+    (week) => ({
+      ...week,
 
-    workouts: week.workouts.map(
-      (workout, index) => {
-        const category =
-          workout.category.toLowerCase()
+      weekType:
+        week.weekType ||
+        DEFAULT_WEEK_TYPE,
 
-        const sessionId =
-          workout.sessionId ||
-          `${week.weekId.toLowerCase()}-${category}-${index + 1}`
+      workouts: (
+        week.workouts || []
+      ).map(
+        (
+          workout,
+          index,
+        ) => {
+          const category =
+            String(
+              workout.category ||
+                'RUN',
+            ).toLowerCase()
 
-        const eventId =
-          workout.eventId ||
-          `${workout.date}-${sessionId}`
+          const sessionId =
+            workout.sessionId ||
+            `${
+              week.weekId.toLowerCase()
+            }-${category}-${
+              index + 1
+            }`
 
-        return {
-          ...workout,
-          sessionId,
-          eventId,
+          const eventId =
+            workout.eventId ||
+            `${workout.date}-${sessionId}`
 
-          sections: workout.sections.map(
-            (section) => ({
-              ...section,
+          const sections =
+            Array.isArray(
+              workout.sections,
+            )
+              ? workout.sections
+              : createSections()
 
-              items: section.items.filter(
-                (item) =>
-                  item.trim() !== '',
+          return {
+            ...workout,
+
+            sessionId,
+            eventId,
+
+            sections:
+              sections.map(
+                (section) => ({
+                  ...section,
+
+                  items: (
+                    section.items ||
+                    []
+                  ).filter(
+                    (item) =>
+                      String(item)
+                        .trim() !==
+                      '',
+                  ),
+                }),
               ),
-            }),
-          ),
-        }
-      },
-    ),
-  }))
+          }
+        },
+      ),
+    }),
+  )
 }
 
-function validateWeek(week) {
-  if (!week.weekId.trim()) {
+function validateWeek(
+  week,
+) {
+  if (
+    !week.weekId?.trim()
+  ) {
     return '주차 ID를 입력해 주세요.'
   }
 
-  if (!week.label.trim()) {
+  if (
+    !week.label?.trim()
+  ) {
     return '주차 이름을 입력해 주세요.'
   }
 
-  if (week.workouts.length === 0) {
+  if (!week.weekType) {
+    return '주간 유형을 선택해 주세요.'
+  }
+
+  if (
+    !Array.isArray(
+      week.workouts,
+    ) ||
+    week.workouts.length === 0
+  ) {
     return '운동을 한 개 이상 작성해 주세요.'
   }
 
@@ -309,11 +478,24 @@ function validateWeek(week) {
       (workout) =>
         !workout.date ||
         !workout.category ||
-        !workout.title.trim(),
+        !workout.title?.trim(),
     )
 
   if (invalidWorkout) {
     return '모든 운동의 날짜, 분류, 제목을 입력해 주세요.'
+  }
+
+  const invalidRpe =
+    week.workouts.find(
+      (workout) =>
+        !String(
+          workout.targetRpe ||
+            '',
+        ).trim(),
+    )
+
+  if (invalidRpe) {
+    return '모든 프로그램의 목표 RPE를 입력해 주세요.'
   }
 
   return null
@@ -323,11 +505,17 @@ function WeeklyProgramAdmin() {
   const initialPrograms =
     getWeeklyPrograms()
 
-  const [isOpen, setIsOpen] =
-    useState(false)
+  const [
+    isOpen,
+    setIsOpen,
+  ] = useState(false)
 
-  const [programs, setPrograms] =
-    useState(initialPrograms)
+  const [
+    programs,
+    setPrograms,
+  ] = useState(
+    initialPrograms,
+  )
 
   const [
     selectedWeekId,
@@ -356,56 +544,77 @@ function WeeklyProgramAdmin() {
   useEffect(() => {
     let isMounted = true
 
-    const loadPrograms = async () => {
-      try {
-        const remotePrograms =
-          await loadWeeklyProgramsFromSupabase()
+    const loadPrograms =
+      async () => {
+        try {
+          const remotePrograms =
+            await loadWeeklyProgramsFromSupabase()
 
-        if (!isMounted) {
-          return
-        }
+          if (!isMounted) {
+            return
+          }
 
-        setPrograms(remotePrograms)
+          const normalizedPrograms =
+            remotePrograms.map(
+              (week) => ({
+                ...week,
 
-        setSelectedWeekId(
-          (currentWeekId) => {
-            const currentWeekStillExists =
-              remotePrograms.some(
-                (week) =>
-                  week.weekId ===
-                  currentWeekId,
-              )
-
-            if (currentWeekStillExists) {
-              return currentWeekId
-            }
-
-            return (
-              remotePrograms[
-                remotePrograms.length - 1
-              ]?.weekId || ''
+                weekType:
+                  week.weekType ||
+                  DEFAULT_WEEK_TYPE,
+              }),
             )
-          },
-        )
 
-        setDatabaseMessage(
-          'Supabase 최신 데이터를 불러왔습니다.',
-        )
-      } catch (error) {
-        console.error(
-          '주간 프로그램 불러오기 실패:',
-          error,
-        )
+          setPrograms(
+            normalizedPrograms,
+          )
 
-        setDatabaseMessage(
-          'Supabase 불러오기에 실패해 기존 저장 데이터를 사용합니다.',
-        )
-      } finally {
-        if (isMounted) {
-          setDatabaseLoading(false)
+          setSelectedWeekId(
+            (
+              currentWeekId,
+            ) => {
+              const currentWeekStillExists =
+                normalizedPrograms.some(
+                  (week) =>
+                    week.weekId ===
+                    currentWeekId,
+                )
+
+              if (
+                currentWeekStillExists
+              ) {
+                return currentWeekId
+              }
+
+              return (
+                normalizedPrograms[
+                  normalizedPrograms.length -
+                    1
+                ]?.weekId || ''
+              )
+            },
+          )
+
+          setDatabaseMessage(
+            'Supabase 최신 데이터를 불러왔습니다.',
+          )
+        } catch (error) {
+          console.error(
+            '주간 프로그램 불러오기 실패:',
+            error,
+          )
+
+          setDatabaseMessage(
+            'Supabase 불러오기에 실패해 기존 저장 데이터를 사용합니다.',
+          )
+        } finally {
+          if (isMounted) {
+            setDatabaseLoading(
+              false,
+            )
+          }
         }
       }
-    }
 
     loadPrograms()
 
@@ -414,23 +623,31 @@ function WeeklyProgramAdmin() {
     }
   }, [])
 
-  const sortedPrograms = useMemo(
-    () =>
-      [...programs].sort(
-        (first, second) =>
-          getWeekStartDate(
+  const sortedPrograms =
+    useMemo(
+      () =>
+        [...programs].sort(
+          (
             first,
-          ).localeCompare(
-            getWeekStartDate(second),
-          ),
-      ),
-    [programs],
-  )
+            second,
+          ) =>
+            getWeekStartDate(
+              first,
+            ).localeCompare(
+              getWeekStartDate(
+                second,
+              ),
+            ),
+        ),
+
+      [programs],
+    )
 
   const selectedWeek =
     programs.find(
       (week) =>
-        week.weekId === selectedWeekId,
+        week.weekId ===
+        selectedWeekId,
     ) || null
 
   const updateSelectedWeek = (
@@ -439,7 +656,8 @@ function WeeklyProgramAdmin() {
     setPrograms((current) =>
       current.map((week) => {
         if (
-          week.weekId !== selectedWeekId
+          week.weekId !==
+          selectedWeekId
         ) {
           return week
         }
@@ -460,19 +678,27 @@ function WeeklyProgramAdmin() {
     name,
     value,
   ) => {
-    updateSelectedWeek((week) => ({
-      ...week,
+    updateSelectedWeek(
+      (week) => ({
+        ...week,
 
-      workouts: week.workouts.map(
-        (workout, index) =>
-          index === workoutIndex
-            ? {
-                ...workout,
-                [name]: value,
-              }
-            : workout,
-      ),
-    }))
+        workouts:
+          week.workouts.map(
+            (
+              workout,
+              index,
+            ) =>
+              index ===
+              workoutIndex
+                ? {
+                    ...workout,
+                    [name]:
+                      value,
+                  }
+                : workout,
+          ),
+      }),
+    )
   }
 
   const updateSection = (
@@ -480,42 +706,49 @@ function WeeklyProgramAdmin() {
     sectionIndex,
     value,
   ) => {
-    updateSelectedWeek((week) => ({
-      ...week,
+    updateSelectedWeek(
+      (week) => ({
+        ...week,
 
-      workouts: week.workouts.map(
-        (
-          workout,
-          currentWorkoutIndex,
-        ) => {
-          if (
-            currentWorkoutIndex !==
-            workoutIndex
-          ) {
-            return workout
-          }
+        workouts:
+          week.workouts.map(
+            (
+              workout,
+              currentWorkoutIndex,
+            ) => {
+              if (
+                currentWorkoutIndex !==
+                workoutIndex
+              ) {
+                return workout
+              }
 
-          return {
-            ...workout,
+              return {
+                ...workout,
 
-            sections: workout.sections.map(
-              (
-                section,
-                currentSectionIndex,
-              ) =>
-                currentSectionIndex ===
-                sectionIndex
-                  ? {
-                      ...section,
-                      items:
-                        value.split('\n'),
-                    }
-                  : section,
-            ),
-          }
-        },
-      ),
-    }))
+                sections:
+                  workout.sections.map(
+                    (
+                      section,
+                      currentSectionIndex,
+                    ) =>
+                      currentSectionIndex ===
+                      sectionIndex
+                        ? {
+                            ...section,
+
+                            items:
+                              value.split(
+                                '\n',
+                              ),
+                          }
+                        : section,
+                  ),
+              }
+            },
+          ),
+      }),
+    )
   }
 
   const addWorkout = () => {
@@ -524,43 +757,62 @@ function WeeklyProgramAdmin() {
     }
 
     const startDate =
-      getWeekStartDate(selectedWeek)
+      getWeekStartDate(
+        selectedWeek,
+      ) ||
+      getMondayDateKey()
 
-    updateSelectedWeek((week) => ({
-      ...week,
+    updateSelectedWeek(
+      (week) => ({
+        ...week,
 
-      workouts: [
-        ...week.workouts,
+        workouts: [
+          ...week.workouts,
 
-        createWorkout({
-          date: startDate,
-          category: 'RUN',
-          sessionType: 'ZONE 2',
-          title: '새 프로그램',
-        }),
-      ],
-    }))
+          createWorkout({
+            date: startDate,
+
+            category:
+              'RUN',
+
+            sessionType:
+              'ZONE 2',
+
+            title:
+              '새 프로그램',
+          }),
+        ],
+      }),
+    )
   }
 
   const removeWorkout = (
     workoutIndex,
   ) => {
-    const confirmed = window.confirm(
-      '이 프로그램을 삭제할까요?',
-    )
+    const confirmed =
+      window.confirm(
+        '이 프로그램을 삭제할까요?',
+      )
 
     if (!confirmed) {
       return
     }
 
-    updateSelectedWeek((week) => ({
-      ...week,
+    updateSelectedWeek(
+      (week) => ({
+        ...week,
 
-      workouts: week.workouts.filter(
-        (_, index) =>
-          index !== workoutIndex,
-      ),
-    }))
+        workouts:
+          week.workouts.filter(
+            (
+              _,
+              index,
+            ) =>
+              index !==
+              workoutIndex,
+          ),
+      }),
+    )
   }
 
   const createNextWeek = () => {
@@ -570,10 +822,11 @@ function WeeklyProgramAdmin() {
       let shiftDays = 7
 
       do {
-        nextWeek = copyWeekToNext(
-          selectedWeek,
-          shiftDays,
-        )
+        nextWeek =
+          copyWeekToNext(
+            selectedWeek,
+            shiftDays,
+          )
 
         shiftDays += 7
       } while (
@@ -584,17 +837,23 @@ function WeeklyProgramAdmin() {
         )
       )
     } else {
-      nextWeek = createDefaultWeek(
-        getMondayDateKey(),
-      )
+      nextWeek =
+        createDefaultWeek(
+          getMondayDateKey(),
+        )
     }
 
-    setPrograms((current) => [
-      ...current,
-      nextWeek,
-    ])
+    setPrograms(
+      (current) => [
+        ...current,
+        nextWeek,
+      ],
+    )
 
-    setSelectedWeekId(nextWeek.weekId)
+    setSelectedWeekId(
+      nextWeek.weekId,
+    )
+
     setIsOpen(true)
   }
 
@@ -604,222 +863,278 @@ function WeeklyProgramAdmin() {
         sortedPrograms.length - 1
       ]
 
-    const startDate = latestWeek
-      ? addDays(
-          getWeekStartDate(latestWeek),
-          7,
-        )
-      : getMondayDateKey()
+    const startDate =
+      latestWeek
+        ? addDays(
+            getWeekStartDate(
+              latestWeek,
+            ),
+            7,
+          )
+        : getMondayDateKey()
 
-    let nextStartDate = startDate
+    let nextStartDate =
+      startDate
 
     let weekId =
-      getIsoWeekId(nextStartDate)
+      getIsoWeekId(
+        nextStartDate,
+      )
 
     while (
       programs.some(
         (week) =>
-          week.weekId === weekId,
+          week.weekId ===
+          weekId,
       )
     ) {
-      nextStartDate = addDays(
-        nextStartDate,
-        7,
-      )
+      nextStartDate =
+        addDays(
+          nextStartDate,
+          7,
+        )
 
       weekId =
-        getIsoWeekId(nextStartDate)
+        getIsoWeekId(
+          nextStartDate,
+        )
     }
 
     const newWeek =
-      createDefaultWeek(nextStartDate)
+      createDefaultWeek(
+        nextStartDate,
+      )
 
-    setPrograms((current) => [
-      ...current,
-      newWeek,
-    ])
+    setPrograms(
+      (current) => [
+        ...current,
+        newWeek,
+      ],
+    )
 
-    setSelectedWeekId(newWeek.weekId)
+    setSelectedWeekId(
+      newWeek.weekId,
+    )
+
     setIsOpen(true)
   }
 
-  const persistSelectedWeek = async (
-    published,
-  ) => {
-    if (!selectedWeek) {
-      return null
-    }
+  const persistSelectedWeek =
+    async (published) => {
+      if (!selectedWeek) {
+        return null
+      }
 
-    const updatedPrograms =
-      normalizePrograms(
-        programs.map((week) =>
-          week.weekId === selectedWeekId
-            ? {
-                ...week,
-                published,
-              }
-            : week,
-        ),
-      )
+      const updatedPrograms =
+        normalizePrograms(
+          programs.map(
+            (week) =>
+              week.weekId ===
+              selectedWeekId
+                ? {
+                    ...week,
+                    published,
 
-    const weekToSave =
-      updatedPrograms.find(
-        (week) =>
-          week.weekId === selectedWeekId,
-      )
-
-    if (!weekToSave) {
-      return null
-    }
-
-    setDatabaseSaving(true)
-
-    setDatabaseMessage(
-      'Supabase에 저장 중입니다...',
-    )
-
-    try {
-      const savedWeek =
-        await saveWeeklyProgramToSupabase(
-          weekToSave,
+                    weekType:
+                      week.weekType ||
+                      DEFAULT_WEEK_TYPE,
+                  }
+                : week,
+          ),
         )
 
-      const syncedPrograms =
-        updatedPrograms.map((week) =>
-          week.weekId === savedWeek.weekId
-            ? savedWeek
-            : week,
+      const weekToSave =
+        updatedPrograms.find(
+          (week) =>
+            week.weekId ===
+            selectedWeekId,
         )
 
-      setPrograms(syncedPrograms)
+      if (!weekToSave) {
+        return null
+      }
 
-      saveWeeklyPrograms(
-        syncedPrograms,
-      )
-
-      setDatabaseMessage(
-        'Supabase 저장이 완료되었습니다.',
-      )
-
-      return syncedPrograms
-    } catch (error) {
-      console.error(
-        '주간 프로그램 저장 실패:',
-        error,
-      )
+      setDatabaseSaving(true)
 
       setDatabaseMessage(
-        'Supabase 저장에 실패했습니다.',
+        'Supabase에 저장 중입니다...',
       )
+
+      try {
+        const savedWeek =
+          await saveWeeklyProgramToSupabase(
+            weekToSave,
+          )
+
+        const syncedPrograms =
+          updatedPrograms.map(
+            (week) =>
+              week.weekId ===
+              savedWeek.weekId
+                ? savedWeek
+                : week,
+          )
+
+        setPrograms(
+          syncedPrograms,
+        )
+
+        saveWeeklyPrograms(
+          syncedPrograms,
+        )
+
+        setDatabaseMessage(
+          'Supabase 저장이 완료되었습니다.',
+        )
+
+        return syncedPrograms
+      } catch (error) {
+        console.error(
+          '주간 프로그램 저장 실패:',
+          error,
+        )
+
+        setDatabaseMessage(
+          'Supabase 저장에 실패했습니다.',
+        )
+
+        alert(
+          `저장에 실패했습니다.\n${
+            error.message ||
+            '알 수 없는 오류'
+          }`,
+        )
+
+        return null
+      } finally {
+        setDatabaseSaving(
+          false,
+        )
+      }
+    }
+
+  const saveDraft =
+    async () => {
+      if (
+        !selectedWeek ||
+        databaseSaving
+      ) {
+        return
+      }
+
+      const validationMessage =
+        validateWeek(
+          selectedWeek,
+        )
+
+      if (
+        validationMessage
+      ) {
+        alert(
+          validationMessage,
+        )
+
+        return
+      }
+
+      const savedPrograms =
+        await persistSelectedWeek(
+          false,
+        )
+
+      if (!savedPrograms) {
+        return
+      }
 
       alert(
-        `저장에 실패했습니다.\n${
-          error.message ||
-          '알 수 없는 오류'
-        }`,
+        '주간 프로그램이 Supabase에 임시저장되었습니다.',
+      )
+    }
+
+  const publishWeek =
+    async () => {
+      if (
+        !selectedWeek ||
+        databaseSaving
+      ) {
+        return
+      }
+
+      const validationMessage =
+        validateWeek(
+          selectedWeek,
+        )
+
+      if (
+        validationMessage
+      ) {
+        alert(
+          validationMessage,
+        )
+
+        return
+      }
+
+      const confirmed =
+        window.confirm(
+          `${selectedWeek.label} 프로그램을 멤버에게 공개할까요?\n\n주간 유형: ${getWeekTypeLabel(
+            selectedWeek.weekType,
+          )}`,
+        )
+
+      if (!confirmed) {
+        return
+      }
+
+      const savedPrograms =
+        await persistSelectedWeek(
+          true,
+        )
+
+      if (!savedPrograms) {
+        return
+      }
+
+      alert(
+        '프로그램이 Supabase에 저장되고 공개되었습니다.',
       )
 
-      return null
-    } finally {
-      setDatabaseSaving(false)
-    }
-  }
-
-  const saveDraft = async () => {
-    if (
-      !selectedWeek ||
-      databaseSaving
-    ) {
-      return
+      window.location.reload()
     }
 
-    const validationMessage =
-      validateWeek(selectedWeek)
+  const stopPublishing =
+    async () => {
+      if (
+        !selectedWeek ||
+        databaseSaving
+      ) {
+        return
+      }
 
-    if (validationMessage) {
-      alert(validationMessage)
-      return
+      const confirmed =
+        window.confirm(
+          `${selectedWeek.label} 공개를 중지할까요?`,
+        )
+
+      if (!confirmed) {
+        return
+      }
+
+      const savedPrograms =
+        await persistSelectedWeek(
+          false,
+        )
+
+      if (!savedPrograms) {
+        return
+      }
+
+      alert(
+        'Supabase에서 프로그램 공개가 중지되었습니다.',
+      )
+
+      window.location.reload()
     }
-
-    const savedPrograms =
-      await persistSelectedWeek(false)
-
-    if (!savedPrograms) {
-      return
-    }
-
-    alert(
-      '주간 프로그램이 Supabase에 임시저장되었습니다.',
-    )
-  }
-
-  const publishWeek = async () => {
-    if (
-      !selectedWeek ||
-      databaseSaving
-    ) {
-      return
-    }
-
-    const validationMessage =
-      validateWeek(selectedWeek)
-
-    if (validationMessage) {
-      alert(validationMessage)
-      return
-    }
-
-    const confirmed = window.confirm(
-      `${selectedWeek.label} 프로그램을 멤버에게 공개할까요?`,
-    )
-
-    if (!confirmed) {
-      return
-    }
-
-    const savedPrograms =
-      await persistSelectedWeek(true)
-
-    if (!savedPrograms) {
-      return
-    }
-
-    alert(
-      '프로그램이 Supabase에 저장되고 공개되었습니다.',
-    )
-
-    window.location.reload()
-  }
-
-  const stopPublishing = async () => {
-    if (
-      !selectedWeek ||
-      databaseSaving
-    ) {
-      return
-    }
-
-    const confirmed = window.confirm(
-      `${selectedWeek.label} 공개를 중지할까요?`,
-    )
-
-    if (!confirmed) {
-      return
-    }
-
-    const savedPrograms =
-      await persistSelectedWeek(false)
-
-    if (!savedPrograms) {
-      return
-    }
-
-    alert(
-      'Supabase에서 프로그램 공개가 중지되었습니다.',
-    )
-
-    window.location.reload()
-  }
 
   return (
     <section className="weekly-admin-panel">
@@ -828,19 +1143,26 @@ function WeeklyProgramAdmin() {
         type="button"
         onClick={() =>
           setIsOpen(
-            (current) => !current,
+            (current) =>
+              !current,
           )
         }
       >
         <div>
-          <span>WEEKLY PROGRAM</span>
+          <span>
+            WEEKLY PROGRAM
+          </span>
 
           <strong>
             주간 프로그램 관리
           </strong>
         </div>
 
-        <b>{isOpen ? '닫기' : '열기'}</b>
+        <b>
+          {isOpen
+            ? '닫기'
+            : '열기'}
+        </b>
       </button>
 
       {isOpen && (
@@ -848,14 +1170,18 @@ function WeeklyProgramAdmin() {
           <div className="weekly-admin-actions">
             <button
               type="button"
-              onClick={createNextWeek}
+              onClick={
+                createNextWeek
+              }
             >
               다음 주 복사 생성
             </button>
 
             <button
               type="button"
-              onClick={createBlankWeek}
+              onClick={
+                createBlankWeek
+              }
             >
               빈 주차 생성
             </button>
@@ -863,13 +1189,19 @@ function WeeklyProgramAdmin() {
 
           <p
             style={{
-              margin: '4px 0 16px',
-              fontSize: '12px',
-              fontWeight: '700',
+              margin:
+                '4px 0 16px',
 
-              color: databaseLoading
-                ? '#6b7280'
-                : '#0b6b4f',
+              fontSize:
+                '12px',
+
+              fontWeight:
+                '700',
+
+              color:
+                databaseLoading
+                  ? '#6b7280'
+                  : '#0b6b4f',
             }}
           >
             {databaseLoading
@@ -877,25 +1209,39 @@ function WeeklyProgramAdmin() {
               : databaseMessage}
           </p>
 
-          {programs.length > 0 && (
+          {programs.length >
+            0 && (
             <label className="admin-field">
               관리할 주차
 
               <select
-                value={selectedWeekId}
-                onChange={(event) =>
+                value={
+                  selectedWeekId
+                }
+                onChange={(
+                  event,
+                ) =>
                   setSelectedWeekId(
-                    event.target.value,
+                    event.target
+                      .value,
                   )
                 }
               >
                 {sortedPrograms.map(
                   (week) => (
                     <option
-                      key={week.weekId}
-                      value={week.weekId}
+                      key={
+                        week.weekId
+                      }
+                      value={
+                        week.weekId
+                      }
                     >
                       {week.label}
+                      {' · '}
+                      {getWeekTypeLabel(
+                        week.weekType,
+                      )}
 
                       {week.published
                         ? ' · 공개 중'
@@ -911,13 +1257,36 @@ function WeeklyProgramAdmin() {
             <>
               <div className="weekly-status-card">
                 <div>
-                  <span>현재 상태</span>
+                  <span>
+                    현재 상태
+                  </span>
 
                   <strong>
                     {selectedWeek.published
                       ? '멤버에게 공개 중'
                       : '임시저장 또는 작성 중'}
                   </strong>
+
+                  <p
+                    style={{
+                      margin:
+                        '6px 0 0',
+
+                      color:
+                        '#607069',
+
+                      fontSize:
+                        '12px',
+
+                      fontWeight:
+                        '700',
+                    }}
+                  >
+                    주간 유형:{' '}
+                    {getWeekTypeLabel(
+                      selectedWeek.weekType,
+                    )}
+                  </p>
                 </div>
 
                 <b
@@ -954,13 +1323,80 @@ function WeeklyProgramAdmin() {
                     value={
                       selectedWeek.label
                     }
-                    onChange={(event) =>
-                      updateSelectedWeek({
-                        label:
-                          event.target.value,
-                      })
+                    onChange={(
+                      event,
+                    ) =>
+                      updateSelectedWeek(
+                        {
+                          label:
+                            event.target
+                              .value,
+                        },
+                      )
                     }
                   />
+                </label>
+
+                <label className="admin-field">
+                  주간 유형
+
+                  <select
+                    value={
+                      selectedWeek.weekType ||
+                      DEFAULT_WEEK_TYPE
+                    }
+                    onChange={(
+                      event,
+                    ) =>
+                      updateSelectedWeek(
+                        {
+                          weekType:
+                            event.target
+                              .value,
+                        },
+                      )
+                    }
+                  >
+                    {WEEK_TYPE_OPTIONS.map(
+                      (
+                        option,
+                      ) => (
+                        <option
+                          key={
+                            option.value
+                          }
+                          value={
+                            option.value
+                          }
+                        >
+                          {
+                            option.label
+                          }
+                        </option>
+                      ),
+                    )}
+                  </select>
+
+                  <small
+                    style={{
+                      marginTop:
+                        '6px',
+
+                      color:
+                        '#74817c',
+
+                      fontSize:
+                        '11px',
+
+                      lineHeight:
+                        '1.45',
+                    }}
+                  >
+                    AI 주간 리포트가
+                    프로그램의 피로도
+                    의도를 판단할 때
+                    기준으로 사용합니다.
+                  </small>
                 </label>
               </div>
 
@@ -981,7 +1417,8 @@ function WeeklyProgramAdmin() {
                         <div>
                           <span>
                             PROGRAM{' '}
-                            {workoutIndex + 1}
+                            {workoutIndex +
+                              1}
                           </span>
 
                           <h4>
@@ -1017,7 +1454,8 @@ function WeeklyProgramAdmin() {
                               updateWorkout(
                                 workoutIndex,
                                 'date',
-                                event.target
+                                event
+                                  .target
                                   .value,
                               )
                             }
@@ -1037,7 +1475,8 @@ function WeeklyProgramAdmin() {
                               updateWorkout(
                                 workoutIndex,
                                 'category',
-                                event.target
+                                event
+                                  .target
                                   .value,
                               )
                             }
@@ -1060,7 +1499,9 @@ function WeeklyProgramAdmin() {
                           value={
                             workout.sessionType
                           }
-                          onChange={(event) =>
+                          onChange={(
+                            event,
+                          ) =>
                             updateWorkout(
                               workoutIndex,
                               'sessionType',
@@ -1070,12 +1511,20 @@ function WeeklyProgramAdmin() {
                           }
                         >
                           {sessionTypeOptions.map(
-                            (option) => (
+                            (
+                              option,
+                            ) => (
                               <option
-                                key={option}
-                                value={option}
+                                key={
+                                  option
+                                }
+                                value={
+                                  option
+                                }
                               >
-                                {option}
+                                {
+                                  option
+                                }
                               </option>
                             ),
                           )}
@@ -1090,7 +1539,9 @@ function WeeklyProgramAdmin() {
                           value={
                             workout.title
                           }
-                          onChange={(event) =>
+                          onChange={(
+                            event,
+                          ) =>
                             updateWorkout(
                               workoutIndex,
                               'title',
@@ -1110,7 +1561,9 @@ function WeeklyProgramAdmin() {
                           value={
                             workout.subtitle
                           }
-                          onChange={(event) =>
+                          onChange={(
+                            event,
+                          ) =>
                             updateWorkout(
                               workoutIndex,
                               'subtitle',
@@ -1130,7 +1583,9 @@ function WeeklyProgramAdmin() {
                           value={
                             workout.description
                           }
-                          onChange={(event) =>
+                          onChange={(
+                            event,
+                          ) =>
                             updateWorkout(
                               workoutIndex,
                               'description',
@@ -1150,7 +1605,9 @@ function WeeklyProgramAdmin() {
                           value={
                             workout.targetRpe
                           }
-                          onChange={(event) =>
+                          onChange={(
+                            event,
+                          ) =>
                             updateWorkout(
                               workoutIndex,
                               'targetRpe',
@@ -1159,6 +1616,25 @@ function WeeklyProgramAdmin() {
                             )
                           }
                         />
+
+                        <small
+                          style={{
+                            marginTop:
+                              '6px',
+
+                            color:
+                              '#74817c',
+
+                            fontSize:
+                              '11px',
+                          }}
+                        >
+                          범위로 입력하면
+                          주간 리포트에서는
+                          중간값으로
+                          계산됩니다. 예:
+                          7–8 → 7.5
+                        </small>
                       </label>
 
                       {workout.sections.map(
@@ -1172,7 +1648,9 @@ function WeeklyProgramAdmin() {
                               section.title
                             }
                           >
-                            {section.title}
+                            {
+                              section.title
+                            }
 
                             <textarea
                               rows={
@@ -1217,7 +1695,9 @@ function WeeklyProgramAdmin() {
                   className="weekly-draft-button"
                   type="button"
                   onClick={saveDraft}
-                  disabled={databaseSaving}
+                  disabled={
+                    databaseSaving
+                  }
                 >
                   {databaseSaving
                     ? '저장 중...'
@@ -1227,8 +1707,12 @@ function WeeklyProgramAdmin() {
                 <button
                   className="weekly-publish-button"
                   type="button"
-                  onClick={publishWeek}
-                  disabled={databaseSaving}
+                  onClick={
+                    publishWeek
+                  }
+                  disabled={
+                    databaseSaving
+                  }
                 >
                   {databaseSaving
                     ? '저장 중...'

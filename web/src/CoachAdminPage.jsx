@@ -8,6 +8,7 @@ import WeeklyProgramAdmin from './WeeklyProgramAdmin'
 import PersonalProgramAdmin from './PersonalProgramAdmin'
 import CommunityAdmin from './CommunityAdmin'
 import AdminAccessManagement from './AdminAccessManagement'
+import WeeklyAthleteReportAdmin from './WeeklyAthleteReportAdmin'
 import { supabase } from './lib/supabase.js'
 
 const adminTabs = [
@@ -24,6 +25,10 @@ const adminTabs = [
     label: '개인 프로그램',
   },
   {
+    id: 'reports',
+    label: '주간 리포트',
+  },
+  {
     id: 'community',
     label: '커뮤니티 관리',
   },
@@ -37,6 +42,7 @@ const membershipOptions = [
   'NTAC RUN',
   'NTAC BUILD',
   'NTAC COMPLETE',
+  'NTAC ATHLETE',
   'NTAC COMMUNITY',
 ]
 
@@ -116,6 +122,25 @@ function normalizeWorkoutRecord(row) {
       row.workout_type ||
       'TRAINING',
     rpe: Number(row.rpe),
+    targetRpe:
+      row.target_rpe === null ||
+      row.target_rpe === undefined
+        ? null
+        : Number(row.target_rpe),
+    targetRpeLabel:
+      row.target_rpe_label || '',
+    weekId: row.week_key || '',
+    weekType: row.week_type || '',
+    rpeGap:
+      row.target_rpe === null ||
+      row.target_rpe === undefined
+        ? null
+        : Number(
+            (
+              Number(row.rpe) -
+              Number(row.target_rpe)
+            ).toFixed(1),
+          ),
     completedAt: row.completed_at,
   }
 }
@@ -419,6 +444,10 @@ function CoachAdminPage({
                 title,
                 workout_type,
                 rpe,
+                target_rpe,
+                target_rpe_label,
+                week_key,
+                week_type,
                 completed_at
               `,
             )
@@ -539,10 +568,23 @@ function CoachAdminPage({
     value,
   ) => {
     setMemberSettings(
-      (current) => ({
-        ...current,
-        [name]: value,
-      }),
+      (current) => {
+        if (name === 'membership') {
+          return {
+            ...current,
+            membership: value,
+            coachCare:
+              value === 'NTAC ATHLETE'
+                ? true
+                : current.coachCare,
+          }
+        }
+
+        return {
+          ...current,
+          [name]: value,
+        }
+      },
     )
   }
 
@@ -591,7 +633,10 @@ function CoachAdminPage({
               .membershipStatus,
 
           coach_care:
-            memberSettings.coachCare,
+            memberSettings.membership ===
+            'NTAC ATHLETE'
+              ? true
+              : memberSettings.coachCare,
 
           coach_name:
             memberSettings.coachName
@@ -1328,14 +1373,29 @@ function CoachAdminPage({
 
                                       <div className="dashboard-rpe">
                                         <span>
-                                          실제 RPE
+                                          목표 → 실제
                                         </span>
 
                                         <strong>
-                                          {
-                                            record.rpe
-                                          }
+                                          {record.targetRpe ??
+                                            '-'}
+                                          {' → '}
+                                          {record.rpe}
                                         </strong>
+
+                                        {record.rpeGap !==
+                                          null && (
+                                          <small>
+                                            차이{' '}
+                                            {record.rpeGap >
+                                            0
+                                              ? '+'
+                                              : ''}
+                                            {
+                                              record.rpeGap
+                                            }
+                                          </small>
+                                        )}
                                       </div>
                                     </article>
                                   ),
@@ -1462,7 +1522,14 @@ function CoachAdminPage({
                         <input
                           type="checkbox"
                           checked={
-                            memberSettings.coachCare
+                            memberSettings.membership ===
+                            'NTAC ATHLETE'
+                              ? true
+                              : memberSettings.coachCare
+                          }
+                          disabled={
+                            memberSettings.membership ===
+                            'NTAC ATHLETE'
                           }
                           onChange={(event) =>
                             updateMemberSettings(
@@ -1475,6 +1542,10 @@ function CoachAdminPage({
                         <span>
                           COACH CARE 서비스
                           활성화
+                          {memberSettings.membership ===
+                          'NTAC ATHLETE'
+                            ? ' · ATHLETE 필수'
+                            : ''}
                         </span>
                       </label>
 
@@ -1515,7 +1586,7 @@ function CoachAdminPage({
         style={{
           display: 'grid',
           gridTemplateColumns:
-            'repeat(5, minmax(0, 1fr))',
+            'repeat(3, minmax(0, 1fr))',
           gap: '6px',
           margin: '18px 0 24px',
           padding: '6px',
@@ -1573,6 +1644,11 @@ function CoachAdminPage({
       {activeAdminTab ===
         'personal' && (
         <PersonalProgramAdmin />
+      )}
+
+      {activeAdminTab ===
+        'reports' && (
+        <WeeklyAthleteReportAdmin />
       )}
 
       {activeAdminTab ===
