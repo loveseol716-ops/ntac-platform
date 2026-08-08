@@ -1549,7 +1549,8 @@ function CoachOperationsDashboard({
         .ntac-console {
           display: grid;
           gap: 18px;
-          width: 100%;
+          width: min(100%, 1540px);
+          margin: 0 auto;
           color: #17342a;
         }
 
@@ -1562,6 +1563,7 @@ function CoachOperationsDashboard({
           align-items: flex-end;
           justify-content: space-between;
           gap: 20px;
+          padding: 4px 2px 0;
         }
 
         .ntac-console-head p,
@@ -1572,6 +1574,7 @@ function CoachOperationsDashboard({
         .ntac-console-head small {
           color: #7b8782;
           font-weight: 700;
+          line-height: 1.5;
         }
 
         .ntac-console-summary {
@@ -1581,10 +1584,12 @@ function CoachOperationsDashboard({
         }
 
         .ntac-console-summary article {
-          padding: 16px;
+          min-width: 0;
+          padding: 16px 17px;
           border: 1px solid #dbe4df;
           border-radius: 16px;
           background: #fff;
+          box-shadow: 0 3px 14px rgba(11, 61, 46, 0.035);
         }
 
         .ntac-console-summary span {
@@ -1596,27 +1601,30 @@ function CoachOperationsDashboard({
         }
 
         .ntac-console-summary strong {
-          font-size: 23px;
+          font-size: 24px;
           color: #0b3d2e;
         }
 
         .ntac-console-main {
           display: grid;
-          grid-template-columns: minmax(620px, 1.15fr) minmax(480px, 0.85fr);
+          grid-template-columns: minmax(0, 1fr) 430px;
           gap: 16px;
           align-items: start;
+          min-width: 0;
         }
 
         .ntac-console-card {
+          min-width: 0;
           border: 1px solid #dbe4df;
           border-radius: 18px;
           background: #fff;
           overflow: hidden;
+          box-shadow: 0 8px 28px rgba(11, 61, 46, 0.045);
         }
 
         .ntac-console-toolbar {
           display: grid;
-          grid-template-columns: 1.2fr 1fr 1fr;
+          grid-template-columns: minmax(220px, 1.4fr) minmax(150px, .8fr) minmax(150px, .8fr);
           gap: 8px;
           padding: 14px;
           border-bottom: 1px solid #e5ebe8;
@@ -1627,11 +1635,21 @@ function CoachOperationsDashboard({
         .ntac-console select,
         .ntac-console textarea {
           width: 100%;
+          min-width: 0;
           border: 1px solid #cfd9d4;
           border-radius: 10px;
           background: #fff;
           color: #18372c;
           font: inherit;
+          outline: none;
+          transition: border-color .15s ease, box-shadow .15s ease;
+        }
+
+        .ntac-console input:focus,
+        .ntac-console select:focus,
+        .ntac-console textarea:focus {
+          border-color: #7aa793;
+          box-shadow: 0 0 0 3px rgba(11, 61, 46, .08);
         }
 
         .ntac-console input,
@@ -1646,51 +1664,83 @@ function CoachOperationsDashboard({
         }
 
         .ntac-console-table-wrap {
+          width: 100%;
+          min-width: 0;
           overflow: auto;
-          max-height: calc(100vh - 285px);
+          max-height: calc(100vh - 330px);
+          scrollbar-gutter: stable;
         }
 
         .ntac-console-table {
           width: 100%;
-          min-width: 940px;
+          min-width: 900px;
           border-collapse: collapse;
+          table-layout: auto;
           font-size: 12px;
         }
 
         .ntac-console-table th {
           position: sticky;
           top: 0;
-          z-index: 2;
+          z-index: 3;
           padding: 11px 9px;
           background: #eef3f0;
           color: #607069;
           text-align: left;
           font-size: 10px;
           letter-spacing: .04em;
+          white-space: nowrap;
+          box-shadow: inset 0 -1px #dde6e1;
         }
 
         .ntac-console-table td {
           padding: 11px 9px;
           border-top: 1px solid #edf1ef;
           vertical-align: middle;
+          white-space: nowrap;
+        }
+
+        .ntac-console-table td:first-child,
+        .ntac-console-table th:first-child {
+          position: sticky;
+          left: 0;
+          z-index: 2;
+          background: #fff;
+        }
+
+        .ntac-console-table th:first-child {
+          z-index: 4;
+          background: #eef3f0;
         }
 
         .ntac-console-table tbody tr {
           cursor: pointer;
+          transition: background .12s ease;
         }
 
-        .ntac-console-table tbody tr:hover,
-        .ntac-console-table tbody tr.selected {
+        .ntac-console-table tbody tr:hover td,
+        .ntac-console-table tbody tr.selected td {
+          background: #eff6f2;
+        }
+
+        .ntac-console-table tbody tr:hover td:first-child,
+        .ntac-console-table tbody tr.selected td:first-child {
           background: #eff6f2;
         }
 
         .ntac-console-name {
           display: grid;
           gap: 2px;
+          min-width: 92px;
+        }
+
+        .ntac-console-name strong {
+          font-size: 12px;
         }
 
         .ntac-console-name small {
           color: #8a9490;
+          font-size: 10px;
         }
 
         .ntac-chip {
@@ -1713,18 +1763,24 @@ function CoachOperationsDashboard({
         .ntac-chip.bad { background: #ffe7e3; color: #a83c33; }
 
         .ntac-console-detail {
+          position: sticky;
+          top: 82px;
           display: grid;
           gap: 12px;
-          max-height: calc(100vh - 205px);
-          overflow: auto;
-          padding-right: 2px;
+          max-height: calc(100vh - 105px);
+          overflow-y: auto;
+          overflow-x: hidden;
+          padding-right: 4px;
+          scrollbar-gutter: stable;
         }
 
         .ntac-detail-block {
+          min-width: 0;
           padding: 17px;
           border: 1px solid #dbe4df;
           border-radius: 18px;
           background: #fff;
+          box-shadow: 0 8px 28px rgba(11, 61, 46, 0.045);
         }
 
         .ntac-detail-block h3,
@@ -1756,6 +1812,7 @@ function CoachOperationsDashboard({
         }
 
         .ntac-metric-grid article {
+          min-width: 0;
           padding: 11px 9px;
           border-radius: 12px;
           background: #f4f7f5;
@@ -1770,8 +1827,12 @@ function CoachOperationsDashboard({
         }
 
         .ntac-metric-grid strong {
+          display: block;
+          overflow: hidden;
           color: #0b3d2e;
           font-size: 16px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .ntac-action-list {
@@ -1800,6 +1861,7 @@ function CoachOperationsDashboard({
         .ntac-stack label {
           display: grid;
           gap: 5px;
+          min-width: 0;
           color: #63716c;
           font-size: 10px;
           font-weight: 800;
@@ -1826,6 +1888,11 @@ function CoachOperationsDashboard({
           font-size: 11px;
           font-weight: 900;
           cursor: pointer;
+          transition: transform .12s ease, opacity .12s ease;
+        }
+
+        .ntac-button:hover:not(:disabled) {
+          transform: translateY(-1px);
         }
 
         .ntac-button.secondary {
@@ -1859,7 +1926,7 @@ function CoachOperationsDashboard({
 
         .ntac-section-item {
           display: grid;
-          grid-template-columns: 1fr auto;
+          grid-template-columns: minmax(0, 1fr) auto;
           gap: 6px;
         }
 
@@ -1900,11 +1967,46 @@ function CoachOperationsDashboard({
           font-weight: 800;
         }
 
-        @media (max-width: 1100px) {
-          .ntac-console-summary { grid-template-columns: repeat(3, 1fr); }
-          .ntac-console-main { grid-template-columns: 1fr; }
-          .ntac-console-detail { max-height: none; }
-          .ntac-console-table-wrap { max-height: 520px; }
+        @media (max-width: 1320px) {
+          .ntac-console-main {
+            grid-template-columns: minmax(0, 1fr) 390px;
+          }
+
+          .ntac-console-summary {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 1080px) {
+          .ntac-console-main {
+            grid-template-columns: 1fr;
+          }
+
+          .ntac-console-detail {
+            position: static;
+            max-height: none;
+            overflow: visible;
+            padding-right: 0;
+          }
+
+          .ntac-console-table-wrap {
+            max-height: 520px;
+          }
+        }
+
+        @media (max-width: 720px) {
+          .ntac-console-summary {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .ntac-console-toolbar {
+            grid-template-columns: 1fr;
+          }
+
+          .ntac-metric-grid,
+          .ntac-form-grid {
+            grid-template-columns: 1fr 1fr;
+          }
         }
       `}</style>
 

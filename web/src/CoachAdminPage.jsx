@@ -1701,7 +1701,7 @@ function CoachAdminPage({
                           style={{
                             margin: 0,
                             color: '#78857f',
-                            fontSize: '10px',
+                            fontSize: '11px',
                             lineHeight: 1.55,
                           }}
                         >
@@ -1759,6 +1759,51 @@ function CoachAdminPage({
 
   return (
     <section className="coach-admin-page">
+      <style>{`
+        .coach-admin-page {
+          position: fixed;
+          inset: 0;
+          z-index: 30000;
+          width: 100vw;
+          max-width: none;
+          min-height: 100vh;
+          margin: 0;
+          padding: 18px 28px 44px;
+          overflow-y: auto;
+          overflow-x: hidden;
+          background: #f4f6f2;
+          color: #17201c;
+        }
+
+        .coach-admin-page > .admin-page-header,
+        .coach-admin-page > .ntac-admin-tabs,
+        .coach-admin-page > .ntac-console {
+          width: min(100%, 1540px);
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .coach-admin-page > .admin-page-header {
+          margin-bottom: 12px;
+        }
+
+        .ntac-admin-tabs {
+          scrollbar-width: thin;
+        }
+
+        @media (max-width: 1100px) {
+          .coach-admin-page {
+            padding: 16px 18px 36px;
+          }
+        }
+
+        @media (max-width: 720px) {
+          .coach-admin-page {
+            padding: 14px 12px 30px;
+          }
+        }
+      `}</style>
+
       <div className="admin-page-header">
         <button
           type="button"
@@ -1774,15 +1819,26 @@ function CoachAdminPage({
       </div>
 
       <nav
+        className="ntac-admin-tabs"
         style={{
+          position: 'sticky',
+          top: '0',
+          zIndex: 100,
           display: 'grid',
           gridTemplateColumns:
-            'repeat(3, minmax(0, 1fr))',
-          gap: '6px',
-          margin: '18px 0 24px',
+            'repeat(8, minmax(105px, 1fr))',
+          gap: '5px',
+          margin: '0 auto 18px',
           padding: '6px',
-          borderRadius: '16px',
-          background: '#e9eeeb',
+          overflowX: 'auto',
+          border: '1px solid #dce5e0',
+          borderRadius: '15px',
+          background: 'rgba(244, 246, 242, 0.96)',
+          boxShadow:
+            '0 8px 24px rgba(11, 61, 46, 0.06)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter:
+            'blur(10px)',
         }}
       >
         {adminTabs.map((tab) => {
@@ -1800,8 +1856,8 @@ function CoachAdminPage({
               }
               style={{
                 minWidth: 0,
-                minHeight: '48px',
-                padding: '8px 4px',
+                minHeight: '42px',
+                padding: '8px 10px',
                 border: 'none',
                 borderRadius: '12px',
                 background: isActive
