@@ -152,7 +152,8 @@ function EntryGate() {
 
           if (
             data.signup_source ===
-            'self_trial'
+              'self_trial' ||
+            data.membership === 'TRIAL'
           ) {
             try {
               await loadWeeklyProgramsFromSupabase()
@@ -398,7 +399,9 @@ function EntryGate() {
 
     if (
       sessionProfile?.signup_source ===
-      'self_trial'
+        'self_trial' ||
+      sessionProfile?.membership ===
+        'TRIAL'
     ) {
       if (!SelfTrialApp) {
         return (

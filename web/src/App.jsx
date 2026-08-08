@@ -67,6 +67,14 @@ const accessByMembership = {
     build: false,
     community: true,
   },
+
+  TRIAL: {
+    run: true,
+    build: true,
+    community: false,
+    weeklyReport: false,
+    coachCare: false,
+  },
 }
 
 function createCurrentMember(profile) {
@@ -112,6 +120,9 @@ function loadMemberSettings(profile) {
 
     paidUntil:
       profile?.paid_until || null,
+
+    trialStartedAt:
+      profile?.trial_started_at || null,
 
     trialEndsAt:
       profile?.trial_ends_at || null,
@@ -166,6 +177,60 @@ function getMembershipStatusLabel(
   }
 
   return '이용 중'
+}
+
+function formatTrialDate(value) {
+  if (!value) {
+    return '-'
+  }
+
+  return new Date(
+    `${String(value).slice(0, 10)}T00:00:00`,
+  ).toLocaleDateString('ko-KR')
+}
+
+function getTrialDday(value) {
+  if (!value) {
+    return '-'
+  }
+
+  const today = new Date()
+
+  const todayDate = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  )
+
+  const endDate = new Date(
+    `${String(value).slice(0, 10)}T00:00:00`,
+  )
+
+  const diffDays = Math.round(
+    (endDate.getTime() -
+      todayDate.getTime()) /
+      86400000,
+  )
+
+  if (diffDays < 0) {
+    return '체험 종료'
+  }
+
+  if (diffDays === 0) {
+    return 'D-DAY'
+  }
+
+  return `D-${diffDays}`
+}
+
+function isTrialAccess(
+  settings,
+  accessState,
+) {
+  return (
+    settings?.membership === 'TRIAL' ||
+    accessState?.status === 'TRIAL'
+  )
 }
 
 function MembershipAccessNotice({
@@ -1285,6 +1350,12 @@ function HomePage({
   recordsLoading,
   recordsError,
 }) {
+  const isTrial =
+    isTrialAccess(
+      settings,
+      accessState,
+    )
+
   return (
     <>
       <section className="welcome">
@@ -1297,13 +1368,39 @@ function HomePage({
         </h2>
 
         <span>
-          {settings.membership}
+          {isTrial
+            ? '7일 무료 체험'
+            : settings.membership}
         </span>
       </section>
 
       <MembershipAccessNotice
         accessState={accessState}
       />
+
+      {isTrial && (
+        <article className="membership-card">
+          <p>7-DAY FREE TRIAL</p>
+
+          <h3>
+            무료 체험 이용 중
+            {' · '}
+            {getTrialDday(
+              settings.trialEndsAt,
+            )}
+          </h3>
+
+          <span>
+            {formatTrialDate(
+              settings.trialStartedAt,
+            )}
+            {' ~ '}
+            {formatTrialDate(
+              settings.trialEndsAt,
+            )}
+          </span>
+        </article>
+      )}
 
       {recordsLoading && (
         <article className="feature-card">
@@ -2495,6 +2592,12 @@ function MyPage({
     setActiveSection,
   ] = useState('status')
 
+  const isTrial =
+    isTrialAccess(
+      settings,
+      accessState,
+    )
+
   return (
     <section className="sub-page">
       <div className="page-heading">
@@ -2561,12 +2664,19 @@ function MyPage({
             <p>현재 이용 상품</p>
 
             <h3>
-              {settings.membership}
+              {isTrial
+                ? '7일 무료 체험'
+                : settings.membership}
             </h3>
 
             <span>
-              코치 관리와 프로그램 이용
-              권한을 확인하세요.
+              {isTrial
+                ? `${formatTrialDate(
+                    settings.trialStartedAt,
+                  )} ~ ${formatTrialDate(
+                    settings.trialEndsAt,
+                  )}`
+                : '코치 관리와 프로그램 이용 권한을 확인하세요.'}
             </span>
           </article>
 
@@ -2589,15 +2699,43 @@ function MyPage({
               </strong>
             </div>
 
-            <div className="status-row">
-              <span>이용 종료일</span>
+            {isTrial ? (
+              <>
+                <div className="status-row">
+                  <span>체험 기간</span>
 
-              <strong>
-                {formatAccessDate(
-                  accessState?.until,
-                )}
-              </strong>
-            </div>
+                  <strong>
+                    {formatTrialDate(
+                      settings.trialStartedAt,
+                    )}
+                    {' ~ '}
+                    {formatTrialDate(
+                      settings.trialEndsAt,
+                    )}
+                  </strong>
+                </div>
+
+                <div className="status-row">
+                  <span>남은 기간</span>
+
+                  <strong>
+                    {getTrialDday(
+                      settings.trialEndsAt,
+                    )}
+                  </strong>
+                </div>
+              </>
+            ) : (
+              <div className="status-row">
+                <span>이용 종료일</span>
+
+                <strong>
+                  {formatAccessDate(
+                    accessState?.until,
+                  )}
+                </strong>
+              </div>
+            )}
 
             <div className="status-row">
               <span>담당 코치</span>

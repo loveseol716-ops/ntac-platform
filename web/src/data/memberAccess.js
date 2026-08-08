@@ -112,8 +112,8 @@ export function getMemberAccessState(
     return {
       allowed: true,
       status: 'TRIAL',
-      label: '체험 중',
-      reason: '무료 체험 이용 기간',
+      label: '무료 체험 이용 중',
+      reason: '7일 무료 체험 이용 기간',
       until: trialEndsAt,
       needsDate: false,
     }

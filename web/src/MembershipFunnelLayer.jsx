@@ -508,7 +508,7 @@ function MembershipFunnelLayer() {
         >
           BUILD 무료체험{' '}
           <strong>
-            D-{trialDaysLeft}
+            {trialDaysLeft}일 남음
           </strong>
         </button>
       )}
@@ -583,8 +583,10 @@ function MembershipFunnelLayer() {
             {isTrialActive && (
               <div style={styles.trialInfo}>
                 현재 BUILD 무료체험 중 · {formatDate(
+                  profile.trial_started_at,
+                )} ~ {formatDate(
                   profile.trial_ends_at,
-                )}까지
+                )} · {trialDaysLeft}일 남음
               </div>
             )}
 
