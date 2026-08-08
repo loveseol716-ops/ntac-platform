@@ -16,6 +16,10 @@ import BodyFitScoreSection from './BodyFitScoreSection.jsx'
 import TrainingPage from './pages/TrainingPage.jsx'
 import CommunityPage from './pages/CommunityPage.jsx'
 import useMemberRecords from './useMemberRecords.js'
+import {
+  formatAccessDate,
+  getMemberAccessState,
+} from './data/memberAccess.js'
 
 import {
   canUseTraining,
@@ -105,6 +109,16 @@ function loadMemberSettings(profile) {
     coach:
       profile?.coach_name ||
       '미배정',
+
+    paidUntil:
+      profile?.paid_until || null,
+
+    trialEndsAt:
+      profile?.trial_ends_at || null,
+
+    accessOverrideUntil:
+      profile?.access_override_until ||
+      null,
   }
 }
 
@@ -114,15 +128,29 @@ function getCurrentMemberAccess(
   const settings =
     loadMemberSettings(profile)
 
-  const access =
+  const billingAccess =
+    getMemberAccessState(profile)
+
+  const membershipAccess =
     accessByMembership[
       settings.membership
     ] ||
     accessByMembership['NTAC RUN']
 
+  const access = billingAccess.allowed
+    ? membershipAccess
+    : {
+        run: false,
+        build: false,
+        community: false,
+        weeklyReport: false,
+        coachCare: false,
+      }
+
   return {
     settings,
     access,
+    accessState: billingAccess,
   }
 }
 
@@ -138,6 +166,89 @@ function getMembershipStatusLabel(
   }
 
   return '이용 중'
+}
+
+function MembershipAccessNotice({
+  accessState,
+}) {
+  if (
+    !accessState ||
+    accessState.status === 'ADMIN'
+  ) {
+    return null
+  }
+
+  if (
+    accessState.allowed &&
+    accessState.status !== 'LEGACY'
+  ) {
+    return null
+  }
+
+  const isLegacy =
+    accessState.status === 'LEGACY'
+
+  return (
+    <article
+      style={{
+        marginTop: '16px',
+        padding: '18px',
+        borderRadius: '18px',
+        background: isLegacy
+          ? '#fff8df'
+          : '#fff0ed',
+        border: isLegacy
+          ? '1px solid #eadca8'
+          : '1px solid #f0c9c2',
+      }}
+    >
+      <span
+        style={{
+          display: 'inline-block',
+          padding: '5px 8px',
+          borderRadius: '999px',
+          background: isLegacy
+            ? '#f2e3a8'
+            : '#f3c8c1',
+          color: isLegacy
+            ? '#775d00'
+            : '#9b3c32',
+          fontSize: '9px',
+          fontWeight: 900,
+          letterSpacing: '0.08em',
+        }}
+      >
+        {isLegacy
+          ? 'ACCESS DATE NEEDED'
+          : 'MEMBERSHIP EXPIRED'}
+      </span>
+
+      <h3
+        style={{
+          margin: '9px 0 6px',
+          color: '#17352c',
+          fontSize: '17px',
+        }}
+      >
+        {isLegacy
+          ? '이용 기간 확인이 필요합니다.'
+          : 'NTAC 이용 기간이 종료되었습니다.'}
+      </h3>
+
+      <p
+        style={{
+          margin: 0,
+          color: '#6d7974',
+          fontSize: '12px',
+          lineHeight: 1.6,
+        }}
+      >
+        {isLegacy
+          ? '기존 멤버 계정입니다. 담당 코치가 이용 기간을 확인하고 있습니다.'
+          : '멤버십을 갱신하면 기존 기록을 그대로 유지한 채 다시 훈련을 이어갈 수 있습니다.'}
+      </p>
+    </article>
+  )
 }
 
 function getUniqueWorkoutRecordCount(
@@ -1160,6 +1271,7 @@ function CheckinPage({
 function HomePage({
   member,
   settings,
+  accessState,
   openCheckin,
   todayCheckin,
   completedCount,
@@ -1188,6 +1300,10 @@ function HomePage({
           {settings.membership}
         </span>
       </section>
+
+      <MembershipAccessNotice
+        accessState={accessState}
+      />
 
       {recordsLoading && (
         <article className="feature-card">
@@ -1218,6 +1334,7 @@ function HomePage({
         </article>
       )}
 
+      {accessState?.allowed && (
       <section className="checkin-card">
         <div>
           <p className="section-label">
@@ -1265,6 +1382,7 @@ function HomePage({
             : '체크인하기'}
         </button>
       </section>
+      )}
 
       <section className="progress-section">
         <div className="section-title">
@@ -2366,6 +2484,7 @@ function MyPage({
   member,
   settings,
   access,
+  accessState,
   progressPercent,
   openWeeklyReport,
   openAdmin,
@@ -2434,6 +2553,10 @@ function MyPage({
             확인합니다.
           </p>
 
+          <MembershipAccessNotice
+            accessState={accessState}
+          />
+
           <article className="membership-card">
             <p>현재 이용 상품</p>
 
@@ -2454,6 +2577,24 @@ function MyPage({
               <strong>
                 {getMembershipStatusLabel(
                   settings.membershipStatus,
+                )}
+              </strong>
+            </div>
+
+            <div className="status-row">
+              <span>서비스 이용 상태</span>
+
+              <strong>
+                {accessState?.label || '-'}
+              </strong>
+            </div>
+
+            <div className="status-row">
+              <span>이용 종료일</span>
+
+              <strong>
+                {formatAccessDate(
+                  accessState?.until,
                 )}
               </strong>
             </div>
@@ -2519,7 +2660,14 @@ function MyPage({
 
           <CoachSessionRequestSection
             member={member}
-            settings={settings}
+            settings={
+              accessState?.allowed
+                ? settings
+                : {
+                    ...settings,
+                    membership: 'NTAC RUN',
+                  }
+            }
           />
 
           {isAdmin && (
@@ -2655,6 +2803,7 @@ function App({
   const {
     settings,
     access,
+    accessState,
   } = getCurrentMemberAccess(
     profile,
   )
@@ -2952,6 +3101,14 @@ function App({
     calendarEventId = null,
     workoutDate = null,
   ) => {
+    if (!accessState.allowed) {
+      alert(
+        'NTAC 이용 기간이 종료되었습니다. 멤버십 갱신 후 다시 이용할 수 있습니다.',
+      )
+
+      return
+    }
+
     if (
       programId === 'run' &&
       !access.run
@@ -3037,6 +3194,7 @@ function App({
           member={currentMember}
           settings={settings}
           access={access}
+          accessState={accessState}
           progressPercent={
             progressPercent
           }
@@ -3057,6 +3215,7 @@ function App({
       <HomePage
         member={currentMember}
         settings={settings}
+        accessState={accessState}
         openCheckin={() =>
           setCheckinOpen(true)
         }

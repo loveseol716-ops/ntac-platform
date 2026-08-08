@@ -4,12 +4,13 @@ import {
   useState,
 } from 'react'
 
-import WeeklyProgramAdmin from './WeeklyProgramAdmin.jsx'
-import PersonalProgramAdmin from './PersonalProgramAdmin.jsx'
-import CommunityAdmin from './CommunityAdmin.jsx'
-import AdminAccessManagement from './AdminAccessManagement.jsx'
-import WeeklyAthleteReportAdmin from './WeeklyAthleteReportAdmin.jsx'
-import CoachSessionRequestAdmin from './CoachSessionRequestAdmin.jsx'
+import WeeklyProgramAdmin from './WeeklyProgramAdmin'
+import PersonalProgramAdmin from './PersonalProgramAdmin'
+import CommunityAdmin from './CommunityAdmin'
+import AdminAccessManagement from './AdminAccessManagement'
+import WeeklyAthleteReportAdmin from './WeeklyAthleteReportAdmin'
+import CoachSessionRequestAdmin from './CoachSessionRequestAdmin'
+import MemberDashboard from './MemberDashboard.jsx'
 import {
   loadAllCoachSessionRequests,
   subscribeToCoachSessionRequests,
@@ -17,6 +18,10 @@ import {
 import { supabase } from './lib/supabase.js'
 
 const adminTabs = [
+  {
+    id: 'dashboard',
+    label: '대시보드',
+  },
   {
     id: 'members',
     label: '멤버 관리',
@@ -76,6 +81,9 @@ const emptyMemberSettings = {
   membershipStatus: 'active',
   coachCare: false,
   coachName: '미배정',
+  paidUntil: '',
+  trialEndsAt: '',
+  accessOverrideUntil: '',
 }
 
 function formatDateTime(value) {
@@ -180,7 +188,7 @@ function CoachAdminPage({
   const [
     activeAdminTab,
     setActiveAdminTab,
-  ] = useState('members')
+  ] = useState('dashboard')
 
   const [
     membersRefreshKey,
@@ -359,7 +367,10 @@ function CoachAdminPage({
             membership,
             membership_status,
             coach_care,
-            coach_name
+            coach_name,
+            paid_until,
+            trial_ends_at,
+            access_override_until
           `,
         )
         .eq('role', 'member')
@@ -465,6 +476,12 @@ function CoachAdminPage({
             coachName:
               member.coach_name ||
               '미배정',
+            paidUntil:
+              member.paid_until || '',
+            trialEndsAt:
+              member.trial_ends_at || '',
+            accessOverrideUntil:
+              member.access_override_until || '',
           })
         }
 
@@ -708,6 +725,15 @@ function CoachAdminPage({
           coach_name:
             memberSettings.coachName
               .trim() || '미배정',
+
+          paid_until:
+            memberSettings.paidUntil || null,
+
+          trial_ends_at:
+            memberSettings.trialEndsAt || null,
+
+          access_override_until:
+            memberSettings.accessOverrideUntil || null,
         })
         .eq('id', selectedMemberId)
         .select(
@@ -719,7 +745,10 @@ function CoachAdminPage({
             membership,
             membership_status,
             coach_care,
-            coach_name
+            coach_name,
+            paid_until,
+            trial_ends_at,
+            access_override_until
           `,
         )
         .single()
@@ -773,6 +802,15 @@ function CoachAdminPage({
         coachName:
           data.coach_name ||
           '미배정',
+
+        paidUntil:
+          data.paid_until || '',
+
+        trialEndsAt:
+          data.trial_ends_at || '',
+
+        accessOverrideUntil:
+          data.access_override_until || '',
       })
 
       setSaving(false)
@@ -1585,6 +1623,92 @@ function CoachAdminPage({
                         />
                       </label>
 
+                      <div
+                        style={{
+                          display: 'grid',
+                          gap: '10px',
+                          padding: '15px',
+                          border: '1px solid #dce5e1',
+                          borderRadius: '15px',
+                          background: '#f6f8f7',
+                        }}
+                      >
+                        <div>
+                          <p
+                            style={{
+                              margin: '0 0 4px',
+                              color: '#0b6b4f',
+                              fontSize: '9px',
+                              fontWeight: '900',
+                              letterSpacing: '0.1em',
+                            }}
+                          >
+                            BILLING ACCESS
+                          </p>
+                          <strong
+                            style={{
+                              color: '#17352c',
+                              fontSize: '14px',
+                            }}
+                          >
+                            이용 기간 설정
+                          </strong>
+                        </div>
+
+                        <label className="admin-field">
+                          유료 이용 종료일
+                          <input
+                            type="date"
+                            value={memberSettings.paidUntil}
+                            onChange={(event) =>
+                              updateMemberSettings(
+                                'paidUntil',
+                                event.target.value,
+                              )
+                            }
+                          />
+                        </label>
+
+                        <label className="admin-field">
+                          무료 체험 종료일
+                          <input
+                            type="date"
+                            value={memberSettings.trialEndsAt}
+                            onChange={(event) =>
+                              updateMemberSettings(
+                                'trialEndsAt',
+                                event.target.value,
+                              )
+                            }
+                          />
+                        </label>
+
+                        <label className="admin-field">
+                          관리자 임시 연장 종료일
+                          <input
+                            type="date"
+                            value={memberSettings.accessOverrideUntil}
+                            onChange={(event) =>
+                              updateMemberSettings(
+                                'accessOverrideUntil',
+                                event.target.value,
+                              )
+                            }
+                          />
+                        </label>
+
+                        <p
+                          style={{
+                            margin: 0,
+                            color: '#78857f',
+                            fontSize: '10px',
+                            lineHeight: 1.55,
+                          }}
+                        >
+                          유료·체험·임시 연장 중 하나라도 현재 날짜까지 유효하면 앱 이용이 유지됩니다.
+                        </p>
+                      </div>
+
                       <label className="admin-check-field">
                         <input
                           type="checkbox"
@@ -1737,6 +1861,19 @@ function CoachAdminPage({
           )
         })}
       </nav>
+
+      {activeAdminTab ===
+        'dashboard' && (
+        <MemberDashboard
+          refreshKey={membersRefreshKey}
+          onOpenMember={(memberId) => {
+            setSelectedMemberId(memberId)
+            setMemberSearch('')
+            setMembershipFilter('ALL')
+            setActiveAdminTab('members')
+          }}
+        />
+      )}
 
       {activeAdminTab ===
         'members' &&
