@@ -10,7 +10,7 @@ import CommunityAdmin from './CommunityAdmin'
 import AdminAccessManagement from './AdminAccessManagement'
 import WeeklyAthleteReportAdmin from './WeeklyAthleteReportAdmin'
 import CoachSessionRequestAdmin from './CoachSessionRequestAdmin'
-import MemberDashboard from './MemberDashboard.jsx'
+import CoachOperationsDashboard from './CoachOperationsDashboard.jsx'
 import {
   loadAllCoachSessionRequests,
   subscribeToCoachSessionRequests,
@@ -20,7 +20,7 @@ import { supabase } from './lib/supabase.js'
 const adminTabs = [
   {
     id: 'dashboard',
-    label: '대시보드',
+    label: '운영 콘솔',
   },
   {
     id: 'members',
@@ -1864,14 +1864,14 @@ function CoachAdminPage({
 
       {activeAdminTab ===
         'dashboard' && (
-        <MemberDashboard
+        <CoachOperationsDashboard
           refreshKey={membersRefreshKey}
-          onOpenMember={(memberId) => {
-            setSelectedMemberId(memberId)
-            setMemberSearch('')
-            setMembershipFilter('ALL')
-            setActiveAdminTab('members')
-          }}
+          onDataChanged={() =>
+            setMembersRefreshKey(
+              (current) =>
+                current + 1,
+            )
+          }
         />
       )}
 
