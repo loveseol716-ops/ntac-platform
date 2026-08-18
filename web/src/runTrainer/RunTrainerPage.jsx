@@ -87,6 +87,10 @@ function getStepDuration(
     return 0
   }
 
+  if (step.manual) {
+    return 0
+  }
+
   if (
     Number.isFinite(step.time)
   ) {
@@ -178,8 +182,12 @@ function RunTrainerPage({
     () =>
       getRunTrainerProgram(
         programKey,
+        session,
       ),
-    [programKey],
+    [
+      programKey,
+      session,
+    ],
   )
 
   const [
@@ -259,6 +267,15 @@ function RunTrainerPage({
       basePaceSeconds,
     )
 
+  const isCurrentManual =
+    Boolean(
+      currentStep?.manual,
+    ) ||
+    (
+      currentStep &&
+      currentStepTotal <= 0
+    )
+
   const currentPace =
     getStepPace(
       currentStep,
@@ -285,6 +302,7 @@ function RunTrainerPage({
 
   const countdownVisible =
     screen === 'workout' &&
+    !isCurrentManual &&
     remainingTime > 0 &&
     remainingTime <= 10
 
@@ -549,6 +567,7 @@ function RunTrainerPage({
   useEffect(() => {
     if (
       screen !== 'workout' ||
+      isCurrentManual ||
       isPaused ||
       remainingTime <= 0
     ) {
@@ -573,6 +592,7 @@ function RunTrainerPage({
     }
   }, [
     screen,
+    isCurrentManual,
     isPaused,
     remainingTime,
   ])
@@ -580,6 +600,7 @@ function RunTrainerPage({
   useEffect(() => {
     if (
       screen !== 'workout' ||
+      isCurrentManual ||
       isPaused ||
       remainingTime !== 0
     ) {
@@ -598,6 +619,7 @@ function RunTrainerPage({
     }
   }, [
     screen,
+    isCurrentManual,
     isPaused,
     remainingTime,
     moveToNextStep,
@@ -606,6 +628,7 @@ function RunTrainerPage({
   useEffect(() => {
     if (
       screen !== 'workout' ||
+      isCurrentManual ||
       isPaused ||
       remainingTime <= 0 ||
       remainingTime > 3
@@ -631,6 +654,7 @@ function RunTrainerPage({
     )
   }, [
     screen,
+    isCurrentManual,
     isPaused,
     remainingTime,
     playBeep,
@@ -719,7 +743,10 @@ function RunTrainerPage({
             null,
 
           program_id:
-            programKey,
+            program?.key ||
+            programKey ||
+            session?.id ||
+            'dynamic-run-trainer',
 
           program_name:
             program.title,
@@ -1037,9 +1064,14 @@ function RunTrainerPage({
         </h1>
 
         <div className="trainer-time">
-          {formatTime(
-            remainingTime,
-          )}
+          {isCurrentManual
+            ? (
+                currentStep?.manualLabel ||
+                '완료 후 다음'
+              )
+            : formatTime(
+                remainingTime,
+              )}
         </div>
 
         <div className="trainer-progress-wrap">
@@ -1103,14 +1135,16 @@ function RunTrainerPage({
         </p>
 
         <div className="trainer-controls">
-          <button
-            type="button"
-            onClick={togglePause}
-          >
-            {isPaused
-              ? '재시작'
-              : '일시정지'}
-          </button>
+          {!isCurrentManual && (
+            <button
+              type="button"
+              onClick={togglePause}
+            >
+              {isPaused
+                ? '재시작'
+                : '일시정지'}
+            </button>
+          )}
 
           <button
             type="button"
@@ -1118,7 +1152,9 @@ function RunTrainerPage({
               moveToNextStep
             }
           >
-            다음
+            {isCurrentManual
+              ? '완료 · 다음'
+              : '다음'}
           </button>
 
           <button
