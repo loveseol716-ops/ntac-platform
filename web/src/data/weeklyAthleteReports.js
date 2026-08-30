@@ -429,33 +429,63 @@ function getWorkoutIdentity(
   }
 }
 
+function normalizeIdentityText(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
 function createSessionAnalysis(
   week,
   workoutRecords,
 ) {
-  const recordByEventId =
-    new Map()
+  const usedRecordIds =
+    new Set()
 
-  const recordBySessionId =
-    new Map()
+  const records =
+    Array.isArray(workoutRecords)
+      ? workoutRecords
+      : []
 
-  workoutRecords.forEach(
-    (record) => {
-      if (record.eventId) {
-        recordByEventId.set(
-          record.eventId,
-          record,
-        )
+  const findUnusedRecord = (
+    predicate,
+  ) =>
+    records.find((record) => {
+      if (!record) {
+        return false
       }
 
-      if (record.sessionId) {
-        recordBySessionId.set(
-          record.sessionId,
-          record,
+      const identity =
+        record.id ||
+        `${record.eventId || ''}-${record.sessionId || ''}-${record.date || ''}-${record.completedAt || ''}`
+
+      if (
+        usedRecordIds.has(
+          identity,
         )
+      ) {
+        return false
       }
-    },
-  )
+
+      return predicate(record)
+    }) || null
+
+  const claimRecord = (
+    record,
+  ) => {
+    if (!record) {
+      return null
+    }
+
+    const identity =
+      record.id ||
+      `${record.eventId || ''}-${record.sessionId || ''}-${record.date || ''}-${record.completedAt || ''}`
+
+    usedRecordIds.add(identity)
+
+    return record
+  }
 
   return (
     week.workouts || []
@@ -473,14 +503,64 @@ function createSessionAnalysis(
         index,
       )
 
-      const record =
-        recordByEventId.get(
-          eventId,
-        ) ||
-        recordBySessionId.get(
-          sessionId,
-        ) ||
-        null
+      const workoutDate =
+        workout.date || ''
+
+      const workoutTitle =
+        normalizeIdentityText(
+          workout.title,
+        )
+
+      let record =
+        findUnusedRecord(
+          (candidate) =>
+            Boolean(eventId) &&
+            candidate.eventId ===
+              eventId,
+        )
+
+      if (!record) {
+        record =
+          findUnusedRecord(
+            (candidate) =>
+              Boolean(sessionId) &&
+              candidate.sessionId ===
+                sessionId,
+          )
+      }
+
+      if (
+        !record &&
+        workoutDate &&
+        workoutTitle
+      ) {
+        record =
+          findUnusedRecord(
+            (candidate) =>
+              candidate.date ===
+                workoutDate &&
+              normalizeIdentityText(
+                candidate.title,
+              ) === workoutTitle,
+          )
+      }
+
+      // 예전 기록 중 event_id/session_id/week_key가 비어 있어도
+      // 같은 날짜의 완료 기록이면 해당 주차의 실제 수행으로 연결합니다.
+      if (
+        !record &&
+        workoutDate
+      ) {
+        record =
+          findUnusedRecord(
+            (candidate) =>
+              candidate.date ===
+                workoutDate,
+          )
+      }
+
+      record =
+        claimRecord(record)
 
       const programmedTargetRpe =
         parseTargetRpe(
@@ -523,7 +603,7 @@ function createSessionAnalysis(
         eventId,
 
         date:
-          workout.date || '',
+          workoutDate,
 
         type:
           workout.category ||
@@ -697,6 +777,22 @@ function createAnalysisResult({
         session.completed,
     )
 
+  const sessionsWithActualRpe =
+    completedSessions.filter(
+      (session) =>
+        Number.isFinite(
+          session.actualRpe,
+        ),
+    )
+
+  const sessionsWithTargetRpe =
+    completedSessions.filter(
+      (session) =>
+        Number.isFinite(
+          session.targetRpe,
+        ),
+    )
+
   const sessionsWithRpe =
     completedSessions.filter(
       (session) =>
@@ -710,15 +806,17 @@ function createAnalysisResult({
 
   const expectedRpeAverage =
     average(
-      sessionsWithRpe.map(
+      sessionsWithTargetRpe.map(
         (session) =>
           session.targetRpe,
       ),
     )
 
+  // 실제 RPE는 목표 RPE 누락 여부와 관계없이
+  // 완료된 모든 운동 기록에서 계산합니다.
   const actualRpeAverage =
     average(
-      sessionsWithRpe.map(
+      sessionsWithActualRpe.map(
         (session) =>
           session.actualRpe,
       ),
@@ -773,6 +871,14 @@ function createAnalysisResult({
       status =
         'ALIGNED'
     }
+  } else if (
+    completedSessions.length > 0 &&
+    recoveryAnalysis.recoveryLow
+  ) {
+    // 목표 RPE 비교가 없어도 체크인에서 회복 위험 신호가
+    // 확인되면 리포트가 이를 놓치지 않도록 합니다.
+    status =
+      'RECOVERY_LOW'
   }
 
   const gapText =
@@ -820,18 +926,39 @@ function createAnalysisResult({
         .recoverySignals
         .join(', ')
 
-    summary =
-      `${weekTypeLabel} 주간의 운동 강도는 목표 범위와 크게 벗어나지 않았지만, ` +
-      `회복 지표에서 ${recoveryText} 신호가 확인되었습니다.`
+    if (
+      sessionsWithRpe.length > 0
+    ) {
+      summary =
+        `${weekTypeLabel} 주간의 운동 강도는 목표 범위와 크게 벗어나지 않았지만, ` +
+        `회복 지표에서 ${recoveryText} 신호가 확인되었습니다.`
+    } else {
+      summary =
+        `${weekTypeLabel} 주간에 ${completedSessions.length}회 운동을 수행했습니다. ` +
+        `목표 RPE 비교 데이터는 충분하지 않지만, 회복 지표에서 ${recoveryText} 신호가 확인되었습니다.`
+    }
   }
 
   if (
     status ===
     'COACH_REVIEW'
   ) {
-    summary =
-      `${weekTypeLabel} 주간을 분석할 운동 완료 기록 또는 목표 RPE 데이터가 충분하지 않습니다. ` +
-      '코치가 수행 여부와 기록 누락을 확인해 주세요.'
+    if (
+      completedSessions.length > 0
+    ) {
+      const actualText =
+        actualRpeAverage === null
+          ? ''
+          : ` 평균 실제 RPE는 ${actualRpeAverage.toFixed(1)}입니다.`
+
+      summary =
+        `${weekTypeLabel} 주간에 ${completedSessions.length}회 운동을 수행했습니다.${actualText} ` +
+        '목표 RPE와 연결되지 않은 기록이 있어 목표 대비 강도 평가는 제한됩니다.'
+    } else {
+      summary =
+        `${weekTypeLabel} 주간에 확인된 운동 완료 기록이 없습니다. ` +
+        '코치가 수행 여부와 기록 누락을 확인해 주세요.'
+    }
   }
 
   return {
@@ -937,9 +1064,25 @@ export async function loadAthleteReportSource(
     endDate,
   } = getWeekDateRange(week)
 
+  const workoutSelect = `
+    id,
+    session_id,
+    event_id,
+    workout_date,
+    title,
+    workout_type,
+    rpe,
+    target_rpe,
+    target_rpe_label,
+    week_key,
+    week_type,
+    completed_at
+  `
+
   const [
     checkinResult,
-    workoutResult,
+    workoutDateResult,
+    workoutWeekResult,
   ] = await Promise.all([
     supabase
       .from('daily_checkins')
@@ -975,24 +1118,35 @@ export async function loadAthleteReportSource(
         },
       ),
 
+    // 신규/과거 기록 모두 잡히도록 week_key가 아니라
+    // 실제 운동 날짜 기준으로도 해당 주차 기록을 조회합니다.
     supabase
       .from('workout_records')
-      .select(
-        `
-          id,
-          session_id,
-          event_id,
-          workout_date,
-          title,
-          workout_type,
-          rpe,
-          target_rpe,
-          target_rpe_label,
-          week_key,
-          week_type,
-          completed_at
-        `,
+      .select(workoutSelect)
+      .eq(
+        'user_id',
+        userId,
       )
+      .gte(
+        'workout_date',
+        startDate,
+      )
+      .lte(
+        'workout_date',
+        endDate,
+      )
+      .order(
+        'completed_at',
+        {
+          ascending: true,
+        },
+      ),
+
+    // workout_date가 비어 있는 예전 기록은 week_key로 한 번 더
+    // 조회한 뒤 아래에서 중복 제거합니다.
+    supabase
+      .from('workout_records')
+      .select(workoutSelect)
       .eq(
         'user_id',
         userId,
@@ -1013,9 +1167,43 @@ export async function loadAthleteReportSource(
     throw checkinResult.error
   }
 
-  if (workoutResult.error) {
-    throw workoutResult.error
+  if (workoutDateResult.error) {
+    throw workoutDateResult.error
   }
+
+  if (workoutWeekResult.error) {
+    throw workoutWeekResult.error
+  }
+
+  const mergedWorkoutRows =
+    new Map()
+
+  ;[
+    ...(workoutDateResult.data || []),
+    ...(workoutWeekResult.data || []),
+  ].forEach((row) => {
+    const key =
+      row.id ||
+      `${row.event_id || ''}-${row.session_id || ''}-${row.workout_date || ''}-${row.completed_at || ''}`
+
+    mergedWorkoutRows.set(
+      key,
+      row,
+    )
+  })
+
+  const workoutRows =
+    [...mergedWorkoutRows.values()]
+      .sort(
+        (first, second) =>
+          String(
+            first.completed_at || '',
+          ).localeCompare(
+            String(
+              second.completed_at || '',
+            ),
+          ),
+      )
 
   return {
     startDate,
@@ -1025,11 +1213,10 @@ export async function loadAthleteReportSource(
       checkinResult.data || []
     ).map(normalizeCheckin),
 
-    workoutRecords: (
-      workoutResult.data || []
-    ).map(
-      normalizeWorkoutRecord,
-    ),
+    workoutRecords:
+      workoutRows.map(
+        normalizeWorkoutRecord,
+      ),
   }
 }
 
@@ -1151,6 +1338,10 @@ export function analyzeAthleteWeek({
       rpeRecordedSessions:
         analysisResult
           .rpeRecordedSessions,
+
+      completedSessions:
+        analysisResult
+          .completedSessions,
 
       thresholds:
         analysisResult
