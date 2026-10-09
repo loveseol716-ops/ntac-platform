@@ -1,151 +1,239 @@
+import { koreaDate, koreaTime } from "./dates.js";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase.js";
 import { checked, loadPT } from "./api.js";
-import { today } from "./model.js";
-import { Packages, Assessments, SessionSummary } from "./Shared.jsx";
+import { today, statusLabels } from "./model.js";
+import { Calendar, SimpleLog } from "./Calendar.jsx";
 import "./PT.css";
+import "./Calendar.css";
 export default function PTMember({ profile }) {
   const [data, setData] = useState(null),
-    [error, setError] = useState(""),
+    [slots, setSlots] = useState([]),
+    [day, setDay] = useState(today()),
     [version, setVersion] = useState(0),
-    [tab, setTab] = useState("home");
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false),
+    [choice, setChoice] = useState(null),
+    [tab, setTab] = useState("booking"),
+    [message, setMessage] = useState("");
   useEffect(() => {
-    let alive = true;
-    setError("");
+    let live = true;
     (async () => {
-      const member = await checked(
+      const m = await checked(
         supabase
           .from("pt_members")
           .select("*")
           .eq("profile_id", profile.id)
           .maybeSingle(),
       );
-      const records = member?.active ? await loadPT(member.id) : null;
-      if (alive) setData({ member, ...records });
-    })().catch((e) => {
-      if (alive) setError(e.message);
-    });
+      if (!m?.active) {
+        if (live) setData({ member: m });
+        return;
+      }
+      const [d, s] = await Promise.all([
+        loadPT(m.id),
+        checked(supabase.rpc("pt_open_slots", { mid: m.id })),
+      ]);
+      if (live) {
+        setData({ member: m, ...d });
+        setSlots(s);
+      }
+    })().catch((e) => live && setError(e.message));
     return () => {
-      alive = false;
+      live = false;
     };
   }, [profile.id, version]);
-  const completed =
-      data?.sessions?.filter((s) => s.status === "completed") || [],
+  useEffect(() => {
+    const refresh = () => setVersion((v) => v + 1),
+      timer = setInterval(refresh, 30000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
+  async function book() {
+    if (busy || !choice) return;
+    setBusy(true);
+    setError("");
+    try {
+      await checked(supabase.rpc("pt_book_slot", { slot: choice.id }));
+      setMessage(
+        `${koreaDate(choice.starts_at)} ${koreaTime(choice.starts_at)} 예약이 완료됐어요.`,
+      );
+      setChoice(null);
+      setVersion((v) => v + 1);
+    } catch (e) {
+      setError(e.message);
+      setChoice(null);
+      setVersion((v) => v + 1);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const sessions = data?.sessions || [],
+    completed = sessions.filter((s) => s.status === "completed"),
+    scheduled = sessions.filter((s) => s.status === "scheduled"),
     remaining =
       (data?.packages || []).reduce((n, p) => n + p.total_sessions, 0) -
-      completed.length;
-  const next = data?.sessions
-    ?.filter((s) => s.status === "scheduled" && s.session_date >= today())
-    .sort((a, b) =>
-      `${a.session_date} ${a.start_time}`.localeCompare(
-        `${b.session_date} ${b.start_time}`,
-      ),
-    )[0];
+      completed.length,
+    available = remaining - scheduled.length,
+    next = scheduled
+      .filter(
+        (s) =>
+          new Date(`${s.session_date}T${s.start_time}+09:00`).getTime() +
+            (s.duration_minutes || 60) * 60000 >
+          Date.now(),
+      )
+      .sort((a, b) =>
+        (a.session_date + a.start_time).localeCompare(
+          b.session_date + b.start_time,
+        ),
+      )[0];
   return (
-    <main className="pt pt-shell">
+    <main className="pt pt-shell simple-pt">
       <header className="member-intro">
         <p>PERSONAL TRAINING</p>
         <h1>{profile.full_name || "회원"}님의 PT</h1>
         <p>담당 코치 · {profile.coach_name || "미배정"}</p>
       </header>
       {error && (
-        <p role="alert" className="pt-error">
+        <p className="pt-error" role="alert">
           {error}
-          <button onClick={() => setVersion((v) => v + 1)}>
-            다시 불러오기
-          </button>
+          <button onClick={() => setVersion((v) => v + 1)}>새로고침</button>
         </p>
       )}
-      {!data && !error && <p role="status">기록을 불러오는 중...</p>}
-      {data && !data.member?.active && (
-        <section className="pt-card">
-          <h2>PT 등록을 기다리고 있어요</h2>
-          <p>관리자가 PT를 배정하면 수업 기록을 볼 수 있어요.</p>
-          <button onClick={() => setVersion((v) => v + 1)}>
-            등록 상태 확인
-          </button>
-        </section>
+      {message && (
+        <p className="pt-success" role="status">
+          {message}
+        </p>
       )}
-      {data?.member?.active && (
+      {!data ? (
+        <p>수업을 불러오는 중…</p>
+      ) : !data.member?.active ? (
+        <p>관리자의 PT 배정을 기다리고 있어요.</p>
+      ) : (
         <>
-          <section className="compact-stats summary-strip">
-            <div>
-              <span>남은 수업</span>
-              <strong>{remaining}회</strong>
-            </div>
-            <div>
-              <span>출석 완료</span>
-              <strong>{completed.length}회</strong>
-            </div>
-            <div>
-              <span>최근 출석</span>
-              <strong>
-                {completed[0]?.session_date.slice(5).replace("-", ".") || "—"}
-              </strong>
-            </div>
+          <section className="next-session">
+            <span>다음 수업</span>
+            <strong>
+              {next
+                ? `${next.session_date} · ${next.start_time.slice(0, 5)}`
+                : "아래에서 다음 수업을 예약하세요"}
+            </strong>
+            <small>
+              남은 수업 {remaining}회 · 예약 {scheduled.length}회
+            </small>
           </section>
           <nav className="sub-tabs detail-tabs" aria-label="PT 메뉴">
-            {[
-              ["home", "요약"],
-              ["history", "수업 기록"],
-              ["assessment", "나의 변화"],
-            ].map(([id, label]) => (
-              <button
-                key={id}
-                className={tab === id ? "selected" : ""}
-                onClick={() => setTab(id)}
-              >
-                {label}
-              </button>
-            ))}
+            <button
+              className={tab === "booking" ? "selected" : ""}
+              onClick={() => setTab("booking")}
+            >
+              수업 예약
+            </button>
+            <button
+              className={tab === "history" ? "selected" : ""}
+              onClick={() => setTab("history")}
+            >
+              운동 일지
+            </button>
           </nav>
-          <div className="member-content">
-            {tab === "home" && (
-              <>
-                <section className="pt-card pt-hero">
-                  <p>다음 수업</p>
-                  <h2>
-                    {next
-                      ? `${next.session_date} · ${next.start_time.slice(0, 5)}`
-                      : "다음 일정을 정해주세요"}
-                  </h2>
+          {tab === "booking" ? (
+            <>
+              <Calendar
+                value={day}
+                onChange={(d) => {
+                  setDay(d);
+                  setChoice(null);
+                }}
+                dates={[
+                  ...slots.map((s) => koreaDate(s.starts_at)),
+                  ...scheduled.map((s) => s.session_date),
+                ]}
+                label="예약 캘린더"
+              />
+              <section className="pt-card">
+                <h2>{day} 예약</h2>
+                {scheduled
+                  .filter((s) => s.session_date === day)
+                  .map((s) => (
+                    <p className="booked-time" key={s.id}>
+                      ✓ {s.start_time.slice(0, 5)} 예약 완료
+                    </p>
+                  ))}
+                {!data.member.coach_id ? (
+                  <p>담당 코치 배정 후 예약할 수 있어요.</p>
+                ) : available <= 0 ? (
                   <p>
-                    {next?.title ||
-                      "코치와 다음 수업 일정을 정하면 여기에 표시돼요."}
+                    남은 횟수만큼 예약되어 있어요. 추가 예약은 코치에게 문의해
+                    주세요.
                   </p>
-                  {data.member.goal && <p>목표 · {data.member.goal}</p>}
-                </section>
-                {completed[0] &&
-                  (completed[0].feedback || completed[0].homework) && (
-                    <section className="pt-card">
-                      <h2>최근 코치 피드백</h2>
-                      <pre>{completed[0].feedback}</pre>
-                      {completed[0].homework && (
-                        <>
-                          <h3>다음 수업 전 할 일</h3>
-                          <pre>{completed[0].homework}</pre>
-                        </>
-                      )}
-                    </section>
-                  )}
-                <details className="pt-card">
-                  <summary>등록한 수업 횟수</summary>
-                  <Packages packages={data.packages} sessions={data.sessions} />
-                </details>
-              </>
-            )}
-            {tab === "history" && (
-              <>
-                {!data.sessions.length && (
-                  <p className="pt-muted">첫 수업을 준비하고 있어요.</p>
+                ) : (
+                  <>
+                    <div className="booking-slots">
+                      {slots
+                        .filter((s) => koreaDate(s.starts_at) === day)
+                        .map((s) => (
+                          <button
+                            key={s.id}
+                            aria-pressed={choice?.id === s.id}
+                            className={choice?.id === s.id ? "selected" : ""}
+                            onClick={() => setChoice(s)}
+                          >
+                            {koreaTime(s.starts_at)}
+                          </button>
+                        ))}
+                    </div>
+                    {!slots.some((s) => koreaDate(s.starts_at) === day) && (
+                      <p className="pt-muted">
+                        열린 시간이 없어요. 다른 날짜를 선택해 주세요.
+                      </p>
+                    )}
+                    {choice && (
+                      <div className="booking-confirm">
+                        <strong>
+                          {koreaTime(choice.starts_at)}–
+                          {koreaTime(choice.ends_at)}
+                        </strong>
+                        <button
+                          className="pt-primary"
+                          disabled={busy}
+                          onClick={book}
+                        >
+                          {busy ? "예약 중…" : "이 시간으로 예약"}
+                        </button>
+                        <small>
+                          예약 시 차감되지 않아요. 코치가 운동 완료를 누르면 1회
+                          차감돼요.
+                        </small>
+                      </div>
+                    )}
+                  </>
                 )}
-                {data.sessions.map((s) => (
-                  <SessionSummary key={s.id} session={s} />
-                ))}
-              </>
-            )}
-            {tab === "assessment" && <Assessments rows={data.assessments} />}
-          </div>
+                <p className="pt-muted">
+                  예약 변경·취소는 담당 코치에게 요청해 주세요.
+                </p>
+              </section>
+            </>
+          ) : (
+            <section className="member-content">
+              {!sessions.length && (
+                <p className="agenda-empty">아직 수업 기록이 없어요.</p>
+              )}
+              {sessions.map((s) => (
+                <article className="pt-card" key={s.id}>
+                  <div className="pt-row pt-between">
+                    <h2>
+                      {s.session_date} · {s.start_time.slice(0, 5)}
+                    </h2>
+                    <span className="pt-badge">{statusLabels[s.status]}</span>
+                  </div>
+                  <SimpleLog session={s} />
+                </article>
+              ))}
+            </section>
+          )}
         </>
       )}
     </main>

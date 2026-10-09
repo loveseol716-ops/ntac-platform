@@ -1,11 +1,16 @@
-# PT management checks
+# PT calendar and booking checks
 
-- `pt-database.sql`: administrative SQL transaction ending in ROLLBACK. Checks completion retry, package limits, cancellation reversal, and member/private-note isolation.
-- `service-permissions.sql`: administrative SQL transaction ending in ROLLBACK. Checks PT/NTAC/both assignment, coach registration, assigned coach writes, and forbidden cross-member access.
-- `pt-ui.mjs`: from `web`, run `NTAC_TEST_MODULES=/path/to/node_modules node ../tests/pt-ui.mjs` with jsdom available. Checks template, controlled inputs, session save, balance refresh and private-note exclusion using fake responses.
-- `ux-browser.cjs`: run with Playwright and a local Vite server using test Supabase environment variables. Synthetic sessions and intercepted responses cover assignment, mobile overflow, service routing and removal of retired UI. See the script for runtime paths.
+- `pt-booking.sql`: administrative SQL transaction with ROLLBACK. Covers availability, booking retry, overlapping booking rejection, cancellation/rebooking, remaining reservation capacity, completion/undo, log visibility, and forbidden member writes. Requires an admin and two unregistered member profiles.
+- `service-permissions.sql`: administrative SQL transaction with ROLLBACK. Covers PT/NTAC/both assignment, coach registration, assigned coach writes, and member/private-note isolation.
+- `ux-browser.cjs`: Playwright browser tests using synthetic sessions and intercepted Supabase responses. Covers coach availability creation, calendar navigation, three-field log save, completion/undo, member booking and next appointment, mobile layout, and PT/NTAC routing.
 - `npm run build` and `npm run lint` from `web`.
 
-Migrations are recorded under `supabase/migrations`. Existing schema predates this checkout; these files are additive changes, not a full baseline.
+For browser tests, start Vite on port 5175 with `VITE_SUPABASE_URL=https://test.supabase.co` and `VITE_SUPABASE_PUBLISHABLE_KEY=test-key`. Set `CODEX_PRIMARY_RUNTIME_NODE_MODULES` to a directory with Playwright installed, and optionally `CHROMIUM_PATH` to an installed Chromium binary. Run `node tests/ux-browser.cjs` from the repository root. The script never sends data to production.
 
-New accounts wait for admin assignment. In 관리 → 전체 회원 → 배정, select PT, NTAC or both and the responsible coach. Register coaches in 코치·권한. PT 관리 shows latest attendance, upcoming sessions and remaining counts; member details contain session records, assessments and package settings. Assigned programs have no access expiry. Completed PT sessions count once toward their package; reverting to scheduled/cancelled restores the count. Only administrators change service assignments, coaches and packages. Assigned coaches manage their own PT members; private notes remain hidden from members.
+## Current flow
+
+Admin assigns PT and coach in 관리 → 전체 회원 → 배정. Coaches open their calendar, choose a date, and set 예약 가능 시간 설정. A time range creates 60-minute slots. Members choose an open date/time and confirm their booking. Reserved sessions consume reservation capacity, but the displayed remaining balance only decreases when the coach presses 운동 완료. 완료 취소 restores that count; 예약 취소 releases the reservation. Member booking changes/cancellations are handled by the coach. Closing availability never cancels an existing booking.
+
+Class notes have only Warm-up, Main and 특이사항, all visible to the member. Legacy assessments and structured records remain stored but are no longer exposed as editing UI. Existing private coach notes are not migrated into shared notes.
+
+Migrations are under `supabase/migrations`; the existing database schema predates this checkout.

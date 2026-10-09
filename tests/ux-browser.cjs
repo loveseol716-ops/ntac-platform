@@ -63,6 +63,21 @@ const packages = [
     created_at: date,
   },
 ];
+const tomorrow = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Seoul",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+}).format(new Date(Date.now() + 86400000));
+const slots = [
+  {
+    id: "slot1",
+    coach_id: "coach",
+    starts_at: `${tomorrow}T10:00:00+09:00`,
+    ends_at: `${tomorrow}T11:00:00+09:00`,
+    is_open: true,
+  },
+];
 const sessions = [
   {
     id: "s1",
@@ -73,7 +88,10 @@ const sessions = [
     title: "기초 근력",
     status: "completed",
     workout: [],
-    feedback: "스쿼트 자세가 안정적이에요.",
+    notes: "스쿼트 자세가 안정적이에요.",
+    warm_up: "발목 모빌리티",
+    main: "스쿼트",
+    coach_id: "coach",
     homework: "발목 가동성 연습",
     created_at: date,
   },
@@ -92,6 +110,7 @@ const sessions = [
   },
 ];
 const fixtures = {
+  pt_slots: slots,
   profiles,
   pt_members: members,
   pt_packages: packages,
@@ -156,8 +175,59 @@ const fixtures = {
         if (m) m.active = p.enable_pt;
         return route.fulfill({ json: null });
       }
-      if (table === "pt_save_session")
-        return route.fulfill({ json: req.postDataJSON().payload.id });
+      if (table === "pt_open_slots")
+        return route.fulfill({
+          json: slots.filter(
+            (s) =>
+              s.is_open &&
+              !sessions.some(
+                (x) => x.slot_id === s.id && x.status !== "cancelled",
+              ),
+          ),
+        });
+      if (table === "pt_book_slot") {
+        const sl = slots.find((s) => s.id === req.postDataJSON().slot);
+        const member = members.find((m) => m.profile_id === user.id);
+        sessions.push({
+          id: "booked",
+          member_id: member.id,
+          package_id: "pk1",
+          coach_id: sl.coach_id,
+          session_date: tomorrow,
+          start_time: "10:00:00",
+          status: "scheduled",
+          slot_id: sl.id,
+          created_at: date,
+        });
+        return route.fulfill({ json: "booked" });
+      }
+      if (table === "pt_save_simple_session") {
+        const p = req.postDataJSON().payload;
+        let session = sessions.find((s) => s.id === p.id);
+        if (session) Object.assign(session, p);
+        else
+          sessions.push({
+            ...p,
+            status: "scheduled",
+            package_id: "pk1",
+            coach_id: "coach",
+            created_at: date,
+          });
+        return route.fulfill({ json: p.id });
+      }
+      if (table === "pt_set_session_status") {
+        const p = req.postDataJSON();
+        sessions.find((s) => s.id === p.sid).status = p.new_status;
+        return route.fulfill({ json: null });
+      }
+      if (table === "pt_slots" && req.method() === "POST") {
+        slots.push(
+          ...req
+            .postDataJSON()
+            .map((s, i) => ({ ...s, id: `newslot${i}`, is_open: true })),
+        );
+        return route.fulfill({ json: null });
+      }
       let rows = structuredClone(fixtures[table] || []);
       for (const [k, v] of url.searchParams)
         if (v.startsWith("eq."))
@@ -177,11 +247,22 @@ const fixtures = {
   let { page, context } = await open("admin");
   await page.getByRole("heading", { name: "회원과 수업 관리" }).waitFor();
   await page.getByText("김민수", { exact: true }).first().waitFor();
+  await page.getByLabel("캘린더 코치").selectOption("coach");
   await page.screenshot({
     path: "/tmp/ntac-admin-desktop.png",
     fullPage: true,
   });
   assert.equal(await page.locator(".roster-row").count(), 2);
+  await page.getByRole("button", { name: tomorrow, exact: true }).click();
+  await page.getByText("예약 가능 시간 설정", { exact: true }).click();
+  await page.getByLabel("시작", { exact: true }).fill("18:00");
+  await page.getByLabel("종료", { exact: true }).fill("20:00");
+  await page
+    .getByRole("button", { name: "예약 시간 열기", exact: true })
+    .click();
+  await page.getByText("예약 가능 시간을 저장했어요.").waitFor();
+  assert.equal(slots.length, 3);
+
   await page.getByRole("button", { name: "배정", exact: true }).first().click();
   await page
     .getByRole("dialog")
@@ -198,10 +279,32 @@ const fixtures = {
     .click();
   await page.getByRole("heading", { name: "김민수님의 PT" }).waitFor();
   await page.getByRole("button", { name: "수업 추가", exact: true }).click();
+  assert.equal(await page.locator("textarea").count(), 3);
+  await page.getByLabel("수업 시간").fill("08:00");
+  await page.getByLabel("Warm-up", { exact: true }).fill("Ankle rock 8/8");
+  await page.getByLabel("Main", { exact: true }).fill("BB SQ 10\nBike easy");
+  await page.getByLabel("특이사항", { exact: true }).fill("컨디션 좋음");
   await page.screenshot({
     path: "/tmp/ntac-session-desktop.png",
     fullPage: true,
   });
+  await page.getByRole("button", { name: "저장", exact: true }).click();
+  await page.getByText("저장했어요.", { exact: true }).waitFor();
+  const saved = sessions.find((s) => s.main === "BB SQ 10\nBike easy");
+  assert(saved);
+  const card = page.locator("article").filter({ hasText: "컨디션 좋음" });
+  await card.getByRole("button", { name: "운동 완료", exact: true }).click();
+  await page.getByText("운동 완료! 1회 차감했어요.").waitFor();
+  assert.equal(saved.status, "completed");
+  page.on("dialog", (d) => d.accept());
+  await card.getByRole("button", { name: "완료 취소", exact: true }).click();
+  await page.getByText("완료를 취소하고 1회를 복구했어요.").waitFor();
+  assert.equal(saved.status, "scheduled");
+  assert(
+    !/기능 평가|수업 힘든 정도|세트 입력/.test(
+      await page.locator("body").innerText(),
+    ),
+  );
   await context.close();
   ({ page, context } = await open("admin", 390));
   await page.getByRole("heading", { name: "회원과 수업 관리" }).waitFor();
@@ -216,7 +319,22 @@ const fixtures = {
   await context.close();
   ({ page, context } = await open("pt", 390));
   await page.getByRole("heading", { name: "김민수님의 PT" }).waitFor();
+  await page.getByRole("button", { name: tomorrow, exact: true }).click();
+  await page.getByRole("button", { name: "10:00", exact: true }).click();
+  await page
+    .getByRole("button", { name: "이 시간으로 예약", exact: true })
+    .click();
+  await page
+    .getByText(`${tomorrow} 10:00 예약이 완료됐어요.`, { exact: true })
+    .waitFor();
+  assert.equal(sessions.find((s) => s.id === "booked").status, "scheduled");
+  await page
+    .locator(".next-session")
+    .getByText(`${tomorrow} · 10:00`, { exact: true })
+    .waitFor();
+  await page.getByRole("button", { name: "운동 일지", exact: true }).click();
   await page.getByText("스쿼트 자세가 안정적이에요.").waitFor();
+  await page.getByRole("button", { name: "수업 예약", exact: true }).click();
   assert.equal(await page.locator(".service-switch").count(), 0);
   assert(
     !/무료체험|체험 기간|서비스 보기|월 이용료/.test(
@@ -261,7 +379,7 @@ const fixtures = {
   await context.close();
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: admin roster, assignment, editor, 390px overflow, PT/NTAC/both routing, retired UI absent",
+    "PASS: calendar, plain text save, completion/undo, member booking/next session, mobile layout, access routing",
   );
   await browser.close();
 })().catch((e) => {

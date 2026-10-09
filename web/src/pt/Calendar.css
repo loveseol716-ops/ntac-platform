@@ -1,0 +1,363 @@
+.simple-pt {
+  display: grid;
+  gap: 20px;
+}
+.simple-pt h1,
+.simple-pt h2,
+.simple-pt h3,
+.simple-pt p {
+  margin-top: 0;
+}
+.simple-pt h2 {
+  font-size: 18px;
+}
+.simple-pt h3 {
+  font-size: 16px;
+}
+.simple-pt .pt-card {
+  margin: 0;
+}
+.simple-pt button {
+  cursor: pointer;
+}
+.simple-pt button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.simple-pt .selected,
+.simple-pt .pt-primary {
+  background: #0b3d2e;
+  color: #fff;
+  border-color: #0b3d2e;
+}
+.next-session {
+  background: #0b3d2e;
+  color: #fff;
+  padding: 24px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.next-session > span {
+  font-size: 13px;
+  opacity: 0.75;
+}
+.next-session > strong {
+  font-size: 23px;
+  flex: 1 1 220px;
+}
+.next-session > small {
+  font-size: 13px;
+}
+.next-session button {
+  background: #fff;
+  color: #0b3d2e;
+  border: 0;
+}
+.balance-pill {
+  background: #e5efe9;
+  border-radius: 30px;
+  padding: 10px 16px;
+  white-space: nowrap;
+}
+.calendar-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr);
+  gap: 24px;
+  align-items: start;
+}
+.pt-calendar {
+  background: #fff;
+  border: 1px solid #dde6e1;
+  border-radius: 16px;
+  padding: 18px;
+  min-width: 0;
+}
+.pt-calendar h2 {
+  margin: 0;
+}
+.pt-calendar .pt-row > button {
+  font-size: 24px;
+  line-height: 1;
+  padding: 8px 14px;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 16px;
+}
+.calendar-grid .weekday {
+  text-align: center;
+  font-size: 12px;
+  color: #7c8b85;
+  padding: 6px 0;
+}
+.calendar-grid > button {
+  position: relative;
+  padding: 10px 0 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #274238;
+  min-width: 0;
+  min-height: 44px;
+  border-radius: 10px;
+  font-size: 14px;
+  display: grid;
+  gap: 3px;
+  justify-items: center;
+}
+.calendar-grid > button.is-today {
+  border-color: #a1bcae;
+}
+.calendar-grid > button.selected {
+  background: #0b3d2e;
+  color: white;
+}
+.calendar-grid i {
+  display: block;
+  height: 4px;
+  width: 4px;
+  border-radius: 50%;
+}
+.calendar-grid i.has-event {
+  background: #4d9772;
+}
+.calendar-grid .selected i.has-event {
+  background: white;
+}
+.calendar-hint {
+  font-size: 11px;
+  margin: 12px 0 0 !important;
+}
+.day-agenda {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.day-agenda > .pt-row h2,
+.day-agenda > .pt-row h3 {
+  margin: 0;
+}
+.agenda-empty {
+  padding: 32px 16px;
+  background: #f2f5f3;
+  border-radius: 12px;
+  color: #78857f;
+  font-size: 14px;
+  line-height: 1.8;
+  text-align: center;
+}
+.simple-pt label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.simple-pt input,
+.simple-pt textarea,
+.simple-pt select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #dbe5df;
+  background: #fff;
+  border-radius: 9px;
+  padding: 12px;
+  font: inherit;
+  color: #243e33;
+  min-width: 0;
+}
+.simple-pt textarea {
+  resize: vertical;
+  line-height: 1.7;
+  font-size: 15px;
+  font-weight: 400;
+}
+.log-editor {
+  display: grid;
+  gap: 18px;
+}
+.log-editor h2 {
+  margin: 0;
+}
+.simple-log {
+  display: grid;
+  gap: 16px;
+  margin: 20px 0;
+}
+.simple-log h3 {
+  font-size: 12px;
+  color: #72877c;
+  margin-bottom: 5px;
+}
+.simple-log pre {
+  font: inherit;
+  font-size: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0;
+  line-height: 1.75;
+}
+.simple-pt .session-actions {
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid #edf1ee;
+}
+.simple-pt .session-actions button {
+  font-size: 12px;
+}
+.package-settings summary,
+.availability-editor summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 4px 0;
+}
+.package-settings form {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  margin-top: 16px;
+}
+.package-settings input {
+  max-width: 130px;
+}
+.package-settings .pt-card {
+  border: 0;
+  padding: 16px 0;
+}
+.availability-editor {
+  border-top: 1px solid #dde6e1;
+  padding-top: 20px;
+  margin-top: 10px;
+}
+.availability-editor > p {
+  margin: 14px 0;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.availability-editor form {
+  display: grid;
+  gap: 12px;
+}
+.slot-settings {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+.slot-settings > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+.slot-settings button {
+  font-size: 12px;
+}
+.calendar-session {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 18px !important;
+  background: white !important;
+  border: 1px solid #dce7e0 !important;
+  border-radius: 12px !important;
+  text-align: left;
+}
+.calendar-session > span:first-of-type {
+  flex: 1;
+}
+.calendar-session small {
+  font-size: 11px;
+  color: #74877c;
+}
+.coach-picker {
+  max-width: 180px;
+}
+.booking-slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.booking-slots button {
+  min-height: 46px;
+}
+.booking-confirm {
+  display: grid;
+  gap: 12px;
+  background: #eff5f1;
+  padding: 18px;
+  border-radius: 12px;
+  margin-top: 20px;
+}
+.booking-confirm small {
+  color: #63796c;
+  line-height: 1.6;
+}
+.booked-time {
+  background: #eaf3ed;
+  padding: 14px;
+  border-radius: 10px;
+  color: #0b3d2e;
+}
+.pt-shell.simple-pt {
+  gap: 20px;
+}
+.simple-pt .sub-tabs {
+  margin: 0;
+}
+.simple-pt.pt-shell .pt-card > h2 {
+  font-size: 16px;
+}
+.simple-pt .pt-error,
+.simple-pt .pt-success {
+  margin: 0;
+}
+.simple-pt .pt-muted {
+  line-height: 1.6;
+}
+.pt-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 760px) {
+  .calendar-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .next-session {
+    padding: 20px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .next-session > strong {
+    font-size: 21px;
+    flex: auto;
+  }
+  .simple-pt .balance-pill {
+    font-size: 13px;
+  }
+  .pt-calendar {
+    padding: 14px;
+  }
+  .simple-pt .calendar-grid > button {
+    min-height: 44px;
+  }
+  .simple-pt .pt-row {
+    gap: 10px;
+  }
+  .simple-pt .pt-row h1 {
+    font-size: 23px;
+  }
+  .simple-pt .package-settings form {
+    align-items: end;
+  }
+  .coach-calendar {
+    margin-bottom: 24px;
+  }
+}

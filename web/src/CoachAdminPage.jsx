@@ -3,6 +3,7 @@ import { supabase } from "./lib/supabase.js";
 import { checked } from "./pt/api.js";
 import { today } from "./pt/model.js";
 import PTAdmin from "./pt/PTAdmin.jsx";
+import CoachCalendar from "./pt/CoachCalendar.jsx";
 import "./management/Management.css";
 const WeeklyProgramAdmin = lazy(() => import("./WeeklyProgramAdmin.jsx"));
 const PersonalProgramAdmin = lazy(() => import("./PersonalProgramAdmin.jsx"));
@@ -67,6 +68,8 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
     [coachFilter, setCoachFilter] = useState("all"),
     [serviceFilter, setServiceFilter] = useState("all"),
     [selected, setSelected] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(today()),
+    [startNew, setStartNew] = useState(false);
   const [editing, setEditing] = useState(null),
     [service, setService] = useState(""),
     [coach, setCoach] = useState("");
@@ -105,7 +108,7 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
           supabase
             .from("pt_sessions")
             .select(
-              "id,member_id,package_id,session_date,start_time,status,title",
+              "id,member_id,package_id,session_date,start_time,status,title,coach_id,duration_minutes",
             )
             .order("session_date", { ascending: false }),
         ),
@@ -128,8 +131,16 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
       live = false;
     };
   }, [initialProfile, version]);
-  const coaches = profiles.filter(isStaff),
-    activeMembers = members.filter((m) => m.active);
+  useEffect(() => {
+    const refresh = () => setVersion((v) => v + 1),
+      timer = setInterval(refresh, 30000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
+  const coaches = profiles.filter(isStaff);
   const rows = useMemo(
     () =>
       profiles.map((p) => {
@@ -161,9 +172,6 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
         : "none";
     return serviceFilter === "all" || mode === serviceFilter;
   });
-  const todaySessions = sessions
-    .filter((s) => s.session_date === today() && s.status !== "cancelled")
-    .sort((a, b) => a.start_time.localeCompare(b.start_time));
   function edit(p, m) {
     setEditing(p);
     setService(
@@ -215,7 +223,12 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
         >
           PT 목록으로
         </button>
-        <PTAdmin initialMemberId={selected} isAdmin={admin} />
+        <PTAdmin
+          initialMemberId={selected}
+          isAdmin={admin}
+          initialDate={selectedDate}
+          startNew={startNew}
+        />
       </div>
     );
   return (
@@ -267,82 +280,19 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
         </p>
       )}
       {loading && <p role="status">최신 기록을 확인하고 있어요.</p>}
-      {tab === "pt" && (
-        <>
-          <section className="metric-grid" aria-label="PT 현황">
-            <div>
-              <span>PT 회원</span>
-              <strong>
-                {activeMembers.length}
-                <small>명</small>
-              </strong>
-            </div>
-            <div>
-              <span>오늘 수업</span>
-              <strong>
-                {todaySessions.length}
-                <small>회</small>
-              </strong>
-            </div>
-            <div>
-              <span>오늘 출석 완료</span>
-              <strong>
-                {todaySessions.filter((s) => s.status === "completed").length}
-                <small>회</small>
-              </strong>
-            </div>
-            <div>
-              <span>잔여 2회 이하</span>
-              <strong>
-                {
-                  rows.filter(
-                    (r) =>
-                      r.m?.active &&
-                      r.stats.packs > 0 &&
-                      r.stats.remaining <= 2,
-                  ).length
-                }
-                <small>명</small>
-              </strong>
-            </div>
-          </section>
-          <section className="surface">
-            <div className="section-heading">
-              <h2>오늘의 수업</h2>
-              <span className="muted">{today()}</span>
-            </div>
-            {!todaySessions.length ? (
-              <p className="empty-inline">
-                예정된 수업이 없습니다. 아래 회원을 선택해 일정을 추가하세요.
-              </p>
-            ) : (
-              <div className="today-list">
-                {todaySessions.map((s) => {
-                  const m = members.find((m) => m.id === s.member_id),
-                    p = profiles.find((p) => p.id === m?.profile_id);
-                  return (
-                    <button
-                      key={s.id}
-                      className="today-item"
-                      onClick={() => setSelected(s.member_id)}
-                    >
-                      <strong>{s.start_time.slice(0, 5)}</strong>
-                      <span>
-                        {p?.full_name || "회원"}
-                        <small>{s.title}</small>
-                      </span>
-                      <span
-                        className={`status-pill ${s.status === "completed" ? "done" : ""}`}
-                      >
-                        {s.status === "completed" ? "출석 완료" : "예정"}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        </>
+      {tab === "pt" && profile && (
+        <CoachCalendar
+          profile={profile}
+          coaches={coaches}
+          sessions={sessions}
+          members={members}
+          profiles={profiles}
+          onSelect={(id, date, newSession = false) => {
+            setSelectedDate(date);
+            setStartNew(newSession);
+            setSelected(id);
+          }}
+        />
       )}
       {["pt", "members"].includes(tab) && (
         <section className="surface">
@@ -437,7 +387,11 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
                   {m?.active && (
                     <button
                       className="primary"
-                      onClick={() => setSelected(m.id)}
+                      onClick={() => {
+                        setSelectedDate(today());
+                        setStartNew(false);
+                        setSelected(m.id);
+                      }}
                     >
                       수업 관리
                     </button>

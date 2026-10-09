@@ -5,7 +5,7 @@ export async function checked(request) {
   return data;
 }
 export async function loadPT(memberId, admin = false) {
-  const tables = ["pt_packages", "pt_sessions", "pt_assessments"];
+  const tables = ["pt_packages", "pt_sessions"];
   const values = await Promise.all(
     tables.map((table) =>
       checked(supabase.from(table).select("*").eq("member_id", memberId)),
@@ -26,7 +26,7 @@ export async function loadPT(memberId, admin = false) {
         `${a.session_date} ${a.start_time}`,
       ),
     ),
-    assessments: values[2],
+    assessments: [],
     notes,
   };
 }
