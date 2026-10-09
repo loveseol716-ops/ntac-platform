@@ -24,8 +24,8 @@ export default defineConfig({
         short_name: 'NTAC',
         description: 'NTAC Athlete Training Platform',
 
-        theme_color: '#0f3d2e',
-        background_color: '#f5f6f4',
+        theme_color: '#101214',
+        background_color: '#101214',
 
         display: 'standalone',
         start_url: '/ntac-platform/',

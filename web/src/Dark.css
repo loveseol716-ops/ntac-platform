@@ -1,0 +1,443 @@
+/* Shared dark surfaces. Keep green on actions, not on every text label. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ntac-bg: #101214;
+  --ntac-surface: #1c1f23;
+  --ntac-raised: #282c31;
+  --ntac-ink: #f2f4f6;
+  --ntac-muted: #a0a7b1;
+  --ntac-line: #30353b;
+  --ntac-green: #0b3d2e;
+  --ntac-green-text: #9bcab5;
+  background: var(--ntac-bg);
+  color: var(--ntac-ink);
+}
+:root[data-theme="dark"] :is(body, .member-shell, .app, .checkin-page) {
+  background: var(--ntac-bg);
+  color: var(--ntac-ink);
+}
+:root[data-theme="dark"] :is(.manage, .pt, .app) {
+  color: var(--ntac-ink);
+}
+:root[data-theme="dark"]
+  :is(
+    h1,
+    h2,
+    h3,
+    h4,
+    .member-identity strong,
+    .home-balance strong,
+    .home-activity-card strong,
+    .home-training-card time,
+    .pass-counts b,
+    .chart-column > strong,
+    .status-row strong
+  ) {
+  color: var(--ntac-ink);
+}
+:root[data-theme="dark"]
+  :is(
+    .brand-word,
+    .account-header .brand-word .ntac-logo,
+    .brand-word .ntac-logo
+  ) {
+  color: var(--ntac-ink);
+}
+:root[data-theme="dark"]
+  :is(
+    .surface,
+    .pt-card,
+    .pt-calendar,
+    .tracking-stats,
+    .next-session,
+    .home-training-card,
+    .home-activity-card,
+    .auth-card,
+    .member-dialog,
+    .profile-dialog,
+    .metric-grid > div,
+    .compact-stats > div,
+    .default-time-block
+  ) {
+  background: var(--ntac-surface);
+  color: var(--ntac-ink);
+  border-color: var(--ntac-line);
+  box-shadow: none;
+}
+:root[data-theme="dark"] .pt-member-app .home-training-card .next-session {
+  background: transparent;
+}
+:root[data-theme="dark"] :is(.manage, .pt) button {
+  background: var(--ntac-raised);
+  color: #dce1e7;
+  border-color: var(--ntac-line);
+}
+:root[data-theme="dark"] :is(.manage, .pt) button:hover {
+  background: #343a41;
+}
+:root[data-theme="dark"]
+  :is(
+    button.primary,
+    button.pt-primary,
+    button.selected,
+    .service-switch button.selected,
+    .workspace-tabs button.selected,
+    .sub-tabs button.selected
+  ) {
+  background: var(--ntac-green);
+  color: #fff;
+  border-color: #285b46;
+}
+:root[data-theme="dark"]
+  :is(button.primary, button.pt-primary, button.selected):hover {
+  background: #15513e;
+  color: #fff;
+}
+:root[data-theme="dark"] :is(.manage, .pt) :is(input, select, textarea) {
+  background: #15181b;
+  color: var(--ntac-ink);
+  border-color: #3a4149;
+}
+:root[data-theme="dark"] :is(.manage, .pt) :is(input, select, textarea):focus {
+  background: #15181b;
+  outline-color: #7ea994;
+}
+:root[data-theme="dark"] :is(.manage, .pt) label {
+  color: #c4cbd3;
+}
+:root[data-theme="dark"]
+  :is(
+    .muted,
+    .pt-muted,
+    .empty-inline,
+    .account-actions button,
+    .home-greeting p,
+    .home-training-card .next-session p,
+    .home-training-card .next-session > small,
+    .home-card-label > span,
+    .home-balance > span:first-child > span,
+    .pass-counts,
+    .pass-period,
+    .pass-balance > span,
+    .pass-history summary,
+    .tracking-stats span,
+    .calendar-grid .weekday,
+    .calendar-session small,
+    .simple-log h3,
+    .chart-column,
+    .tracked-session summary,
+    .month-history-row summary,
+    .booking-confirm small,
+    .booked-time small,
+    .change-booking small,
+    .toggle-line span,
+    .auth-card p,
+    .workspace-description
+  ) {
+  color: var(--ntac-muted);
+}
+:root[data-theme="dark"]
+  :is(.service-switch, .workspace-tabs, .sub-tabs)
+  button {
+  color: #adb5bf;
+  background: transparent;
+}
+:root[data-theme="dark"]
+  :is(.service-switch, .workspace-tabs, .sub-tabs)
+  button.selected {
+  color: #fff;
+  background: var(--ntac-green);
+}
+:root[data-theme="dark"]
+  :is(
+    .roster-row,
+    .staff-row,
+    .pass-history,
+    .ledger-row,
+    .session-actions,
+    .availability-editor,
+    .tracked-session,
+    .month-history-row,
+    .home-balance,
+    .home-activity-card button + button,
+    .tracking-stats > div
+  ) {
+  border-color: var(--ntac-line) !important;
+}
+:root[data-theme="dark"]
+  :is(
+    .detail-tabs,
+    .agenda-empty,
+    .booking-confirm,
+    .booked-time,
+    .change-booking,
+    .period-preview,
+    .last-workout,
+    .balance-pill,
+    .bar-track,
+    .pt-badge,
+    .status-pill
+  ) {
+  background: var(--ntac-raised);
+  color: #dce1e7;
+  border-color: var(--ntac-line);
+}
+:root[data-theme="dark"] .detail-tabs button {
+  background: transparent;
+  color: var(--ntac-muted);
+}
+:root[data-theme="dark"] .detail-tabs button.selected {
+  background: #3a4149;
+  color: #fff;
+}
+:root[data-theme="dark"] .calendar-grid > button {
+  background: transparent;
+  color: #dce1e7;
+}
+:root[data-theme="dark"] .calendar-grid > button.selected {
+  background: var(--ntac-green);
+  color: #fff;
+}
+:root[data-theme="dark"] .calendar-grid .day-completed:not(.selected) {
+  background: #213a30;
+  border-color: #345747;
+}
+:root[data-theme="dark"]
+  :is(.done-mark, .ledger-debit, .ledger-row > b, .pass-balance > strong) {
+  color: var(--ntac-green-text);
+}
+:root[data-theme="dark"] :is(.booked-mark, .booked-legend, .low-balance) {
+  color: #e7bb76;
+}
+:root[data-theme="dark"] .calendar-session {
+  background: var(--ntac-surface) !important;
+  border-color: var(--ntac-line) !important;
+}
+:root[data-theme="dark"]
+  :is(.pt-success, .success-banner, .badge-done, .status-pill.done) {
+  background: #1b3529;
+  color: #c2dfcd;
+}
+:root[data-theme="dark"] :is(.pt-error, .error-banner) {
+  background: #3b2426;
+  color: #ffb6b6;
+}
+:root[data-theme="dark"] .bar {
+  background: #477c64;
+}
+:root[data-theme="dark"] .bar.current {
+  background: #35634f;
+}
+:root[data-theme="dark"] .pass-card progress::-webkit-progress-bar {
+  background: var(--ntac-raised);
+}
+:root[data-theme="dark"] .pass-card progress::-webkit-progress-value {
+  background: #477c64;
+}
+:root[data-theme="dark"] .home-action-icon {
+  background: #213a30;
+  color: #a5c9b6;
+}
+:root[data-theme="dark"]
+  .pt-member-app
+  :is(
+    .home-balance,
+    .home-card-label button,
+    .home-activity-card button,
+    .member-page-heading > button:first-child
+  ) {
+  background: transparent;
+}
+:root[data-theme="dark"] .pt-member-app .header-book {
+  background: var(--ntac-green);
+  color: #fff;
+}
+:root[data-theme="dark"] :is(.pt-bottom-nav, .bottom-nav) {
+  background: #191c20f5;
+  border-color: var(--ntac-line);
+  box-shadow: none;
+}
+:root[data-theme="dark"] .pt-member-app .pt-bottom-nav button {
+  background: transparent;
+  color: #98a2af;
+}
+:root[data-theme="dark"]
+  .pt-member-app
+  .pt-bottom-nav
+  button[aria-pressed="true"] {
+  color: #c7e1d4;
+}
+:root[data-theme="dark"] .member-dialog::backdrop {
+  background: #0009;
+  backdrop-filter: blur(6px);
+}
+/* Existing NTAC program screens use both classes and inline presentation. */
+:root[data-theme="dark"]
+  .app
+  :is(
+    [class$="-card"],
+    [class$="-panel"],
+    .training-calendar,
+    .session-detail,
+    .program-block,
+    .calendar-selected-day,
+    .weekly-workout-editor
+  ) {
+  background: var(--ntac-surface);
+  color: var(--ntac-ink);
+  border-color: var(--ntac-line);
+  box-shadow: none;
+}
+:root[data-theme="dark"]
+  .app
+  :is(
+    p,
+    label,
+    small,
+    [class$="-description"],
+    .page-heading span,
+    .status-row span,
+    .welcome p
+  ) {
+  color: var(--ntac-muted);
+}
+:root[data-theme="dark"] .app :is(button, input, select, textarea) {
+  background: var(--ntac-raised);
+  color: var(--ntac-ink);
+  border-color: var(--ntac-line);
+}
+:root[data-theme="dark"]
+  .app
+  :is(
+    button.active,
+    button.selected,
+    .primary-button,
+    .checkin-submit,
+    .calendar-save-button,
+    .calendar-detail-button,
+    .weekly-publish-button,
+    .progress-value,
+    .calendar-progress-value
+  ) {
+  background: var(--ntac-green);
+  color: #fff;
+}
+:root[data-theme="dark"]
+  .app
+  :is(
+    .progress-bar,
+    .calendar-progress-track,
+    .workout-type,
+    .date-box,
+    .training-calendar-day,
+    .weekly-admin-toggle,
+    .weekly-status-card,
+    .calendar-record-area
+  ) {
+  background: var(--ntac-raised);
+  color: var(--ntac-ink);
+  border-color: var(--ntac-line);
+}
+:root[data-theme="dark"] .app .training-calendar-day.selected {
+  background: var(--ntac-green);
+  color: white;
+}
+:root[data-theme="dark"] :is(.legacy-panel, .app) [style*="background"] {
+  background-color: var(--ntac-surface) !important;
+  border-color: var(--ntac-line) !important;
+}
+:root[data-theme="dark"] :is(.legacy-panel, .app) [style*="color:"] {
+  color: var(--ntac-ink) !important;
+}
+:root[data-theme="dark"]
+  :is(.legacy-panel, .app)
+  :is(input, select, textarea)[style] {
+  background: #15181b !important;
+  color: var(--ntac-ink) !important;
+  border-color: #3a4149 !important;
+}
+:root[data-theme="dark"] :is(.legacy-panel, .app) button[style*="background"] {
+  background: var(--ntac-raised) !important;
+  color: var(--ntac-ink) !important;
+}
+:root[data-theme="dark"]
+  :is(.legacy-panel, .app)
+  button:is(
+    [style*="background: rgb(11, 61, 46)"],
+    [style*="background: rgb(15, 61, 46)"],
+    [style*="background: rgb(16, 37, 30)"]
+  ) {
+  background: var(--ntac-green) !important;
+  color: white !important;
+}
+/* Two clear operating areas, with shared account settings set apart. */
+.management-layout .workspace-description {
+  font-size: 14px;
+  margin: 10px 0 0;
+  line-height: 1.7;
+}
+.management-layout .workspace-tabs {
+  gap: 8px;
+  padding: 8px;
+  background: var(--ntac-surface);
+  border-radius: 18px;
+  flex-wrap: nowrap;
+}
+.management-layout .workspace-tabs button {
+  font-size: 17px;
+  min-height: 54px;
+  flex: 1;
+  border-radius: 12px;
+}
+.management-layout .workspace-tabs button:last-child:not(:first-child) {
+  flex: 0 1 120px;
+  font-size: 13px;
+}
+.management-layout .sub-tabs {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ntac-roster .roster-head,
+.ntac-roster .roster-row {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+.registration-list {
+  display: grid;
+  gap: 8px;
+  max-height: 42dvh;
+  overflow: auto;
+  margin-top: 16px;
+}
+.registration-list button {
+  display: grid;
+  text-align: left;
+  gap: 5px;
+  overflow-wrap: anywhere;
+}
+.registration-list button span {
+  font-size: 12px;
+  color: var(--ntac-muted);
+}
+@container (max-width:850px) {
+  .ntac-roster .roster-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ntac-roster .member-identity {
+    grid-column: 1/-1;
+  }
+}
+@media (max-width: 480px) {
+  .management-layout .workspace-tabs button {
+    font-size: 15px;
+    padding: 10px 8px;
+  }
+  .management-layout .workspace-tabs button:last-child:not(:first-child) {
+    font-size: 12px;
+    flex-basis: 82px;
+  }
+  .workspace-heading .button-row button {
+    font-size: 12px;
+    min-height: 36px;
+    padding: 8px 12px;
+  }
+}

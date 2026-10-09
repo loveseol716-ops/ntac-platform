@@ -1954,7 +1954,7 @@ function MyPage({ member, settings, progressPercent, openWeeklyReport, openAdmin
       <section className="surface"><div className="section-heading"><h3>이번 주 훈련</h3><strong>{progressPercent}% 완료</strong></div><p className="muted">담당 코치 · {settings.coach || '미배정'}</p></section>
       <BodyFitScoreSection memberId={member.id} mode="summary"/>
       <section className="surface"><h3>코치 피드백</h3><p>훈련 기록을 바탕으로 작성된 주간 리포트를 확인하세요.</p><button className="primary-button" onClick={openWeeklyReport}>주간 리포트</button></section>
-      {isAdmin&&<button className="admin-entry-button" onClick={openAdmin}>회원·수업 관리</button>}
+      {isAdmin&&<button className="admin-entry-button" onClick={openAdmin}>NTAC 관리</button>}
     </div>}
     {section==='records'&&<BodyFitScoreSection memberId={member.id} mode="records"/>}
     {section==='settings'&&<div className="my-card-stack"><RunningPaceSection memberId={member.id}/><ProfileEditSection/><PasswordChangeSection/></div>}
@@ -2519,7 +2519,7 @@ function App({
 
     return (
       <div className="app">
-        <CoachAdminPage
+        <CoachAdminPage initialArea="ntac"
           onClose={() =>
             setActiveTab('my')
           }

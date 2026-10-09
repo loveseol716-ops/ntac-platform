@@ -5,6 +5,7 @@ import "./index.css";
 import EntryGate from "./EntryGate.jsx";
 import AppUpdates from "./AppUpdates.jsx";
 import "./Product.css";
+import "./Dark.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

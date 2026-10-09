@@ -57,17 +57,22 @@ function Modal({ title, onClose, children }) {
     </dialog>
   );
 }
-export default function CoachAdminPage({ profile: initialProfile, onClose }) {
+export default function CoachAdminPage({
+  profile: initialProfile,
+  onClose,
+  initialArea = "pt",
+}) {
   const [profile, setProfile] = useState(initialProfile),
-    [tab, setTab] = useState("pt"),
-    [ntacTab, setNtacTab] = useState("programs");
+    [tab, setTab] = useState(initialArea),
+    [ntacTab, setNtacTab] = useState("members");
   const [profiles, setProfiles] = useState([]),
     [members, setMembers] = useState([]),
     [packages, setPackages] = useState([]),
     [sessions, setSessions] = useState([]);
   const [query, setQuery] = useState(""),
     [coachFilter, setCoachFilter] = useState("all"),
-    [serviceFilter, setServiceFilter] = useState("all"),
+    [registering, setRegistering] = useState(false),
+    [registrationQuery, setRegistrationQuery] = useState(""),
     [selected, setSelected] = useState(null);
   const [selectedDate, setSelectedDate] = useState(today()),
     [startNew, setStartNew] = useState(false);
@@ -152,7 +157,9 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
     [profiles, members, packages, sessions],
   );
   const filtered = rows.filter(({ p, m }) => {
+    if (isStaff(p)) return false;
     if (tab === "pt" && !m?.active) return false;
+    if (tab === "ntac" && !p.ntac_enabled) return false;
     if (
       query &&
       !`${p.full_name} ${p.email} ${p.phone || ""}`
@@ -162,17 +169,11 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
       return false;
     if (
       coachFilter !== "all" &&
-      (p.assigned_coach_id || "none") !== coachFilter
+      ((tab === "pt" ? m?.coach_id : p.assigned_coach_id) || "none") !==
+        coachFilter
     )
       return false;
-    const mode = m?.active
-      ? p.ntac_enabled
-        ? "both"
-        : "pt"
-      : p.ntac_enabled
-        ? "ntac"
-        : "none";
-    return serviceFilter === "all" || mode === serviceFilter;
+    return true;
   });
   function edit(p, m) {
     setEditing(p);
@@ -185,7 +186,11 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
           ? "ntac"
           : "none",
     );
-    setCoach(p.assigned_coach_id || "");
+    setCoach(
+      (tab === "pt" ? m?.coach_id : p.assigned_coach_id) ||
+        p.assigned_coach_id ||
+        "",
+    );
     setError("");
   }
   async function save(e) {
@@ -246,7 +251,20 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">{admin ? "COACH WORKSPACE" : "MY MEMBERS"}</p>
-          <h1>{admin ? "회원과 수업 관리" : "담당 회원 관리"}</h1>
+          <h1>
+            {tab === "pt"
+              ? "PT 관리"
+              : tab === "ntac"
+                ? "NTAC 관리"
+                : "운영 설정"}
+          </h1>
+          <p className="workspace-description">
+            {tab === "pt"
+              ? "개인 수업 일정과 회원별 횟수권을 관리하세요."
+              : tab === "ntac"
+                ? "NTAC 회원의 프로그램과 훈련 리포트를 관리하세요."
+                : "코치 계정과 관리자 권한을 설정하세요."}
+          </p>
         </div>
         <div className="button-row">
           {onClose && <button onClick={onClose}>닫기</button>}
@@ -260,18 +278,20 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
           ["pt", "PT 관리"],
           ...(admin
             ? [
-                ["members", "전체 회원"],
-                ["ntac", "NTAC 운영"],
-                ["staff", "코치·권한"],
+                ["ntac", "NTAC 관리"],
+                ["staff", "운영 설정"],
               ]
             : []),
         ].map(([id, label]) => (
           <button
             key={id}
             className={tab === id ? "selected" : ""}
+            aria-pressed={tab === id}
             onClick={() => {
               setTab(id);
-              setServiceFilter("all");
+              setCoachFilter("all");
+              setMessage("");
+              setError("");
               setQuery("");
             }}
           >
@@ -304,15 +324,43 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
           }}
         />
       )}
-      {["pt", "members"].includes(tab) && (
-        <section className="surface">
+      {tab === "ntac" && admin && (
+        <nav className="sub-tabs" aria-label="NTAC 관리 메뉴">
+          {[
+            ["members", "NTAC 회원"],
+            ["programs", "주간 프로그램"],
+            ["personal", "개인 프로그램"],
+            ["reports", "주간 리포트"],
+            ["community", "커뮤니티"],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              className={ntacTab === id ? "selected" : ""}
+              onClick={() => setNtacTab(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
+      {(tab === "pt" || (tab === "ntac" && ntacTab === "members")) && (
+        <section
+          className={`surface member-roster ${tab === "ntac" ? "ntac-roster" : ""}`}
+        >
           <div className="section-heading">
             <h2>
-              {tab === "pt" ? "PT 회원" : "전체 회원"}{" "}
+              {tab === "pt" ? "PT 회원" : "NTAC 회원"}{" "}
               <span className="muted">{filtered.length}</span>
             </h2>
-            {admin && tab === "pt" && (
-              <button onClick={() => setTab("members")}>회원 배정</button>
+            {admin && (
+              <button
+                onClick={() => {
+                  setRegistrationQuery("");
+                  setRegistering(true);
+                }}
+              >
+                {tab === "pt" ? "PT 회원 등록" : "NTAC 회원 등록"}
+              </button>
             )}
           </div>
           <div className="filter-row">
@@ -341,27 +389,16 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
                 </select>
               </label>
             )}
-            {tab === "members" && (
-              <label>
-                <span className="sr-only">이용 구분 필터</span>
-                <select
-                  value={serviceFilter}
-                  onChange={(e) => setServiceFilter(e.target.value)}
-                >
-                  <option value="all">모든 회원</option>
-                  <option value="pt">PT만</option>
-                  <option value="ntac">NTAC만</option>
-                  <option value="both">PT + NTAC</option>
-                  <option value="none">등록 대기</option>
-                </select>
-              </label>
-            )}
           </div>
           <div className="roster-head">
             <span>회원</span>
             <span>담당 코치</span>
-            <span>최근 출석</span>
-            <span>PT 잔여</span>
+            {tab === "pt" && (
+              <>
+                <span>최근 출석</span>
+                <span>PT 잔여</span>
+              </>
+            )}
             <span>관리</span>
           </div>
           <div className="roster-list">
@@ -377,24 +414,35 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
                   </span>
                 </div>
                 <div data-label="담당 코치">
-                  {coaches.find((c) => c.id === p.assigned_coach_id)
-                    ?.full_name ||
+                  {coaches.find(
+                    (c) =>
+                      c.id ===
+                      (tab === "pt" ? m?.coach_id : p.assigned_coach_id),
+                  )?.full_name ||
                     p.coach_name ||
                     "미배정"}
                 </div>
-                <div data-label="최근 출석">{stats?.last || "기록 없음"}</div>
-                <div data-label="PT 잔여">
-                  <strong
-                    className={stats?.remaining <= 2 ? "low-balance" : ""}
-                  >
-                    {stats?.packs ? `${stats.remaining}회` : "—"}
-                  </strong>
-                  {stats?.packs > 0 && (
-                    <small className="muted">누적 {stats.used}회 출석</small>
-                  )}
-                </div>
+                {tab === "pt" && (
+                  <>
+                    <div data-label="최근 출석">
+                      {stats?.last || "기록 없음"}
+                    </div>
+                    <div data-label="PT 잔여">
+                      <strong
+                        className={stats?.remaining <= 2 ? "low-balance" : ""}
+                      >
+                        {stats?.packs ? `${stats.remaining}회` : "—"}
+                      </strong>
+                      {stats?.packs > 0 && (
+                        <small className="muted">
+                          누적 {stats.used}회 출석
+                        </small>
+                      )}
+                    </div>
+                  </>
+                )}
                 <div className="button-row">
-                  {m?.active && (
+                  {tab === "pt" && m?.active && (
                     <button
                       className="primary"
                       onClick={() => {
@@ -423,24 +471,8 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
           )}
         </section>
       )}
-      {tab === "ntac" && admin && (
+      {tab === "ntac" && ntacTab !== "members" && admin && (
         <section className="surface">
-          <div className="sub-tabs">
-            {[
-              ["programs", "주간 프로그램"],
-              ["personal", "개인 프로그램"],
-              ["reports", "주간 리포트"],
-              ["community", "커뮤니티"],
-            ].map(([id, label]) => (
-              <button
-                key={id}
-                className={ntacTab === id ? "selected" : ""}
-                onClick={() => setNtacTab(id)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
           <div className="legacy-panel">
             <Suspense fallback={<p>불러오는 중...</p>}>
               {ntacTab === "programs" && <WeeklyProgramAdmin />}
@@ -493,7 +525,7 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
                   );
                   setVersion((v) => v + 1);
                   setMessage(
-                    "코치로 등록했어요. 전체 회원에서 담당 회원을 배정하세요.",
+                    "코치로 등록했어요. PT 관리 또는 NTAC 관리에서 회원을 배정하세요.",
                   );
                 } catch (e) {
                   setError(e.message);
@@ -529,6 +561,59 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
             </details>
           )}
         </>
+      )}
+      {registering && (
+        <Modal
+          title={tab === "pt" ? "PT 회원 등록" : "NTAC 회원 등록"}
+          onClose={() => setRegistering(false)}
+        >
+          <p className="muted">
+            가입된 계정을 선택해 이용 프로그램과 코치를 배정하세요.
+          </p>
+          <label>
+            가입 회원 검색
+            <input
+              value={registrationQuery}
+              onChange={(e) => setRegistrationQuery(e.target.value)}
+              placeholder="이름 · 연락처 · 이메일"
+            />
+          </label>
+          <div className="registration-list">
+            {rows
+              .filter(
+                ({ p, m }) =>
+                  !isStaff(p) &&
+                  (tab === "pt" ? !m?.active : !p.ntac_enabled) &&
+                  `${p.full_name} ${p.email} ${p.phone || ""}`
+                    .toLowerCase()
+                    .includes(registrationQuery.toLowerCase()),
+              )
+              .map(({ p, m }) => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    edit(p, m);
+                    setService(
+                      tab === "pt"
+                        ? p.ntac_enabled
+                          ? "both"
+                          : "pt"
+                        : m?.active
+                          ? "both"
+                          : "ntac",
+                    );
+                    setRegistering(false);
+                  }}
+                >
+                  <strong>{p.full_name || "이름 없음"}</strong>
+                  <span>{p.email}</span>
+                </button>
+              ))}
+          </div>
+          <p className="muted">
+            목록에 없는 회원은 먼저 회원 가입을 진행해 주세요.
+          </p>
+        </Modal>
       )}
       {editing && (
         <Modal

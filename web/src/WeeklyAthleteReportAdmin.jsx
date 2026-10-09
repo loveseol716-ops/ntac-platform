@@ -332,6 +332,7 @@ function WeeklyAthleteReportAdmin() {
                   coach_name
                 `,
               )
+              .eq('ntac_enabled', true)
               .eq(
                 'role',
                 'member',

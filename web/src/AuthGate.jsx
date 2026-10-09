@@ -1686,8 +1686,8 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '24px',
-    background: '#071f18',
-    color: '#ffffff',
+    background: 'var(--ntac-bg)',
+    color: 'var(--ntac-ink)',
   },
 
   setupPage: {
@@ -1696,8 +1696,8 @@ const styles = {
     alignItems: 'flex-start',
     justifyContent: 'center',
     padding: '28px 18px 60px',
-    background: '#071f18',
-    color: '#ffffff',
+    background: 'var(--ntac-bg)',
+    color: 'var(--ntac-ink)',
   },
 
   loadingPage: {
@@ -1706,8 +1706,8 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '24px',
-    background: '#f5f6f4',
-    color: '#10251e',
+    background: 'var(--ntac-bg)',
+    color: 'var(--ntac-ink)',
   },
 
   loadingCard: {
@@ -1715,7 +1715,7 @@ const styles = {
     maxWidth: '420px',
     padding: '32px 24px',
     borderRadius: '24px',
-    background: '#ffffff',
+    background: 'var(--ntac-surface)',
     boxSizing: 'border-box',
   },
 
@@ -1729,8 +1729,8 @@ const styles = {
     maxWidth: '420px',
     padding: '32px 24px',
     borderRadius: '24px',
-    background: '#ffffff',
-    color: '#10251e',
+    background: 'var(--ntac-surface)',
+    color: 'var(--ntac-ink)',
     boxSizing: 'border-box',
   },
 
@@ -1739,8 +1739,8 @@ const styles = {
     maxWidth: '560px',
     padding: '30px 22px',
     borderRadius: '24px',
-    background: '#ffffff',
-    color: '#10251e',
+    background: 'var(--ntac-surface)',
+    color: 'var(--ntac-ink)',
     boxSizing: 'border-box',
   },
 
@@ -1749,7 +1749,7 @@ const styles = {
     fontSize: '12px',
     fontWeight: '800',
     letterSpacing: '0.14em',
-    color: '#0b6b4f',
+    color: 'var(--ntac-green-text)',
   },
 
   title: {
@@ -1759,7 +1759,7 @@ const styles = {
 
   description: {
     margin: '0 0 28px',
-    color: '#66736e',
+    color: 'var(--ntac-muted)',
     lineHeight: 1.5,
   },
 
@@ -1767,8 +1767,8 @@ const styles = {
     margin: '-10px 0 22px',
     padding: '12px 14px',
     borderRadius: '12px',
-    background: '#eef3f0',
-    color: '#33463f',
+    background: 'var(--ntac-raised)',
+    color: 'var(--ntac-ink)',
     fontSize: '14px',
     fontWeight: '700',
     overflowWrap: 'anywhere',
@@ -1784,12 +1784,12 @@ const styles = {
     gap: '14px',
     padding: '18px',
     borderRadius: '17px',
-    background: '#f5f7f6',
+    background: 'var(--ntac-raised)',
   },
 
   sectionEyebrow: {
     margin: '0 0 4px',
-    color: '#0b6b4f',
+    color: 'var(--ntac-green-text)',
     fontSize: '10px',
     fontWeight: '900',
     letterSpacing: '0.12em',
@@ -1797,7 +1797,7 @@ const styles = {
 
   sectionTitle: {
     margin: 0,
-    color: '#10251e',
+    color: 'var(--ntac-ink)',
     fontSize: '18px',
   },
 
@@ -1822,7 +1822,7 @@ const styles = {
     padding: '14px 16px',
     border: '1px solid #d6dedb',
     borderRadius: '12px',
-    background: '#ffffff',
+    background: 'var(--ntac-surface)',
     fontSize: '16px',
   },
 
@@ -1840,8 +1840,8 @@ const styles = {
     gap: '11px',
     padding: '16px',
     borderRadius: '14px',
-    background: '#eef3f0',
-    color: '#33463f',
+    background: 'var(--ntac-raised)',
+    color: 'var(--ntac-ink)',
     fontSize: '13px',
     fontWeight: '800',
     lineHeight: 1.5,
@@ -1853,7 +1853,7 @@ const styles = {
     gap: '13px',
     padding: '16px',
     borderRadius: '14px',
-    background: '#e6f0eb',
+    background: 'var(--ntac-raised)',
     border: '1px solid #c3d8ce',
   },
 
@@ -1863,7 +1863,7 @@ const styles = {
     border: 'none',
     borderRadius: '12px',
     background: '#0b3d2e',
-    color: '#ffffff',
+    color: 'var(--ntac-ink)',
     fontSize: '16px',
     fontWeight: '800',
     cursor: 'pointer',
@@ -1874,8 +1874,8 @@ const styles = {
     padding: '14px',
     border: '1px solid #d6dedb',
     borderRadius: '12px',
-    background: '#ffffff',
-    color: '#33463f',
+    background: 'var(--ntac-surface)',
+    color: 'var(--ntac-ink)',
     fontSize: '14px',
     fontWeight: '800',
     cursor: 'pointer',
@@ -1886,7 +1886,7 @@ const styles = {
     padding: '4px',
     border: 'none',
     background: 'transparent',
-    color: '#0b6b4f',
+    color: 'var(--ntac-green-text)',
     fontSize: '14px',
     fontWeight: '800',
     cursor: 'pointer',
@@ -1895,7 +1895,7 @@ const styles = {
 
   error: {
     margin: 0,
-    color: '#c43d3d',
+    color: '#ffb6b6',
     fontSize: '14px',
     fontWeight: '700',
     lineHeight: 1.5,
@@ -1905,8 +1905,8 @@ const styles = {
     margin: 0,
     padding: '12px',
     borderRadius: '10px',
-    background: '#fff0f0',
-    color: '#c43d3d',
+    background: '#3b2426',
+    color: '#ffb6b6',
     fontSize: '13px',
     fontWeight: '700',
     lineHeight: 1.5,
@@ -1916,8 +1916,8 @@ const styles = {
     margin: 0,
     padding: '12px',
     borderRadius: '10px',
-    background: '#eaf5ef',
-    color: '#0b6b4f',
+    background: '#1b3529',
+    color: 'var(--ntac-green-text)',
     fontSize: '13px',
     fontWeight: '700',
     lineHeight: 1.5,
@@ -1933,7 +1933,7 @@ const styles = {
     gap: '8px',
     padding: '6px',
     borderRadius: '999px',
-    background: '#ffffff',
+    background: 'var(--ntac-surface)',
     boxShadow:
       '0 4px 16px rgba(0, 0, 0, 0.12)',
   },
@@ -1942,7 +1942,7 @@ const styles = {
     padding: '6px 9px',
     borderRadius: '999px',
     background: '#0b3d2e',
-    color: '#ffffff',
+    color: 'var(--ntac-ink)',
     fontSize: '10px',
     fontWeight: '800',
   },
@@ -1960,7 +1960,7 @@ const styles = {
     padding: '7px 10px',
     border: '1px solid #d6dedb',
     borderRadius: '999px',
-    background: '#ffffff',
+    background: 'var(--ntac-surface)',
     fontSize: '11px',
     fontWeight: '700',
     cursor: 'pointer',

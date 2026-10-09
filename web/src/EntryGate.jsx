@@ -165,7 +165,7 @@ export default function EntryGate() {
         management: ["owner", "admin"].includes(profile.role)
           ? "관리"
           : "담당 회원",
-        ntac: "NTAC",
+        ntac: ["owner", "admin", "coach"].includes(profile.role) ? "NTAC 회원 화면" : "NTAC",
         pt: "나의 PT",
       };
     return (

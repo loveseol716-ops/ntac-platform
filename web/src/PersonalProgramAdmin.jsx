@@ -284,12 +284,8 @@ function PersonalProgramAdmin() {
                 membership_status
               `,
             )
-            .neq('role', 'admin')
-            .eq('coach_care', true)
-            .eq(
-              'membership_status',
-              'active',
-            )
+            .eq('role', 'member')
+            .eq('ntac_enabled', true)
             .order('full_name', {
               ascending: true,
             }),
