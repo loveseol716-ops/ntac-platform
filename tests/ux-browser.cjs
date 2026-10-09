@@ -428,11 +428,18 @@ const fixtures = {
   await page.getByRole("heading", { name: "김민수님의 PT" }).waitFor();
   assert.equal(
     await page
-      .getByRole("button", { name: "수업 예약", exact: true })
+      .getByRole("button", { name: "홈", exact: true })
       .getAttribute("aria-pressed"),
     "true",
   );
   await page.getByRole("img", { name: "NTAC", exact: true }).waitFor();
+  assert.equal(await page.locator('.pt-calendar').count(),0,'Home should not show calendar');
+  await page.setViewportSize({width:390,height:844});
+  assert(await page.locator('.home-book-cta').evaluate(e=>e.getBoundingClientRect().bottom<innerHeight-80),'Booking CTA above bottom navigation');
+  await page.screenshot({path:'/tmp/ntac-focused-home-empty.png',fullPage:true});
+  await page.setViewportSize({width:320,height:750});
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'320px overflow');
+  await page.setViewportSize({width:390,height:1000});
   await page.getByRole("button", { name: "내 프로필", exact: true }).click();
   await page
     .getByRole("dialog")
@@ -482,10 +489,9 @@ const fixtures = {
     .getByText(`${tomorrow} 10:00 예약이 완료됐어요.`, { exact: true })
     .waitFor();
   assert.equal(sessions.find((s) => s.id === "booked").status, "scheduled");
-  await page
-    .locator(".next-session")
-    .getByText(`${tomorrow} · 10:00`, { exact: true })
-    .waitFor();
+  await page.locator(`.next-session time[datetime="${tomorrow}T10:00:00+09:00"]`).waitFor();
+  await page.screenshot({path:'/tmp/ntac-focused-home-booked.png',fullPage:true});
+  await page.getByRole("button",{name:"예약 관리",exact:false}).click();
   slots.push({
     id: "slot2",
     coach_id: "coach",
@@ -503,6 +509,7 @@ const fixtures = {
     .getByText(`${tomorrow} 12:00 예약을 변경했어요.`, { exact: true })
     .waitFor();
   assert.equal(sessions.find((s) => s.id === "booked").slot_id, "slot2");
+  await page.getByRole("button",{name:"예약 관리",exact:false}).click();
   page.on("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "예약 취소", exact: true }).click();
   await page

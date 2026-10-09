@@ -1,4 +1,5 @@
 import PassLedger from "./PassLedger.jsx";
+import { weeklyStats } from "./tracking.js";
 import { currentBalance, passUsage, passLabel } from "./passes.js";
 import { koreaDate, koreaTime } from "./dates.js";
 import { useEffect, useRef, useState } from "react";
@@ -18,7 +19,7 @@ export default function PTMember({ profile }) {
     [busy, setBusy] = useState(false),
     [choice, setChoice] = useState(null),
     [editing, setEditing] = useState(null),
-    [tab, setTab] = useState("booking"),
+    [tab, setTab] = useState("home"),
     [month, setMonth] = useState(today().slice(0, 7)),
     [message, setMessage] = useState("");
   const lock = useRef(false);
@@ -77,6 +78,7 @@ export default function PTMember({ profile }) {
       );
       setChoice(null);
       setEditing(null);
+      setTab("home");
       setVersion((v) => v + 1);
     } catch (e) {
       setError(e.message);
@@ -156,13 +158,13 @@ export default function PTMember({ profile }) {
         : passUsage(p, sessions, date).available > 0,
     );
   });
+  const weekCount = weeklyStats(sessions,today()).at(-1).count;
+  function navigate(value) { setTab(value); setChoice(null); setEditing(null); setError(""); window.scrollTo({top:0,behavior:"instant"}); }
+  function openBooking(date) { navigate("booking");setDay(date || (eligibleSlots[0] ? koreaDate(eligibleSlots[0].starts_at) : today())); }
+  const prettyDate = date => new Intl.DateTimeFormat("ko-KR",{month:"long",day:"numeric",weekday:"short",timeZone:"Asia/Seoul"}).format(new Date(`${date}T12:00:00+09:00`));
   return (
-    <main className="pt pt-shell simple-pt">
-      <header className="member-intro">
-        <p>PERSONAL TRAINING</p>
-        <h1>{profile.full_name || "회원"}님의 PT</h1>
-        <p>담당 코치 · {profile.coach_name || "미배정"}</p>
-      </header>
+    <main className={`pt pt-shell simple-pt pt-member-app view-${tab}`}>
+      {tab === "home" ? <header className="member-intro home-greeting"><p>나의 트레이닝</p><h1>{profile.full_name || "회원"}님의 PT</h1><p>오늘도 한 걸음씩, 꾸준하게.</p></header> : <header className="member-page-heading"><button onClick={()=>navigate("home")} aria-label="홈으로 돌아가기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><h1>{tab === "booking" ? (editing ? "예약 변경" : "수업 예약") : tab === "history" ? "운동 기록" : "이용 내역"}</h1>{tab !== "booking" && <button className="header-book" onClick={()=>openBooking()}>수업 예약</button>}</header>}
       {error && (
         <p className="pt-error" role="alert">
           {error}
@@ -180,55 +182,25 @@ export default function PTMember({ profile }) {
         <p>관리자의 PT 배정을 기다리고 있어요.</p>
       ) : (
         <>
-          <section className="next-session">
-            <span>다음 수업</span>
-            <strong>
-              {next
-                ? `${next.session_date} · ${next.start_time.slice(0, 5)}`
-                : "아래에서 다음 수업을 예약하세요"}
-            </strong>
-            <small>남은 수업 {remaining}회</small>
-            <button
-              onClick={() => {
-                setTab("booking");
-                setDay(next?.session_date || today());
-                setChoice(null);
-                setEditing(null);
-              }}
-            >
-              {next ? "예약 일정 보기" : "수업 예약하기"}
-            </button>
-          </section>
-          <nav className="sub-tabs detail-tabs" aria-label="PT 메뉴">
-            <button
-              className={tab === "booking" ? "selected" : ""}
-              aria-pressed={tab === "booking"}
-              onClick={() => setTab("booking")}
-            >
-              수업 예약
-            </button>
-            <button
-              className={tab === "history" ? "selected" : ""}
-              aria-pressed={tab === "history"}
-              onClick={() => {
-                setTab("history");
-                setChoice(null);
-                setEditing(null);
-              }}
-            >
-              운동 기록
-            </button>
-            <button
-              className={tab === "passes" ? "selected" : ""}
-              aria-pressed={tab === "passes"}
-              onClick={() => {
-                setTab("passes");
-                setEditing(null);
-                setChoice(null);
-              }}
-            >
-              이용 내역
-            </button>
+          {tab === "home" && <div className="pt-home-content">
+            <section className="home-training-card">
+              <div className="next-session">
+                <div className="home-card-label"><span>다음 수업</span>{next && <button onClick={()=>openBooking(next.session_date)}>예약 관리 <span aria-hidden="true">›</span></button>}</div>
+                <strong>{next ? prettyDate(next.session_date) : "다음 운동을 예약해 볼까요?"}</strong>
+                {next ? <time dateTime={`${next.session_date}T${next.start_time}+09:00`}>{next.start_time.slice(0,5)} <span>· {next.duration_minutes || 60}분</span></time> : <p>코치가 열어둔 시간 중 편한 시간을 골라주세요.</p>}
+                <small>{profile.coach_name || "담당 코치 미배정"}{profile.coach_name ? " 코치와 함께" : ""}</small>
+              </div>
+              <button className="home-balance" onClick={()=>navigate("passes")} aria-label={`남은 수업 ${remaining}회, 이용 내역 보기`}><span><span>남은 수업</span><strong>{remaining}<small>회</small></strong></span><span className="home-balance-hint">이용 내역 <b aria-hidden="true">›</b></span></button>
+              <button className="pt-primary home-book-cta" onClick={()=>openBooking()}>수업 예약</button>
+            </section>
+            <section className="home-activity-card" aria-label="이번 주 활동">
+              <button onClick={()=>{setDay(today());navigate("history");}}><span className="home-action-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 15 5-6 4 4 7-9M16 4h4v4"/></svg></span><span><strong>이번 주 {weekCount}회 운동했어요</strong><small>{weekCount ? "차곡차곡 쌓이는 나의 운동 기록" : "첫 운동부터 함께 기록해요"}</small></span><b aria-hidden="true">›</b></button>
+              <button onClick={()=>navigate("passes")}><span className="home-action-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 9h8M8 13h5"/></svg></span><span><strong>횟수권 사용 내역</strong><small>구매부터 사용까지 한눈에</small></span><b aria-hidden="true">›</b></button>
+            </section>
+            <p className="home-footnote">예약할 때는 차감되지 않아요.<br/>코치가 운동 완료를 누르면 1회 사용으로 기록돼요.</p>
+          </div>}
+          <nav className="pt-bottom-nav" aria-label="PT 메뉴">
+            {[["home","홈","M3 10 12 3l9 7M5 9v12h5v-7h4v7h5V9"],["history","운동 기록","M5 4h14v17H5zM8 9h8M8 13h8M8 17h5"],["passes","이용 내역","M3 6h18v12H3zM7 10h4M7 14h9"]].map(([id,label,path])=><button key={id} aria-pressed={tab===id || (id==="home" && tab==="booking")} onClick={()=>navigate(id)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d={path}/></svg><span>{label}</span></button>)}
           </nav>
           {tab === "history" && (
             <ProgressSummary
@@ -256,7 +228,7 @@ export default function PTMember({ profile }) {
               </button>
             </section>
           )}
-          {tab !== "passes" && (
+          {(tab === "booking" || tab === "history") && (
             <Calendar
               value={day}
               onChange={(d) => {
@@ -270,12 +242,12 @@ export default function PTMember({ profile }) {
               label={tab === "booking" ? "예약 캘린더" : "운동 기록 캘린더"}
             />
           )}
-          {tab === "passes" ? (
+          {tab === "home" ? null : tab === "passes" ? (
             <PassLedger packages={data.packages} sessions={sessions} />
           ) : tab === "booking" ? (
             <>
-              <section className="pt-card">
-                <h2>{day} 예약</h2>
+              <section className="pt-card booking-time-card">
+                <h2>{prettyDate(day)}</h2>
                 {scheduled
                   .filter((s) => s.session_date === day)
                   .map((s) => (

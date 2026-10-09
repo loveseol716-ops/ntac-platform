@@ -1,20 +1,4 @@
+// Font-independent outlined wordmark, set in a tight bold grotesk.
 export default function NTACLogo() {
-  return (
-    <svg
-      className="ntac-logo"
-      viewBox="0 0 132 32"
-      role="img"
-      aria-label="NTAC"
-    >
-      <g
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="5"
-        strokeLinejoin="round"
-        strokeLinecap="square"
-      >
-        <path d="M4 27V5L25 27V5M38 5H60M49 5V27M70 27L81 5L92 27M75 19H87M125 7C121 3 108 3 104 11C98 24 111 32 125 25" />
-      </g>
-    </svg>
-  );
+  return <svg className="ntac-logo" viewBox="60 -9 2586 780" role="img" aria-label="NTAC"><path fill="currentColor" d="M511 740H661V11H511V507L222 11H68V740H218V236ZM1073 136H1286V11H702V136H923V740H1073ZM1766 593 1814 740H1968L1716 11H1550L1291 740H1444L1493 593ZM1725 468H1535L1630 183ZM2635 258C2630 195 2617 155 2586 114C2530 40 2440 -1 2331 -1C2125 -1 1997 146 1997 382C1997 617 2124 763 2327 763C2509 763 2629 658 2638 491H2492C2482 584 2424 637 2331 637C2215 637 2147 543 2147 384C2147 223 2218 127 2336 127C2423 127 2472 169 2492 258Z"/></svg>;
 }
