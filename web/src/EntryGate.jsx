@@ -11,9 +11,8 @@ const Management = lazy(() => import("./CoachAdminPage.jsx"));
 function availableViews(profile, ptMember) {
   const views = [];
   if (["owner", "admin", "coach"].includes(profile?.role))
-    views.push("management");
-  if (profile?.ntac_enabled || ["owner", "admin"].includes(profile?.role))
-    views.push("ntac");
+    return ["management"];
+  if (profile?.ntac_enabled) views.push("ntac");
   if (ptMember?.active) views.push("pt");
   return views;
 }
@@ -165,7 +164,7 @@ export default function EntryGate() {
         management: ["owner", "admin"].includes(profile.role)
           ? "관리"
           : "담당 회원",
-        ntac: ["owner", "admin", "coach"].includes(profile.role) ? "NTAC 회원 화면" : "NTAC",
+        ntac: "NTAC",
         pt: "나의 PT",
       };
     return (

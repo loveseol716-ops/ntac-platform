@@ -472,8 +472,8 @@ export default function CoachAdminPage({
         </section>
       )}
       {tab === "ntac" && ntacTab !== "members" && admin && (
-        <section className="surface">
-          <div className="legacy-panel">
+        <section className={ntacTab === "programs" ? "program-workspace" : "surface"}>
+          <div className={ntacTab === "programs" ? "" : "legacy-panel"}>
             <Suspense fallback={<p>불러오는 중...</p>}>
               {ntacTab === "programs" && <WeeklyProgramAdmin />}
               {ntacTab === "personal" && <PersonalProgramAdmin />}

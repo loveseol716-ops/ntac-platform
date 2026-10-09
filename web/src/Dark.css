@@ -441,3 +441,164 @@
     padding: 8px 12px;
   }
 }
+
+/* Shared mobile rhythm for every management area. Inputs stay 16px to prevent iOS zoom. */
+:root[data-theme="dark"]
+  .management-layout
+  :is(.workspace-tabs, .sub-tabs)
+  button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+:root[data-theme="dark"] .management-layout .sub-tabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  max-width: 100%;
+  gap: 6px;
+  padding: 2px 0 8px;
+  scrollbar-width: none;
+}
+:root[data-theme="dark"] .management-layout .sub-tabs button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+.management-layout .legacy-panel {
+  min-width: 0;
+  margin-top: 0;
+  overflow-wrap: anywhere;
+}
+.management-layout .legacy-panel :is(form, fieldset, section, article, div) {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.management-layout .legacy-panel .admin-field {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 18px;
+  line-height: 1.6;
+}
+.management-layout .legacy-panel :is(input, select, textarea) {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.management-layout .legacy-panel button {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-height: 44px;
+  line-height: 1.5;
+}
+:root[data-theme="dark"]
+  .management-layout
+  .legacy-panel
+  :is(.weekly-status-card, .weekly-workout-editor, .weekly-admin-toggle) {
+  background: var(--ntac-surface);
+  color: var(--ntac-ink);
+  border-color: var(--ntac-line);
+}
+@media (max-width: 760px) {
+  .management-layout {
+    gap: 20px;
+    padding: 12px 16px 40px;
+  }
+  .management-layout .workspace-heading {
+    gap: 12px;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+  .management-layout .workspace-heading h1 {
+    font-size: 24px;
+    line-height: 1.4;
+  }
+  .management-layout .workspace-description {
+    display: none;
+  }
+  .management-layout .workspace-tabs {
+    gap: 4px;
+    padding: 5px;
+    border-radius: 14px;
+  }
+  .management-layout .workspace-tabs button {
+    min-height: 46px;
+    font-size: 14px;
+    padding: 10px 8px;
+  }
+  .management-layout .section-heading {
+    gap: 12px;
+    align-items: center;
+  }
+  .management-layout .section-heading h2 {
+    font-size: 18px;
+  }
+  .management-layout .surface {
+    padding: 20px 16px;
+    border-radius: 20px;
+  }
+  .management-layout .filter-row {
+    margin: 16px 0;
+    gap: 10px;
+  }
+  .management-layout .roster-row {
+    padding: 20px 0;
+    gap: 14px 10px;
+  }
+  .management-layout .roster-row .button-row {
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  .management-layout .roster-row button {
+    min-height: 44px;
+    padding: 10px 13px;
+  }
+  .management-layout .member-identity strong {
+    font-size: 16px;
+  }
+  .management-layout .legacy-panel [style*="grid-template-columns"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .management-layout .legacy-panel [style*="display: flex"] {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
+  .management-layout .legacy-panel :is(h1, h2) {
+    font-size: 20px !important;
+    line-height: 1.5 !important;
+    overflow-wrap: anywhere;
+  }
+  .management-layout .legacy-panel h3 {
+    font-size: 17px !important;
+    line-height: 1.5 !important;
+  }
+  .management-layout .legacy-panel :is(input, select, textarea) {
+    font-size: 16px !important;
+  }
+  .management-layout .legacy-panel :is(p, label, button) {
+    font-size: 13px !important;
+    line-height: 1.65 !important;
+  }
+  .management-layout .legacy-panel [style*="padding: 28px"],
+  .management-layout .legacy-panel [style*="padding: 32px"] {
+    padding: 18px !important;
+  }
+  .management-layout .pt .detail-header {
+    flex-wrap: wrap;
+  }
+  .management-layout .pt .detail-header h1 {
+    font-size: 22px;
+  }
+  .manage.profile-dialog .profile-two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 360px) {
+  .management-layout .roster-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .management-layout .workspace-heading h1 {
+    font-size: 22px;
+  }
+}

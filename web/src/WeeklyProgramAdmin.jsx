@@ -1,1747 +1,546 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
-
+import { useEffect, useRef, useState } from "react";
 import {
   DEFAULT_WEEK_TYPE,
   WEEK_TYPE_OPTIONS,
-  getWeekTypeLabel,
-  getWeeklyPrograms,
   loadWeeklyProgramsFromSupabase,
   saveWeeklyProgramToSupabase,
   saveWeeklyPrograms,
-} from './data/weeklyPrograms'
-
-const sessionTypeOptions = [
-  'ZONE 2',
-  'INTERVAL',
-  'INDOOR ZONE 2',
-  'STRENGTH',
-]
-
-function cloneData(value) {
-  return JSON.parse(
-    JSON.stringify(value),
-  )
-}
-
-function parseDateKey(dateKey) {
-  return new Date(
-    `${dateKey}T00:00:00`,
-  )
-}
-
-function formatDateKey(date) {
-  return [
-    date.getFullYear(),
-
-    String(
-      date.getMonth() + 1,
-    ).padStart(2, '0'),
-
-    String(
-      date.getDate(),
-    ).padStart(2, '0'),
-  ].join('-')
-}
-
-function addDays(
-  dateKey,
-  amount,
-) {
-  const date =
-    parseDateKey(dateKey)
-
-  date.setDate(
-    date.getDate() + amount,
-  )
-
-  return formatDateKey(date)
-}
-
-function getMondayDateKey(
-  date = new Date(),
-) {
-  const mondayIndex =
-    (date.getDay() + 6) % 7
-
-  const monday =
-    new Date(date)
-
-  monday.setDate(
-    date.getDate() -
-      mondayIndex,
-  )
-
-  return formatDateKey(monday)
-}
-
-function getWeekStartDate(
-  week,
-) {
-  const dates = (
-    week.workouts || []
-  )
-    .map(
-      (workout) =>
-        workout.date,
-    )
-    .filter(Boolean)
-    .sort()
-
-  return dates[0] || ''
-}
-
-function getIsoWeekId(
-  dateKey,
-) {
-  const localDate =
-    parseDateKey(dateKey)
-
-  const date = new Date(
-    Date.UTC(
-      localDate.getFullYear(),
-      localDate.getMonth(),
-      localDate.getDate(),
-    ),
-  )
-
-  const dayNumber =
-    (date.getUTCDay() + 6) %
-    7
-
-  date.setUTCDate(
-    date.getUTCDate() -
-      dayNumber +
-      3,
-  )
-
-  const firstThursday =
-    new Date(
-      Date.UTC(
-        date.getUTCFullYear(),
-        0,
-        4,
-      ),
-    )
-
-  const firstDayNumber =
-    (
-      firstThursday.getUTCDay() +
-      6
-    ) % 7
-
-  firstThursday.setUTCDate(
-    firstThursday.getUTCDate() -
-      firstDayNumber +
-      3,
-  )
-
-  const weekNumber =
-    1 +
-    Math.round(
-      (
-        date.getTime() -
-        firstThursday.getTime()
-      ) / 604800000,
-    )
-
-  return `${
-    date.getUTCFullYear()
-  }-W${String(
-    weekNumber,
-  ).padStart(2, '0')}`
-}
-
-function getWeekLabel(
-  dateKey,
-) {
-  const date =
-    parseDateKey(dateKey)
-
-  const month =
-    date.getMonth() + 1
-
-  const weekOfMonth =
-    Math.ceil(
-      date.getDate() / 7,
-    )
-
-  return `${month}월 ${weekOfMonth}주차`
-}
-
-function createSections() {
-  return [
-    {
-      title: 'WARM UP',
-      items: [''],
-    },
-
-    {
-      title: 'MAIN',
-      items: [''],
-    },
-
-    {
-      title: 'COOL DOWN',
-      items: [''],
-    },
-  ]
-}
-
-function createWorkout({
-  date,
-  category,
-  sessionType,
-  title,
-}) {
-  return {
-    date,
-    category,
-    sessionType,
-    title,
-
-    subtitle: '',
-    description: '',
-    targetRpe: '',
-
-    sections:
-      createSections(),
-  }
-}
-
-function createDefaultWeek(
-  startDate,
-) {
-  return {
-    weekId:
-      getIsoWeekId(startDate),
-
-    label:
-      getWeekLabel(startDate),
-
-    weekType:
-      DEFAULT_WEEK_TYPE,
-
-    published: false,
-
-    workouts: [
-      createWorkout({
-        date: startDate,
-        category: 'RUN',
-        sessionType:
-          'ZONE 2',
-        title:
-          'Zone 2 Running',
-      }),
-
-      createWorkout({
-        date: startDate,
-        category: 'BUILD',
-        sessionType:
-          'STRENGTH',
-        title:
-          'Strength A',
-      }),
-
-      createWorkout({
-        date:
-          addDays(
-            startDate,
-            1,
-          ),
-
-        category: 'RUN',
-
-        sessionType:
-          'INTERVAL',
-
-        title:
-          'Interval A',
-      }),
-
-      createWorkout({
-        date:
-          addDays(
-            startDate,
-            2,
-          ),
-
-        category: 'RUN',
-
-        sessionType:
-          'INDOOR ZONE 2',
-
-        title:
-          'Indoor Zone 2',
-      }),
-
-      createWorkout({
-        date:
-          addDays(
-            startDate,
-            3,
-          ),
-
-        category: 'RUN',
-
-        sessionType:
-          'INTERVAL',
-
-        title:
-          'Interval B',
-      }),
-
-      createWorkout({
-        date:
-          addDays(
-            startDate,
-            4,
-          ),
-
-        category: 'BUILD',
-
-        sessionType:
-          'STRENGTH',
-
-        title:
-          'Strength B',
-      }),
-    ],
-  }
-}
-
-function copyWeekToNext(
-  week,
-  shiftDays = 7,
-) {
-  const copiedWeek =
-    cloneData(week)
-
-  const currentStartDate =
-    getWeekStartDate(
-      copiedWeek,
-    )
-
-  const nextStartDate =
-    addDays(
-      currentStartDate,
-      shiftDays,
-    )
-
-  return {
-    ...copiedWeek,
-
-    weekId:
-      getIsoWeekId(
-        nextStartDate,
-      ),
-
-    label:
-      getWeekLabel(
-        nextStartDate,
-      ),
-
-    weekType:
-      copiedWeek.weekType ||
-      DEFAULT_WEEK_TYPE,
-
-    published: false,
-
-    workouts:
-      copiedWeek.workouts.map(
-        (workout) => {
-          const {
-            sessionId,
-            eventId,
-            ...workoutWithoutIds
-          } = workout
-
-          return {
-            ...workoutWithoutIds,
-
-            date:
-              addDays(
-                workout.date,
-                shiftDays,
-              ),
-          }
-        },
-      ),
-  }
-}
-
-function normalizePrograms(
-  programs,
-) {
-  return programs.map(
-    (week) => ({
-      ...week,
-
-      weekType:
-        week.weekType ||
-        DEFAULT_WEEK_TYPE,
-
-      workouts: (
-        week.workouts || []
-      ).map(
-        (
-          workout,
-          index,
-        ) => {
-          const category =
-            String(
-              workout.category ||
-                'RUN',
-            ).toLowerCase()
-
-          const sessionId =
-            workout.sessionId ||
-            `${
-              week.weekId.toLowerCase()
-            }-${category}-${
-              index + 1
-            }`
-
-          const eventId =
-            workout.eventId ||
-            `${workout.date}-${sessionId}`
-
-          const sections =
-            Array.isArray(
-              workout.sections,
-            )
-              ? workout.sections
-              : createSections()
-
-          return {
-            ...workout,
-
-            sessionId,
-            eventId,
-
-            sections:
-              sections.map(
-                (section) => ({
-                  ...section,
-
-                  items: (
-                    section.items ||
-                    []
-                  ).filter(
-                    (item) =>
-                      String(item)
-                        .trim() !==
-                      '',
-                  ),
-                }),
-              ),
-          }
-        },
-      ),
-    }),
-  )
-}
-
-function validateWeek(
-  week,
-) {
-  if (
-    !week.weekId?.trim()
-  ) {
-    return '주차 ID를 입력해 주세요.'
-  }
-
-  if (
-    !week.label?.trim()
-  ) {
-    return '주차 이름을 입력해 주세요.'
-  }
-
-  if (!week.weekType) {
-    return '주간 유형을 선택해 주세요.'
-  }
-
-  if (
-    !Array.isArray(
-      week.workouts,
-    ) ||
-    week.workouts.length === 0
-  ) {
-    return '운동을 한 개 이상 작성해 주세요.'
-  }
-
-  const invalidWorkout =
-    week.workouts.find(
-      (workout) =>
-        !workout.date ||
-        !workout.category ||
-        !workout.title?.trim(),
-    )
-
-  if (invalidWorkout) {
-    return '모든 운동의 날짜, 분류, 제목을 입력해 주세요.'
-  }
-
-  const invalidRpe =
-    week.workouts.find(
-      (workout) =>
-        !String(
-          workout.targetRpe ||
-            '',
-        ).trim(),
-    )
-
-  if (invalidRpe) {
-    return '모든 프로그램의 목표 RPE를 입력해 주세요.'
-  }
-
-  return null
-}
-
-function WeeklyProgramAdmin() {
-  const initialPrograms =
-    getWeeklyPrograms()
-
-  const [
-    isOpen,
-    setIsOpen,
-  ] = useState(false)
-
-  const [
-    programs,
-    setPrograms,
-  ] = useState(
-    initialPrograms,
-  )
-
-  const [
-    selectedWeekId,
-    setSelectedWeekId,
-  ] = useState(
-    initialPrograms[
-      initialPrograms.length - 1
-    ]?.weekId || '',
-  )
-
-  const [
-    databaseLoading,
-    setDatabaseLoading,
-  ] = useState(true)
-
-  const [
-    databaseSaving,
-    setDatabaseSaving,
-  ] = useState(false)
-
-  const [
-    databaseMessage,
-    setDatabaseMessage,
-  ] = useState('')
-
+} from "./data/weeklyPrograms";
+import { Calendar } from "./pt/Calendar.jsx";
+import { today } from "./pt/model.js";
+import { periodFor } from "./pt/tracking.js";
+import {
+  newWeek,
+  newWorkout,
+  shiftedWeek,
+  stableWeek,
+  weekForDay,
+} from "./programs/model.js";
+import "./programs/Programs.css";
+const clone = (value) => structuredClone(value);
+const dateLabel = (day) =>
+  new Intl.DateTimeFormat("ko-KR", {
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+    timeZone: "Asia/Seoul",
+  }).format(new Date(`${day}T12:00:00+09:00`));
+const sessionTypes = ["ZONE 2", "INTERVAL", "INDOOR ZONE 2", "STRENGTH"];
+
+function Editor({ workout, week, busy, error, onClose, onSave, onDelete }) {
+  const dialog = useRef(null);
+  const [draft, setDraft] = useState(() => clone(workout));
+  const dirty = JSON.stringify(draft) !== JSON.stringify(workout);
+  const { first, last } = periodFor(workout.date, "week");
   useEffect(() => {
-    let isMounted = true
-
-    const loadPrograms =
-      async () => {
-        try {
-          const remotePrograms =
-            await loadWeeklyProgramsFromSupabase()
-
-          if (!isMounted) {
-            return
-          }
-
-          const normalizedPrograms =
-            remotePrograms.map(
-              (week) => ({
-                ...week,
-
-                weekType:
-                  week.weekType ||
-                  DEFAULT_WEEK_TYPE,
-              }),
-            )
-
-          setPrograms(
-            normalizedPrograms,
-          )
-
-          setSelectedWeekId(
-            (
-              currentWeekId,
-            ) => {
-              const currentWeekStillExists =
-                normalizedPrograms.some(
-                  (week) =>
-                    week.weekId ===
-                    currentWeekId,
-                )
-
-              if (
-                currentWeekStillExists
-              ) {
-                return currentWeekId
-              }
-
-              return (
-                normalizedPrograms[
-                  normalizedPrograms.length -
-                    1
-                ]?.weekId || ''
-              )
-            },
-          )
-
-          setDatabaseMessage(
-            'Supabase 최신 데이터를 불러왔습니다.',
-          )
-        } catch (error) {
-          console.error(
-            '주간 프로그램 불러오기 실패:',
-            error,
-          )
-
-          setDatabaseMessage(
-            'Supabase 불러오기에 실패해 기존 저장 데이터를 사용합니다.',
-          )
-        } finally {
-          if (isMounted) {
-            setDatabaseLoading(
-              false,
-            )
-          }
-        }
-      }
-
-    loadPrograms()
-
+    dialog.current?.showModal();
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
-      isMounted = false
-    }
-  }, [])
-
-  const sortedPrograms =
-    useMemo(
-      () =>
-        [...programs].sort(
-          (
-            first,
-            second,
-          ) =>
-            getWeekStartDate(
-              first,
-            ).localeCompare(
-              getWeekStartDate(
-                second,
-              ),
-            ),
-        ),
-
-      [programs],
-    )
-
-  const selectedWeek =
-    programs.find(
-      (week) =>
-        week.weekId ===
-        selectedWeekId,
-    ) || null
-
-  const updateSelectedWeek = (
-    updater,
-  ) => {
-    setPrograms((current) =>
-      current.map((week) => {
-        if (
-          week.weekId !==
-          selectedWeekId
-        ) {
-          return week
-        }
-
-        return typeof updater ===
-          'function'
-          ? updater(week)
-          : {
-              ...week,
-              ...updater,
-            }
-      }),
-    )
-  }
-
-  const updateWorkout = (
-    workoutIndex,
-    name,
-    value,
-  ) => {
-    updateSelectedWeek(
-      (week) => ({
-        ...week,
-
-        workouts:
-          week.workouts.map(
-            (
-              workout,
-              index,
-            ) =>
-              index ===
-              workoutIndex
-                ? {
-                    ...workout,
-                    [name]:
-                      value,
-                  }
-                : workout,
-          ),
-      }),
-    )
-  }
-
-  const updateSection = (
-    workoutIndex,
-    sectionIndex,
-    value,
-  ) => {
-    updateSelectedWeek(
-      (week) => ({
-        ...week,
-
-        workouts:
-          week.workouts.map(
-            (
-              workout,
-              currentWorkoutIndex,
-            ) => {
-              if (
-                currentWorkoutIndex !==
-                workoutIndex
-              ) {
-                return workout
-              }
-
-              return {
-                ...workout,
-
-                sections:
-                  workout.sections.map(
-                    (
-                      section,
-                      currentSectionIndex,
-                    ) =>
-                      currentSectionIndex ===
-                      sectionIndex
-                        ? {
-                            ...section,
-
-                            items:
-                              value.split(
-                                '\n',
-                              ),
-                          }
-                        : section,
-                  ),
-              }
-            },
-          ),
-      }),
-    )
-  }
-
-  const addWorkout = () => {
-    if (!selectedWeek) {
-      return
-    }
-
-    const startDate =
-      getWeekStartDate(
-        selectedWeek,
-      ) ||
-      getMondayDateKey()
-
-    updateSelectedWeek(
-      (week) => ({
-        ...week,
-
-        workouts: [
-          ...week.workouts,
-
-          createWorkout({
-            date: startDate,
-
-            category:
-              'RUN',
-
-            sessionType:
-              'ZONE 2',
-
-            title:
-              '새 프로그램',
-          }),
-        ],
-      }),
-    )
-  }
-
-  const removeWorkout = (
-    workoutIndex,
-  ) => {
-    const confirmed =
-      window.confirm(
-        '이 프로그램을 삭제할까요?',
-      )
-
-    if (!confirmed) {
-      return
-    }
-
-    updateSelectedWeek(
-      (week) => ({
-        ...week,
-
-        workouts:
-          week.workouts.filter(
-            (
-              _,
-              index,
-            ) =>
-              index !==
-              workoutIndex,
-          ),
-      }),
-    )
-  }
-
-  const createNextWeek = () => {
-    let nextWeek
-
-    if (selectedWeek) {
-      let shiftDays = 7
-
-      do {
-        nextWeek =
-          copyWeekToNext(
-            selectedWeek,
-            shiftDays,
-          )
-
-        shiftDays += 7
-      } while (
-        programs.some(
-          (week) =>
-            week.weekId ===
-            nextWeek.weekId,
-        )
-      )
-    } else {
-      nextWeek =
-        createDefaultWeek(
-          getMondayDateKey(),
-        )
-    }
-
-    setPrograms(
-      (current) => [
-        ...current,
-        nextWeek,
-      ],
-    )
-
-    setSelectedWeekId(
-      nextWeek.weekId,
-    )
-
-    setIsOpen(true)
-  }
-
-  const createBlankWeek = () => {
-    const latestWeek =
-      sortedPrograms[
-        sortedPrograms.length - 1
-      ]
-
-    const startDate =
-      latestWeek
-        ? addDays(
-            getWeekStartDate(
-              latestWeek,
-            ),
-            7,
-          )
-        : getMondayDateKey()
-
-    let nextStartDate =
-      startDate
-
-    let weekId =
-      getIsoWeekId(
-        nextStartDate,
-      )
-
-    while (
-      programs.some(
-        (week) =>
-          week.weekId ===
-          weekId,
-      )
-    ) {
-      nextStartDate =
-        addDays(
-          nextStartDate,
-          7,
-        )
-
-      weekId =
-        getIsoWeekId(
-          nextStartDate,
-        )
-    }
-
-    const newWeek =
-      createDefaultWeek(
-        nextStartDate,
-      )
-
-    setPrograms(
-      (current) => [
-        ...current,
-        newWeek,
-      ],
-    )
-
-    setSelectedWeekId(
-      newWeek.weekId,
-    )
-
-    setIsOpen(true)
-  }
-
-  const persistSelectedWeek =
-    async (published) => {
-      if (!selectedWeek) {
-        return null
+      document.body.style.overflow = previous;
+    };
+  }, []);
+  useEffect(() => {
+    const guard = (e) => {
+      if (dirty) {
+        e.preventDefault();
+        e.returnValue = "";
       }
-
-      const updatedPrograms =
-        normalizePrograms(
-          programs.map(
-            (week) =>
-              week.weekId ===
-              selectedWeekId
-                ? {
-                    ...week,
-                    published,
-
-                    weekType:
-                      week.weekType ||
-                      DEFAULT_WEEK_TYPE,
-                  }
-                : week,
-          ),
-        )
-
-      const weekToSave =
-        updatedPrograms.find(
-          (week) =>
-            week.weekId ===
-            selectedWeekId,
-        )
-
-      if (!weekToSave) {
-        return null
-      }
-
-      setDatabaseSaving(true)
-
-      setDatabaseMessage(
-        'Supabase에 저장 중입니다...',
-      )
-
-      try {
-        const savedWeek =
-          await saveWeeklyProgramToSupabase(
-            weekToSave,
-          )
-
-        const syncedPrograms =
-          updatedPrograms.map(
-            (week) =>
-              week.weekId ===
-              savedWeek.weekId
-                ? savedWeek
-                : week,
-          )
-
-        setPrograms(
-          syncedPrograms,
-        )
-
-        saveWeeklyPrograms(
-          syncedPrograms,
-        )
-
-        setDatabaseMessage(
-          'Supabase 저장이 완료되었습니다.',
-        )
-
-        return syncedPrograms
-      } catch (error) {
-        console.error(
-          '주간 프로그램 저장 실패:',
-          error,
-        )
-
-        setDatabaseMessage(
-          'Supabase 저장에 실패했습니다.',
-        )
-
-        alert(
-          `저장에 실패했습니다.\n${
-            error.message ||
-            '알 수 없는 오류'
-          }`,
-        )
-
-        return null
-      } finally {
-        setDatabaseSaving(
-          false,
-        )
-      }
-    }
-
-  const saveDraft =
-    async () => {
-      if (
-        !selectedWeek ||
-        databaseSaving
-      ) {
-        return
-      }
-
-      const validationMessage =
-        validateWeek(
-          selectedWeek,
-        )
-
-      if (
-        validationMessage
-      ) {
-        alert(
-          validationMessage,
-        )
-
-        return
-      }
-
-      const savedPrograms =
-        await persistSelectedWeek(
-          false,
-        )
-
-      if (!savedPrograms) {
-        return
-      }
-
-      alert(
-        '주간 프로그램이 Supabase에 임시저장되었습니다.',
-      )
-    }
-
-  const publishWeek =
-    async () => {
-      if (
-        !selectedWeek ||
-        databaseSaving
-      ) {
-        return
-      }
-
-      const validationMessage =
-        validateWeek(
-          selectedWeek,
-        )
-
-      if (
-        validationMessage
-      ) {
-        alert(
-          validationMessage,
-        )
-
-        return
-      }
-
-      const confirmed =
-        window.confirm(
-          `${selectedWeek.label} 프로그램을 멤버에게 공개할까요?\n\n주간 유형: ${getWeekTypeLabel(
-            selectedWeek.weekType,
-          )}`,
-        )
-
-      if (!confirmed) {
-        return
-      }
-
-      const savedPrograms =
-        await persistSelectedWeek(
-          true,
-        )
-
-      if (!savedPrograms) {
-        return
-      }
-
-      alert(
-        '프로그램이 Supabase에 저장되고 공개되었습니다.',
-      )
-
-      window.location.reload()
-    }
-
-  const stopPublishing =
-    async () => {
-      if (
-        !selectedWeek ||
-        databaseSaving
-      ) {
-        return
-      }
-
-      const confirmed =
-        window.confirm(
-          `${selectedWeek.label} 공개를 중지할까요?`,
-        )
-
-      if (!confirmed) {
-        return
-      }
-
-      const savedPrograms =
-        await persistSelectedWeek(
-          false,
-        )
-
-      if (!savedPrograms) {
-        return
-      }
-
-      alert(
-        'Supabase에서 프로그램 공개가 중지되었습니다.',
-      )
-
-      window.location.reload()
-    }
-
+    };
+    window.addEventListener("beforeunload", guard);
+    return () => window.removeEventListener("beforeunload", guard);
+  }, [dirty]);
+  const close = () => {
+    if (!busy && (!dirty || window.confirm("저장하지 않은 내용을 닫을까요?")))
+      onClose();
+  };
+  const field = (name, value) => setDraft((d) => ({ ...d, [name]: value }));
   return (
-    <section className="weekly-admin-panel">
-      <button
-        className="weekly-admin-toggle"
-        type="button"
-        onClick={() =>
-          setIsOpen(
-            (current) =>
-              !current,
-          )
-        }
-      >
+    <dialog
+      ref={dialog}
+      className="manage program-editor-dialog"
+      aria-labelledby="program-editor-title"
+      onCancel={(e) => {
+        e.preventDefault();
+        close();
+      }}
+    >
+      <header className="program-editor-header">
+        <button
+          type="button"
+          onClick={close}
+          disabled={busy}
+          aria-label="작성창 닫기"
+        >
+          ‹
+        </button>
         <div>
-          <span>
-            WEEKLY PROGRAM
-          </span>
-
-          <strong>
-            주간 프로그램 관리
-          </strong>
+          <span>{dateLabel(workout.date)}</span>
+          <h2 id="program-editor-title">프로그램 작성</h2>
         </div>
-
-        <b>
-          {isOpen
-            ? '닫기'
-            : '열기'}
-        </b>
-      </button>
-
-      {isOpen && (
-        <div className="weekly-admin-content">
-          <div className="weekly-admin-actions">
-            <button
-              type="button"
-              onClick={
-                createNextWeek
-              }
-            >
-              다음 주 복사 생성
-            </button>
-
-            <button
-              type="button"
-              onClick={
-                createBlankWeek
-              }
-            >
-              빈 주차 생성
-            </button>
-          </div>
-
-          <p
-            style={{
-              margin:
-                '4px 0 16px',
-
-              fontSize:
-                '12px',
-
-              fontWeight:
-                '700',
-
-              color:
-                databaseLoading
-                  ? '#6b7280'
-                  : '#0b6b4f',
-            }}
-          >
-            {databaseLoading
-              ? 'Supabase에서 프로그램을 불러오는 중...'
-              : databaseMessage}
-          </p>
-
-          {programs.length >
-            0 && (
-            <label className="admin-field">
-              관리할 주차
-
+      </header>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSave(draft);
+        }}
+      >
+        <fieldset disabled={busy}>
+          <label>
+            프로그램 제목
+            <input
+              autoFocus
+              required
+              maxLength={120}
+              value={draft.title}
+              onChange={(e) => field("title", e.target.value)}
+              placeholder="예: 800m 인터벌"
+            />
+          </label>
+          <div className="program-form-pair">
+            <label>
+              분류
               <select
-                value={
-                  selectedWeekId
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setSelectedWeekId(
-                    event.target
-                      .value,
-                  )
-                }
+                aria-label="분류"
+                value={draft.category}
+                onChange={(e) => {
+                  field("category", e.target.value);
+                  field(
+                    "sessionType",
+                    e.target.value === "BUILD" ? "STRENGTH" : "ZONE 2",
+                  );
+                }}
               >
-                {sortedPrograms.map(
-                  (week) => (
-                    <option
-                      key={
-                        week.weekId
-                      }
-                      value={
-                        week.weekId
-                      }
-                    >
-                      {week.label}
-                      {' · '}
-                      {getWeekTypeLabel(
-                        week.weekType,
-                      )}
-
-                      {week.published
-                        ? ' · 공개 중'
-                        : ' · 비공개'}
-                    </option>
-                  ),
-                )}
+                <option value="RUN">러닝</option>
+                <option value="BUILD">근력</option>
               </select>
             </label>
-          )}
-
-          {selectedWeek && (
-            <>
-              <div className="weekly-status-card">
-                <div>
-                  <span>
-                    현재 상태
-                  </span>
-
-                  <strong>
-                    {selectedWeek.published
-                      ? '멤버에게 공개 중'
-                      : '임시저장 또는 작성 중'}
-                  </strong>
-
-                  <p
-                    style={{
-                      margin:
-                        '6px 0 0',
-
-                      color:
-                        '#607069',
-
-                      fontSize:
-                        '12px',
-
-                      fontWeight:
-                        '700',
-                    }}
-                  >
-                    주간 유형:{' '}
-                    {getWeekTypeLabel(
-                      selectedWeek.weekType,
-                    )}
-                  </p>
-                </div>
-
-                <b
-                  className={
-                    selectedWeek.published
-                      ? 'published'
-                      : ''
-                  }
-                >
-                  {selectedWeek.published
-                    ? 'PUBLISHED'
-                    : 'DRAFT'}
-                </b>
-              </div>
-
-              <div className="weekly-meta-grid">
-                <label className="admin-field">
-                  주차 ID
-
-                  <input
-                    type="text"
-                    value={
-                      selectedWeek.weekId
-                    }
-                    readOnly
-                  />
-                </label>
-
-                <label className="admin-field">
-                  주차 이름
-
-                  <input
-                    type="text"
-                    value={
-                      selectedWeek.label
-                    }
-                    onChange={(
-                      event,
-                    ) =>
-                      updateSelectedWeek(
-                        {
-                          label:
-                            event.target
-                              .value,
-                        },
-                      )
-                    }
-                  />
-                </label>
-
-                <label className="admin-field">
-                  주간 유형
-
-                  <select
-                    value={
-                      selectedWeek.weekType ||
-                      DEFAULT_WEEK_TYPE
-                    }
-                    onChange={(
-                      event,
-                    ) =>
-                      updateSelectedWeek(
-                        {
-                          weekType:
-                            event.target
-                              .value,
-                        },
-                      )
-                    }
-                  >
-                    {WEEK_TYPE_OPTIONS.map(
-                      (
-                        option,
-                      ) => (
-                        <option
-                          key={
-                            option.value
-                          }
-                          value={
-                            option.value
-                          }
-                        >
-                          {
-                            option.label
-                          }
-                        </option>
-                      ),
-                    )}
-                  </select>
-
-                  <small
-                    style={{
-                      marginTop:
-                        '6px',
-
-                      color:
-                        '#74817c',
-
-                      fontSize:
-                        '11px',
-
-                      lineHeight:
-                        '1.45',
-                    }}
-                  >
-                    AI 주간 리포트가
-                    프로그램의 피로도
-                    의도를 판단할 때
-                    기준으로 사용합니다.
-                  </small>
-                </label>
-              </div>
-
-              <div className="weekly-workout-list">
-                {selectedWeek.workouts.map(
-                  (
-                    workout,
-                    workoutIndex,
-                  ) => (
-                    <article
-                      className="weekly-workout-editor"
-                      key={
-                        workout.sessionId ||
-                        `${workout.date}-${workoutIndex}`
-                      }
-                    >
-                      <div className="weekly-workout-editor-head">
-                        <div>
-                          <span>
-                            PROGRAM{' '}
-                            {workoutIndex +
-                              1}
-                          </span>
-
-                          <h4>
-                            {workout.title ||
-                              '새 프로그램'}
-                          </h4>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            removeWorkout(
-                              workoutIndex,
-                            )
-                          }
-                        >
-                          삭제
-                        </button>
-                      </div>
-
-                      <div className="weekly-editor-grid">
-                        <label className="admin-field">
-                          날짜
-
-                          <input
-                            type="date"
-                            value={
-                              workout.date
-                            }
-                            onChange={(
-                              event,
-                            ) =>
-                              updateWorkout(
-                                workoutIndex,
-                                'date',
-                                event
-                                  .target
-                                  .value,
-                              )
-                            }
-                          />
-                        </label>
-
-                        <label className="admin-field">
-                          분류
-
-                          <select
-                            value={
-                              workout.category
-                            }
-                            onChange={(
-                              event,
-                            ) =>
-                              updateWorkout(
-                                workoutIndex,
-                                'category',
-                                event
-                                  .target
-                                  .value,
-                              )
-                            }
-                          >
-                            <option value="RUN">
-                              RUN
-                            </option>
-
-                            <option value="BUILD">
-                              BUILD
-                            </option>
-                          </select>
-                        </label>
-                      </div>
-
-                      <label className="admin-field">
-                        세션 종류
-
-                        <select
-                          value={
-                            workout.sessionType
-                          }
-                          onChange={(
-                            event,
-                          ) =>
-                            updateWorkout(
-                              workoutIndex,
-                              'sessionType',
-                              event.target
-                                .value,
-                            )
-                          }
-                        >
-                          {sessionTypeOptions.map(
-                            (
-                              option,
-                            ) => (
-                              <option
-                                key={
-                                  option
-                                }
-                                value={
-                                  option
-                                }
-                              >
-                                {
-                                  option
-                                }
-                              </option>
-                            ),
-                          )}
-                        </select>
-                      </label>
-
-                      <label className="admin-field">
-                        프로그램 제목
-
-                        <input
-                          type="text"
-                          value={
-                            workout.title
-                          }
-                          onChange={(
-                            event,
-                          ) =>
-                            updateWorkout(
-                              workoutIndex,
-                              'title',
-                              event.target
-                                .value,
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label className="admin-field">
-                        훈련 목적
-
-                        <input
-                          type="text"
-                          placeholder="예: 역치 페이스 적응"
-                          value={
-                            workout.subtitle
-                          }
-                          onChange={(
-                            event,
-                          ) =>
-                            updateWorkout(
-                              workoutIndex,
-                              'subtitle',
-                              event.target
-                                .value,
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label className="admin-field">
-                        요약 설명
-
-                        <input
-                          type="text"
-                          placeholder="예: 800m × 6 Sets"
-                          value={
-                            workout.description
-                          }
-                          onChange={(
-                            event,
-                          ) =>
-                            updateWorkout(
-                              workoutIndex,
-                              'description',
-                              event.target
-                                .value,
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label className="admin-field">
-                        목표 RPE
-
-                        <input
-                          type="text"
-                          placeholder="예: 7–8"
-                          value={
-                            workout.targetRpe
-                          }
-                          onChange={(
-                            event,
-                          ) =>
-                            updateWorkout(
-                              workoutIndex,
-                              'targetRpe',
-                              event.target
-                                .value,
-                            )
-                          }
-                        />
-
-                        <small
-                          style={{
-                            marginTop:
-                              '6px',
-
-                            color:
-                              '#74817c',
-
-                            fontSize:
-                              '11px',
-                          }}
-                        >
-                          범위로 입력하면
-                          주간 리포트에서는
-                          중간값으로
-                          계산됩니다. 예:
-                          7–8 → 7.5
-                        </small>
-                      </label>
-
-                      {workout.sections.map(
-                        (
-                          section,
-                          sectionIndex,
-                        ) => (
-                          <label
-                            className="admin-field weekly-section-field"
-                            key={
-                              section.title
-                            }
-                          >
-                            {
-                              section.title
-                            }
-
-                            <textarea
-                              rows={
-                                section.title ===
-                                'MAIN'
-                                  ? 7
-                                  : 4
-                              }
-                              placeholder="한 줄에 한 항목씩 작성하세요."
-                              value={section.items.join(
-                                '\n',
-                              )}
-                              onChange={(
-                                event,
-                              ) =>
-                                updateSection(
-                                  workoutIndex,
-                                  sectionIndex,
-                                  event.target
-                                    .value,
-                                )
-                              }
-                            />
-                          </label>
-                        ),
-                      )}
-                    </article>
-                  ),
-                )}
-              </div>
-
-              <button
-                className="weekly-add-workout"
-                type="button"
-                onClick={addWorkout}
+            <label>
+              세션 종류
+              <select
+                aria-label="세션 종류"
+                value={draft.sessionType}
+                onChange={(e) => field("sessionType", e.target.value)}
               >
-                + 프로그램 추가
-              </button>
-
-              <div className="weekly-save-actions">
+                {[
+                  ...new Set(
+                    [...sessionTypes, draft.sessionType].filter(Boolean),
+                  ),
+                ].map((t) => (
+                  <option key={t}>{t}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label>
+            목표 RPE
+            <input
+              value={draft.targetRpe || ""}
+              onChange={(e) => field("targetRpe", e.target.value)}
+              placeholder="예: 7–8"
+            />
+          </label>
+          {(draft.sections || []).map((section, i) => (
+            <label key={i}>
+              {section.title}
+              <textarea
+                aria-label={section.title}
+                rows={section.title === "MAIN" ? 6 : 3}
+                value={(section.items || []).join("\n")}
+                placeholder="운동 내용을 자유롭게 작성하세요"
+                onChange={(e) =>
+                  field(
+                    "sections",
+                    draft.sections.map((s, j) =>
+                      i === j ? { ...s, items: e.target.value.split("\n") } : s,
+                    ),
+                  )
+                }
+              />
+            </label>
+          ))}
+          <details className="program-options">
+            <summary>추가 정보</summary>
+            <div>
+              <label>
+                날짜
+                <input
+                  type="date"
+                  required
+                  min={first}
+                  max={last}
+                  value={draft.date}
+                  onChange={(e) => field("date", e.target.value)}
+                />
+              </label>
+              <label>
+                훈련 목적
+                <input
+                  value={draft.subtitle || ""}
+                  onChange={(e) => field("subtitle", e.target.value)}
+                />
+              </label>
+              <label>
+                요약 설명
+                <input
+                  value={draft.description || ""}
+                  onChange={(e) => field("description", e.target.value)}
+                />
+              </label>
+              {onDelete && (
                 <button
-                  className="weekly-draft-button"
                   type="button"
-                  onClick={saveDraft}
-                  disabled={
-                    databaseSaving
-                  }
+                  className="program-delete"
+                  onClick={onDelete}
                 >
-                  {databaseSaving
-                    ? '저장 중...'
-                    : '임시저장'}
-                </button>
-
-                <button
-                  className="weekly-publish-button"
-                  type="button"
-                  onClick={
-                    publishWeek
-                  }
-                  disabled={
-                    databaseSaving
-                  }
-                >
-                  {databaseSaving
-                    ? '저장 중...'
-                    : '멤버에게 공개'}
-                </button>
-              </div>
-
-              {selectedWeek.published && (
-                <button
-                  className="weekly-unpublish-button"
-                  type="button"
-                  onClick={
-                    stopPublishing
-                  }
-                  disabled={
-                    databaseSaving
-                  }
-                >
-                  {databaseSaving
-                    ? '저장 중...'
-                    : '공개 중지'}
+                  프로그램 삭제
                 </button>
               )}
-            </>
+            </div>
+          </details>
+          {week.published && (
+            <p className="program-caption">
+              공개 중인 주차입니다. 저장하면 회원 화면에도 반영됩니다.
+            </p>
           )}
-        </div>
-      )}
-    </section>
-  )
+        </fieldset>
+        {error && (
+          <p className="error-banner" role="alert">
+            {error}
+          </p>
+        )}
+        <footer className="program-editor-footer">
+          <button className="primary" disabled={busy}>
+            {busy ? "저장 중…" : "저장"}
+          </button>
+        </footer>
+      </form>
+    </dialog>
+  );
 }
 
-export default WeeklyProgramAdmin
+export default function WeeklyProgramAdmin() {
+  const [programs, setPrograms] = useState([]),
+    [day, setDay] = useState(today()),
+    [loading, setLoading] = useState(true),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(""),
+    [message, setMessage] = useState(""),
+    [editor, setEditor] = useState(null),
+    [version, setVersion] = useState(0);
+  const lock = useRef(false);
+  useEffect(() => {
+    let live = true;
+    setLoading(true);
+    setError("");
+    loadWeeklyProgramsFromSupabase()
+      .then((data) => {
+        if (live) setPrograms(data.map(stableWeek));
+      })
+      .catch(() => {
+        if (live) setError("프로그램을 불러오지 못했어요. 다시 시도해 주세요.");
+      })
+      .finally(() => {
+        if (live) setLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [version]);
+  const week = weekForDay(programs, day);
+  const workouts = programs.flatMap((w) =>
+    w.workouts
+      .filter((x) => x.date === day)
+      .map((x) => ({ week: w, workout: x })),
+  );
+  const period = periodFor(day, "week");
+  async function persist(value, notice) {
+    if (lock.current) return null;
+    lock.current = true;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const saved = stableWeek(await saveWeeklyProgramToSupabase(value));
+      const next = programs.some((w) => w.weekId === saved.weekId)
+        ? programs.map((w) => (w.weekId === saved.weekId ? saved : w))
+        : [...programs, saved];
+      setPrograms(next);
+      try {
+        saveWeeklyPrograms(next);
+      } catch {
+        /* The server save succeeded; browser storage is only a cache. */
+      }
+      setMessage(notice);
+      return saved;
+    } catch (e) {
+      setError(`저장하지 못했어요. ${e.message || "다시 시도해 주세요."}`);
+      return null;
+    } finally {
+      lock.current = false;
+      setBusy(false);
+    }
+  }
+  async function saveWorkout(draft) {
+    if (!draft.title.trim()) {
+      setError("프로그램 제목을 입력해 주세요.");
+      return;
+    }
+    if (
+      periodFor(draft.date, "week").first !==
+      periodFor(editor.workout.date, "week").first
+    ) {
+      setError("선택한 주 안에서 날짜를 변경해 주세요.");
+      return;
+    }
+    const parent = editor.week;
+    if (parent.published && !String(draft.targetRpe || "").trim()) {
+      setError("공개 프로그램의 목표 RPE를 입력해 주세요.");
+      return;
+    }
+    // Keep original IDs and trainer metadata so existing attendance stays attached.
+    const next = {
+      ...parent,
+      workouts: editor.existing
+        ? parent.workouts.map((w) =>
+            w.sessionId === draft.sessionId ? draft : w,
+          )
+        : [...parent.workouts, draft],
+    };
+    if (await persist(next, "프로그램을 저장했어요.")) {
+      setEditor(null);
+      setDay(draft.date);
+    }
+  }
+  async function removeWorkout() {
+    if (!window.confirm("이 프로그램을 삭제할까요?")) return;
+    const next = {
+      ...editor.week,
+      workouts: editor.week.workouts.filter(
+        (w) => w.sessionId !== editor.workout.sessionId,
+      ),
+    };
+    if (!next.workouts.length) next.published = false;
+    if (await persist(next, "프로그램을 삭제했어요.")) setEditor(null);
+  }
+  async function publish() {
+    if (!week || busy) return;
+    if (!week.published) {
+      const invalid = week.workouts.find(
+        (w) => !w.title?.trim() || !String(w.targetRpe || "").trim(),
+      );
+      if (!week.workouts.length) {
+        setError("프로그램을 먼저 작성해 주세요.");
+        return;
+      }
+      if (invalid) {
+        setError(
+          `${dateLabel(invalid.date)} · ${invalid.title || "프로그램"}의 제목과 목표 RPE를 입력해 주세요.`,
+        );
+        return;
+      }
+    }
+    if (
+      !window.confirm(
+        week.published
+          ? "이 주의 전체 프로그램 공개를 중지할까요?"
+          : "이 주의 전체 프로그램을 회원에게 공개할까요?",
+      )
+    )
+      return;
+    await persist(
+      { ...week, published: !week.published },
+      week.published ? "공개를 중지했어요." : "이번 주 프로그램을 공개했어요.",
+    );
+  }
+  async function copyNext() {
+    if (!week?.workouts.length) return;
+    const copy = shiftedWeek(week);
+    if (weekForDay(programs, copy.workouts[0].date)) {
+      setError(
+        "다음 주에 이미 프로그램이 있어요. 기존 프로그램을 확인해 주세요.",
+      );
+      return;
+    }
+    if (await persist(copy, "다음 주에 비공개로 복사했어요."))
+      setDay(copy.workouts[0].date);
+  }
+  return (
+    <section
+      className="pt simple-pt program-manager"
+      aria-label="주간 프로그램 캘린더"
+    >
+      <div className="program-heading">
+        <h2>프로그램</h2>
+        <button type="button" onClick={() => setDay(today())}>
+          오늘
+        </button>
+      </div>
+      {loading ? (
+        <p role="status" className="program-caption">
+          프로그램을 불러오고 있어요.
+        </p>
+      ) : (
+        <>
+          {error && !editor && (
+            <p role="alert" className="error-banner">
+              {error}
+              <button onClick={() => setVersion((v) => v + 1)}>
+                다시 불러오기
+              </button>
+            </p>
+          )}
+          {message && (
+            <p role="status" className="success-banner">
+              {message}
+            </p>
+          )}
+          <div className="program-calendar-layout">
+            <Calendar
+              value={day}
+              onChange={(value) => {
+                setDay(value);
+                setError("");
+                setMessage("");
+              }}
+              dates={programs.flatMap((w) => w.workouts.map((x) => x.date))}
+              label="프로그램 날짜 선택"
+              eventLabel="프로그램 있음"
+              trainingLegend={false}
+            />
+            <section className="program-day-panel">
+              <header className="program-day-heading">
+                <div>
+                  <span>선택한 날짜</span>
+                  <h3>{dateLabel(day)}</h3>
+                </div>
+                <button
+                  className="pt-primary"
+                  disabled={busy}
+                  onClick={() => {
+                    setError("");
+                    setEditor({
+                      week: clone(week || newWeek(day, DEFAULT_WEEK_TYPE)),
+                      workout: newWorkout(day),
+                      existing: false,
+                    });
+                  }}
+                >
+                  프로그램 추가
+                </button>
+              </header>
+              <div className="program-day-list">
+                {workouts.length ? (
+                  workouts.map(({ week: w, workout }) => (
+                    <button
+                      key={`${w.weekId}-${workout.sessionId}`}
+                      className="program-day-item"
+                      onClick={() => {
+                        setError("");
+                        setEditor({
+                          week: clone(w),
+                          workout: clone(workout),
+                          existing: true,
+                        });
+                      }}
+                    >
+                      <span>
+                        <small>
+                          {workout.category === "BUILD" ? "근력" : "러닝"} ·{" "}
+                          {w.published ? "공개 중" : "비공개"}
+                        </small>
+                        <strong>{workout.title || "제목 없음"}</strong>
+                      </span>
+                      <span aria-hidden="true">›</span>
+                    </button>
+                  ))
+                ) : (
+                  <p className="program-empty">아직 프로그램이 없어요.</p>
+                )}
+              </div>
+              <div className="program-week-summary">
+                <div>
+                  <strong>
+                    {period.first.slice(5).replace("-", "/")} –{" "}
+                    {period.last.slice(5).replace("-", "/")}
+                  </strong>
+                  <span>
+                    {week?.workouts.length || 0}개 ·{" "}
+                    {week?.published ? "공개 중" : "비공개"}
+                  </span>
+                </div>
+                {!!week?.workouts.length && (
+                  <button disabled={busy} onClick={publish}>
+                    {week.published ? "공개 중지" : "이번 주 공개"}
+                  </button>
+                )}
+              </div>
+              {week && (
+                <details className="program-options" key={week.weekId}>
+                  <summary>이번 주 설정</summary>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const f = new FormData(e.currentTarget);
+                      await persist(
+                        {
+                          ...week,
+                          label: f.get("label").trim(),
+                          weekType: f.get("type"),
+                        },
+                        "주간 설정을 저장했어요.",
+                      );
+                    }}
+                  >
+                    <fieldset disabled={busy}>
+                      <label>
+                        주차 이름
+                        <input
+                          name="label"
+                          required
+                          defaultValue={week.label}
+                        />
+                      </label>
+                      <label>
+                        주간 유형
+                        <select name="type" defaultValue={week.weekType}>
+                          {WEEK_TYPE_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <button>설정 저장</button>
+                      <button
+                        type="button"
+                        onClick={copyNext}
+                        disabled={!week.workouts.length}
+                      >
+                        다음 주로 복사
+                      </button>
+                    </fieldset>
+                  </form>
+                </details>
+              )}
+            </section>
+          </div>
+        </>
+      )}
+      {editor && (
+        <Editor
+          workout={editor.workout}
+          week={editor.week}
+          busy={busy}
+          error={error}
+          onClose={() => {
+            setEditor(null);
+            setError("");
+          }}
+          onSave={saveWorkout}
+          onDelete={editor.existing ? removeWorkout : null}
+        />
+      )}
+    </section>
+  );
+}

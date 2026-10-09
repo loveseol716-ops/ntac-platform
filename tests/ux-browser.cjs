@@ -121,7 +121,44 @@ const fixtures = {
   pt_assessments: [],
   pt_session_private: [],
   pt_templates: [],
-  weekly_programs: [],
+  weekly_programs: [
+    {
+      week_key: "calendar-fixture",
+      title: "테스트 주차",
+      week_type: "DELOAD",
+      start_date: date,
+      end_date: date,
+      status: "draft",
+      program_data: [
+        {
+          date,
+          category: "RUN",
+          sessionType: "INTERVAL",
+          title: "기존 인터벌",
+          targetRpe: "7",
+          sessionId: "keep-session",
+          eventId: "keep-event",
+          runTrainerKey: "keep-trainer",
+          runTrainerEnabled: true,
+          sections: [
+            { title: "WARM UP", items: ["Jog"] },
+            { title: "MAIN", items: ["800m x 5"] },
+            { title: "COOL DOWN", items: ["Walk"] },
+          ],
+        },
+        {
+          date,
+          category: "BUILD",
+          sessionType: "STRENGTH",
+          title: "기존 근력",
+          targetRpe: "6",
+          sessionId: "keep-strength",
+          eventId: "keep-strength-event",
+          sections: [{ title: "MAIN", items: ["SQ"] }],
+        },
+      ],
+    },
+  ],
 };
 (async () => {
   const browser = await chromium.launch({
@@ -167,6 +204,15 @@ const fixtures = {
       if (url.pathname.startsWith("/auth/"))
         return route.fulfill({ json: { id: user?.id, email: user?.email } });
       const table = url.pathname.split("/").pop();
+      if (table === "weekly_programs" && req.method() === "POST") {
+        const row = req.postDataJSON();
+        const index = fixtures.weekly_programs.findIndex(
+          (w) => w.week_key === row.week_key,
+        );
+        if (index < 0) fixtures.weekly_programs.push(row);
+        else fixtures.weekly_programs[index] = row;
+        return route.fulfill({ json: row });
+      }
       if (table === "set_member_services") {
         const p = req.postDataJSON();
         const u = profiles.find((x) => x.id === p.target_id);
@@ -317,10 +363,7 @@ const fixtures = {
   await registration.getByLabel("가입 회원 검색").fill("정하늘");
   await registration.getByRole("button", { name: /정하늘/ }).click();
   assert.equal(
-    await page
-      .getByRole("dialog")
-      .getByRole("combobox").first()
-      .inputValue(),
+    await page.getByRole("dialog").getByRole("combobox").first().inputValue(),
     "ntac",
   );
   await page
@@ -335,6 +378,114 @@ const fixtures = {
     await page.locator(".roster-row .member-identity strong").allTextContents(),
     ["김민수", "박서연"],
   );
+  assert.equal(
+    await page.locator(".service-switch").count(),
+    0,
+    "Staff should only see management",
+  );
+  await page
+    .getByRole("navigation", { name: "관리 메뉴", exact: true })
+    .getByRole("button", { name: "NTAC 관리", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "주간 프로그램", exact: true })
+    .click();
+  await page
+    .getByRole("region", { name: "프로그램 날짜 선택", exact: true })
+    .waitFor();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: "/tmp/ntac-program-calendar-mobile.png",
+    fullPage: true,
+  });
+  assert.equal(
+    await page.locator("textarea").count(),
+    0,
+    "Only selected program opens the editor",
+  );
+  await page.getByRole("button", { name: /기존 인터벌/ }).click();
+  await page
+    .getByRole("dialog")
+    .getByLabel("프로그램 제목")
+    .fill("수정 인터벌");
+  await page
+    .getByRole("dialog")
+    .getByLabel("MAIN", { exact: true })
+    .fill("1000m x 4");
+  await page.getByRole("dialog").evaluate((el) => (el.scrollTop = 0));
+  await page.screenshot({
+    path: "/tmp/ntac-program-editor-mobile.png",
+    animations: "disabled",
+  });
+  const dialogBounds = await page.getByRole("dialog").boundingBox();
+  assert.equal(dialogBounds.x, 0);
+  assert.equal(dialogBounds.y, 0);
+  assert.equal(dialogBounds.width, 390);
+  assert.equal(dialogBounds.height, 844);
+  assert(
+    await page
+      .getByRole("dialog")
+      .evaluate((el) => el.scrollWidth <= el.clientWidth),
+    "Editor overflow",
+  );
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "저장", exact: true })
+    .click();
+  await page.getByText("프로그램을 저장했어요.", { exact: true }).waitFor();
+  let savedProgram = fixtures.weekly_programs[0].program_data[0];
+  assert.equal(savedProgram.eventId, "keep-event");
+  assert.equal(savedProgram.runTrainerKey, "keep-trainer");
+  assert.equal(fixtures.weekly_programs[0].program_data[1].title, "기존 근력");
+  await page
+    .getByRole("region", { name: "프로그램 날짜 선택", exact: true })
+    .getByRole("button", { name: tomorrow, exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "프로그램 추가", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByLabel("프로그램 제목")
+    .fill("새 날짜 프로그램");
+  await page.getByRole("dialog").getByLabel("목표 RPE").fill("5");
+  await page
+    .getByRole("dialog")
+    .getByLabel("MAIN", { exact: true })
+    .fill("Easy running 30min");
+  await page.setViewportSize({ width: 320, height: 750 });
+  assert(
+    await page
+      .getByRole("dialog")
+      .evaluate((el) => el.scrollWidth <= el.clientWidth),
+    "320px editor overflow",
+  );
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "저장", exact: true })
+    .click();
+  await page.getByRole("button", { name: /새 날짜 프로그램/ }).waitFor();
+  assert.equal(fixtures.weekly_programs[0].program_data.length, 3);
+  assert.equal(fixtures.weekly_programs[0].program_data[2].date, tomorrow);
+  const confirmPublish = (d) => d.accept();
+  page.on("dialog", confirmPublish);
+  await page.getByRole("button", { name: "이번 주 공개", exact: true }).click();
+  await page
+    .getByText("이번 주 프로그램을 공개했어요.", { exact: true })
+    .waitFor();
+  assert.equal(fixtures.weekly_programs[0].status, "published");
+  page.off("dialog", confirmPublish);
+  assert(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+    "320px program calendar overflow",
+  );
+  await page.setViewportSize({ width: 1200, height: 1000 });
+  await page
+    .getByRole("navigation", { name: "관리 메뉴", exact: true })
+    .getByRole("button", { name: "PT 관리", exact: true })
+    .click();
   await page.getByLabel("캘린더 코치").selectOption("coach");
   await page.screenshot({
     path: "/tmp/ntac-admin-desktop.png",

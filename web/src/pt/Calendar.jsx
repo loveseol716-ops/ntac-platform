@@ -8,6 +8,8 @@ export function Calendar({
   scheduledDates = [],
   onMonthChange,
   label = "수업 캘린더",
+  eventLabel = "예약 가능 시간 있음",
+  trainingLegend = true,
 }) {
   const [month, setMonth] = useState((value || today()).slice(0, 7));
   useEffect(() => {
@@ -60,7 +62,7 @@ export function Calendar({
                 [
                   done ? `운동 완료 ${done}회` : null,
                   booked ? `예약 ${booked}회` : null,
-                  dates.includes(date) ? "예약 가능 시간 있음" : null,
+                  dates.includes(date) ? eventLabel : null,
                 ]
                   .filter(Boolean)
                   .join(" · ") || "일정 없음"
@@ -93,10 +95,16 @@ export function Calendar({
         })}
       </div>
       <p className="pt-muted calendar-hint">
-        <span>✓ 운동 완료</span>
-        <span className="booked-legend">● 예약</span>
-        <span>· 예약 가능</span>
-        <span>한국 시간</span>
+        {trainingLegend ? (
+          <>
+            <span>✓ 운동 완료</span>
+            <span className="booked-legend">● 예약</span>
+            <span>· 예약 가능</span>
+            <span>한국 시간</span>
+          </>
+        ) : (
+          <span>● {eventLabel}</span>
+        )}
       </p>
     </section>
   );
@@ -117,7 +125,9 @@ export function SimpleLog({ session }) {
         ) : null,
       )}
       {!session.warm_up && !session.main && !session.notes && (
-        <p className="pt-muted">아직 작성된 운동 내용이 없어요. 코치가 수업 전·후에 추가할 수 있어요.</p>
+        <p className="pt-muted">
+          아직 작성된 운동 내용이 없어요. 코치가 수업 전·후에 추가할 수 있어요.
+        </p>
       )}
     </div>
   );
