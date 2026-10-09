@@ -109,7 +109,10 @@ const sessions = [
     created_at: date,
   },
 ];
+const applied = [];
+const savedDefaults = [];
 const fixtures = {
+  pt_availability_defaults: savedDefaults,
   pt_slots: slots,
   profiles,
   pt_members: members,
@@ -173,6 +176,14 @@ const fixtures = {
           profiles.find((x) => x.id === p.coach_id)?.full_name || "미배정";
         let m = members.find((x) => x.profile_id === u.id);
         if (m) m.active = p.enable_pt;
+        return route.fulfill({ json: null });
+      }
+      if (table === "pt_apply_availability") {
+        applied.push(req.postDataJSON());
+        return route.fulfill({ json: { opened: 10 } });
+      }
+      if (table === "pt_availability_defaults" && req.method() === "POST") {
+        savedDefaults.push(req.postDataJSON());
         return route.fulfill({ json: null });
       }
       if (table === "pt_open_slots")
@@ -255,13 +266,52 @@ const fixtures = {
   assert.equal(await page.locator(".roster-row").count(), 2);
   await page.getByRole("button", { name: tomorrow, exact: true }).click();
   await page.getByText("예약 가능 시간 설정", { exact: true }).click();
-  await page.getByLabel("시작", { exact: true }).fill("18:00");
-  await page.getByLabel("종료", { exact: true }).fill("20:00");
+  await page.getByLabel("평일 시작", { exact: true }).fill("10:00");
+  await page.getByLabel("평일 종료", { exact: true }).fill("18:00");
+  await page.getByRole("button", { name: "기본값 저장", exact: true }).click();
   await page
-    .getByRole("button", { name: "예약 시간 열기", exact: true })
+    .getByText(
+      "평일·주말 기본 시간을 저장했어요. 원하는 기간을 선택해 적용해 주세요.",
+    )
+    .waitFor();
+  assert.equal(savedDefaults[0].weekday_start, "10:00");
+  await page
+    .getByRole("button", { name: "선택한 주에 적용", exact: true })
     .click();
-  await page.getByText("예약 가능 시간을 저장했어요.").waitFor();
-  assert.equal(slots.length, 3);
+  await page
+    .locator(".bulk-availability .pt-success")
+    .filter({ hasText: "설정을 적용했어요." })
+    .waitFor();
+  assert.equal(
+    new Date(applied[0].last_day) - new Date(applied[0].first_day),
+    6 * 86400000,
+  );
+  await page.getByRole("button", { name: "월간", exact: true }).click();
+  await page
+    .getByRole("button", { name: "선택한 달에 적용", exact: true })
+    .click();
+  await page.waitForFunction(() => true);
+  await page
+    .locator(".bulk-availability .pt-success")
+    .filter({ hasText: "설정을 적용했어요." })
+    .waitFor();
+  assert.equal(applied[1].first_day.slice(-2), "01");
+  await page.screenshot({
+    path: "/tmp/ntac-availability-desktop.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 1000 });
+  assert(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+    "bulk availability mobile overflow",
+  );
+  await page.screenshot({
+    path: "/tmp/ntac-availability-mobile.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1200, height: 1000 });
 
   await page.getByRole("button", { name: "배정", exact: true }).first().click();
   await page
@@ -319,6 +369,20 @@ const fixtures = {
   await context.close();
   ({ page, context } = await open("pt", 390));
   await page.getByRole("heading", { name: "김민수님의 PT" }).waitFor();
+  await page.getByRole("region", { name: "운동 통계" }).waitFor();
+  assert.match(
+    await page
+      .getByRole("button", { name: date, exact: true })
+      .getAttribute("title"),
+    /운동 완료 1회/,
+  );
+  await page.screenshot({
+    path: "/tmp/ntac-tracking-mobile.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "이전 달", exact: true }).click();
+  await page.getByRole("button", { name: "다음 달", exact: true }).click();
+  await page.getByRole("button", { name: "수업 예약", exact: true }).click();
   await page.getByRole("button", { name: tomorrow, exact: true }).click();
   await page.getByRole("button", { name: "10:00", exact: true }).click();
   await page
@@ -332,8 +396,17 @@ const fixtures = {
     .locator(".next-session")
     .getByText(`${tomorrow} · 10:00`, { exact: true })
     .waitFor();
-  await page.getByRole("button", { name: "운동 일지", exact: true }).click();
-  await page.getByText("스쿼트 자세가 안정적이에요.").waitFor();
+  await page.getByRole("button", { name: "운동 기록", exact: true }).click();
+  await page.getByRole("button", { name: date, exact: true }).click();
+  await page
+    .locator(".tracked-session")
+    .filter({ hasText: "10:00" })
+    .getByText("운동 내용 보기", { exact: true })
+    .click();
+  await page
+    .locator(".tracked-session")
+    .getByText("스쿼트 자세가 안정적이에요.")
+    .waitFor();
   await page.getByRole("button", { name: "수업 예약", exact: true }).click();
   assert.equal(await page.locator(".service-switch").count(), 0);
   assert(
@@ -379,7 +452,7 @@ const fixtures = {
   await context.close();
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: calendar, plain text save, completion/undo, member booking/next session, mobile layout, access routing",
+    "PASS: weekly/monthly settings, saved defaults, tracking calendar, simple log, completion/undo, booking and mobile routing",
   );
   await browser.close();
 })().catch((e) => {

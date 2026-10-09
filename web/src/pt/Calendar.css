@@ -361,3 +361,244 @@
     margin-bottom: 24px;
   }
 }
+/* Availability presets and attendance tracking */
+.bulk-availability {
+  margin-top: 10px;
+}
+.bulk-availability fieldset {
+  display: grid;
+  gap: 12px;
+}
+.range-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.range-tabs button {
+  min-width: 0;
+}
+.period-preview {
+  padding: 10px 12px;
+  background: #edf3ef;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.default-time-block {
+  padding: 14px;
+  border: 1px solid #dce6df;
+  border-radius: 12px;
+  background: #fff;
+}
+.simple-pt label.toggle-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+.simple-pt .toggle-line input {
+  width: 18px;
+  height: 18px;
+  accent-color: #0b3d2e;
+}
+.toggle-line span {
+  margin-left: auto;
+  font-size: 12px;
+  color: #6b8175;
+}
+.default-time-block .pt-two label {
+  margin-bottom: 0;
+}
+.apply-range {
+  width: 100%;
+}
+.calendar-grid .day-completed:not(.selected) {
+  background: #e4f0e9;
+  border-color: #c3ddcd;
+}
+.day-marks {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 12px;
+  font-size: 10px;
+  line-height: 1;
+}
+.done-mark {
+  font-weight: 900;
+  color: #0b6a3b;
+}
+.booked-mark,
+.booked-legend {
+  color: #ad6d1c;
+}
+.calendar-grid .selected .done-mark,
+.calendar-grid .selected .booked-mark {
+  color: white;
+}
+.calendar-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.tracking-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid #dce6df;
+  border-radius: 14px;
+  background: #fff;
+  padding: 18px 8px;
+}
+.tracking-stats > div {
+  display: grid;
+  text-align: center;
+  gap: 8px;
+  border-right: 1px solid #e2eae5;
+}
+.tracking-stats > div:last-child {
+  border: 0;
+}
+.tracking-stats span {
+  font-size: 12px;
+  color: #73877b;
+}
+.tracking-stats strong {
+  font-size: 28px;
+  line-height: 1;
+}
+.tracking-stats small {
+  font-size: 13px;
+  font-weight: 500;
+  margin-left: 4px;
+}
+.simple-pt button.last-workout {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  text-align: left;
+  padding: 14px 16px;
+  border: 0;
+  background: #eaf1ec;
+}
+.last-workout > span {
+  font-size: 12px;
+  color: #6b8175;
+}
+.last-workout strong {
+  font-size: 14px;
+  flex: 1 1 180px;
+}
+.tracking-content {
+  display: grid;
+  gap: 20px;
+}
+.tracked-session {
+  padding: 16px 0;
+  border-top: 1px solid #e0e8e3;
+}
+.tracked-session:last-child {
+  padding-bottom: 0;
+}
+.tracked-session > details {
+  margin-top: 10px;
+}
+.tracked-session summary,
+.month-history-row summary {
+  font-size: 13px;
+  color: #637c6d;
+}
+.badge-done {
+  background: #d8eede;
+}
+.workout-chart {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  padding: 20px 8px 0;
+}
+.chart-column {
+  text-align: center;
+  display: grid;
+  gap: 10px;
+  font-size: 12px;
+  color: #718579;
+}
+.chart-column > strong {
+  color: #234c38;
+  font-size: 13px;
+}
+.bar-track {
+  height: 105px;
+  background: #f2f6f3;
+  border-radius: 6px;
+  display: flex;
+  align-items: end;
+  overflow: hidden;
+}
+.bar {
+  width: 100%;
+  background: #9ec5ad;
+  border-radius: 6px 6px 0 0;
+  min-height: 0;
+}
+.bar.current {
+  background: #0b3d2e;
+}
+.monthly-history > summary {
+  font-size: 14px;
+}
+.month-history-row {
+  border-top: 1px solid #e3ebe6;
+  padding: 14px 0;
+}
+.simple-pt .month-history-row > button {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 6px 0;
+  text-align: left;
+  font-size: 13px;
+}
+.month-history-row > button span {
+  color: #508266;
+  font-size: 12px;
+}
+.slot-settings > h3 {
+  margin-bottom: 4px;
+}
+.simple-pt .slot-settings:has(> h3:only-child) {
+  display: none;
+}
+@media (max-width: 480px) {
+  .tracking-stats {
+    padding: 16px 4px;
+  }
+  .tracking-stats span {
+    font-size: 11px;
+  }
+  .tracking-stats strong {
+    font-size: 25px;
+  }
+  .workout-chart {
+    gap: 10px;
+  }
+  .default-time-block {
+    padding: 12px;
+  }
+  .calendar-grid > button {
+    padding-top: 8px;
+    padding-bottom: 5px;
+  }
+}
+
+.simple-pt button.pt-primary:hover,
+.simple-pt button.selected:hover {
+  background: #134f3a;
+  color: #fff;
+  border-color: #134f3a;
+}

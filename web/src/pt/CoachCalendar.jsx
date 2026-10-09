@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase.js";
 import { checked } from "./api.js";
 import { today, statusLabels } from "./model.js";
 import { Calendar } from "./Calendar.jsx";
+import AvailabilityEditor from "./AvailabilityEditor.jsx";
 import "./PT.css";
 import "./Calendar.css";
 export default function CoachCalendar({
@@ -129,10 +130,13 @@ export default function CoachCalendar({
             setDay(d);
             setAdding(false);
           }}
+          completedDates={own
+            .filter((s) => s.status === "completed")
+            .map((s) => s.session_date)}
+          scheduledDates={own
+            .filter((s) => s.status === "scheduled")
+            .map((s) => s.session_date)}
           dates={[
-            ...own
-              .filter((s) => s.status !== "cancelled")
-              .map((s) => s.session_date),
             ...slots
               .filter((s) => s.is_open)
               .map((s) => koreaDate(s.starts_at)),
@@ -186,84 +190,40 @@ export default function CoachCalendar({
           {!own.some(
             (s) => s.session_date === day && s.status !== "cancelled",
           ) && <p className="agenda-empty">예약된 수업이 없어요.</p>}
-          <details className="availability-editor">
-            <summary>예약 가능 시간 설정</summary>
-            <p className="pt-muted">
-              {day} · 담당 회원에게 60분 단위로 열립니다. 예약된 수업은 시간을
-              닫아도 유지됩니다.
-            </p>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const f = new FormData(e.currentTarget),
-                  start = new Date(`${day}T${f.get("start")}:00+09:00`),
-                  end = new Date(`${day}T${f.get("end")}:00+09:00`);
-                if (
-                  end <= start ||
-                  start <= new Date() ||
-                  (end - start) % 3600000
-                ) {
-                  setError(
-                    "현재 이후의 시간으로, 60분 단위 범위를 선택해 주세요.",
-                  );
-                  return;
-                }
-                const rows = [];
-                for (let t = +start; t < +end; t += 3600000)
-                  rows.push({
-                    coach_id: coach,
-                    starts_at: new Date(t).toISOString(),
-                    ends_at: new Date(t + 3600000).toISOString(),
-                  });
-                act(() => checked(supabase.from("pt_slots").insert(rows)));
-              }}
-            >
-              <div className="pt-two">
-                <label>
-                  시작
-                  <input
-                    type="time"
-                    name="start"
-                    required
-                    defaultValue="09:00"
-                  />
-                </label>
-                <label>
-                  종료
-                  <input type="time" name="end" required defaultValue="18:00" />
-                </label>
-              </div>
-              <button className="pt-primary" disabled={busy}>
-                예약 시간 열기
-              </button>
-            </form>
-            <div className="slot-settings">
-              {slots
-                .filter((s) => koreaDate(s.starts_at) === day)
-                .map((s) => (
-                  <div key={s.id}>
-                    <span>
-                      {koreaTime(s.starts_at)}–{koreaTime(s.ends_at)}
-                    </span>
-                    <button
-                      disabled={busy || new Date(s.ends_at) < new Date()}
-                      onClick={() =>
-                        act(() =>
-                          checked(
-                            supabase
-                              .from("pt_slots")
-                              .update({ is_open: !s.is_open })
-                              .eq("id", s.id),
-                          ),
-                        )
-                      }
-                    >
-                      {s.is_open ? "닫기" : "다시 열기"}
-                    </button>
-                  </div>
-                ))}
-            </div>
-          </details>
+          <AvailabilityEditor
+            key={coach}
+            coach={coach}
+            day={day}
+            onApplied={() => setVersion((v) => v + 1)}
+          />
+          <div className="slot-settings">
+            <h3>이 날짜에 열린 시간</h3>
+
+            {slots
+              .filter((s) => s.is_open && koreaDate(s.starts_at) === day)
+              .map((s) => (
+                <div key={s.id}>
+                  <span>
+                    {koreaTime(s.starts_at)}–{koreaTime(s.ends_at)}
+                  </span>
+                  <button
+                    disabled={busy || new Date(s.ends_at) < new Date()}
+                    onClick={() =>
+                      act(() =>
+                        checked(
+                          supabase
+                            .from("pt_slots")
+                            .update({ is_open: !s.is_open })
+                            .eq("id", s.id),
+                        ),
+                      )
+                    }
+                  >
+                    {s.is_open ? "닫기" : "다시 열기"}
+                  </button>
+                </div>
+              ))}
+          </div>
         </section>
       </div>
     </section>

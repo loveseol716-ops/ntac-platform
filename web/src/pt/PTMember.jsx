@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase.js";
 import { checked, loadPT } from "./api.js";
 import { today, statusLabels } from "./model.js";
 import { Calendar, SimpleLog } from "./Calendar.jsx";
+import { ProgressSummary, TrainingProgress } from "./TrainingProgress.jsx";
 import "./PT.css";
 import "./Calendar.css";
 export default function PTMember({ profile }) {
@@ -14,7 +15,8 @@ export default function PTMember({ profile }) {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [choice, setChoice] = useState(null),
-    [tab, setTab] = useState("booking"),
+    [tab, setTab] = useState("history"),
+    [month, setMonth] = useState(today().slice(0, 7)),
     [message, setMessage] = useState("");
   useEffect(() => {
     let live = true;
@@ -121,38 +123,56 @@ export default function PTMember({ profile }) {
                 ? `${next.session_date} · ${next.start_time.slice(0, 5)}`
                 : "아래에서 다음 수업을 예약하세요"}
             </strong>
-            <small>
-              남은 수업 {remaining}회 · 예약 {scheduled.length}회
-            </small>
+            <small>남은 수업 {remaining}회</small>
+            <button
+              onClick={() => {
+                setTab("booking");
+                setDay(next?.session_date || today());
+                setChoice(null);
+              }}
+            >
+              {next ? "예약 일정 보기" : "수업 예약하기"}
+            </button>
           </section>
+          <ProgressSummary
+            sessions={sessions}
+            month={month}
+            onSelect={(d) => {
+              setTab("history");
+              setDay(d);
+            }}
+          />
           <nav className="sub-tabs detail-tabs" aria-label="PT 메뉴">
+            <button
+              className={tab === "history" ? "selected" : ""}
+              onClick={() => {
+                setTab("history");
+                setChoice(null);
+              }}
+            >
+              운동 기록
+            </button>
             <button
               className={tab === "booking" ? "selected" : ""}
               onClick={() => setTab("booking")}
             >
               수업 예약
             </button>
-            <button
-              className={tab === "history" ? "selected" : ""}
-              onClick={() => setTab("history")}
-            >
-              운동 일지
-            </button>
           </nav>
+          <Calendar
+            value={day}
+            onChange={(d) => {
+              setDay(d);
+              setChoice(null);
+            }}
+            onMonthChange={setMonth}
+            completedDates={completed.map((s) => s.session_date)}
+            scheduledDates={scheduled.map((s) => s.session_date)}
+            dates={slots.map((s) => koreaDate(s.starts_at))}
+            label={tab === "booking" ? "예약 캘린더" : "운동 기록 캘린더"}
+          />
           {tab === "booking" ? (
             <>
-              <Calendar
-                value={day}
-                onChange={(d) => {
-                  setDay(d);
-                  setChoice(null);
-                }}
-                dates={[
-                  ...slots.map((s) => koreaDate(s.starts_at)),
-                  ...scheduled.map((s) => s.session_date),
-                ]}
-                label="예약 캘린더"
-              />
               <section className="pt-card">
                 <h2>{day} 예약</h2>
                 {scheduled
@@ -217,21 +237,45 @@ export default function PTMember({ profile }) {
               </section>
             </>
           ) : (
-            <section className="member-content">
-              {!sessions.length && (
-                <p className="agenda-empty">아직 수업 기록이 없어요.</p>
-              )}
-              {sessions.map((s) => (
-                <article className="pt-card" key={s.id}>
-                  <div className="pt-row pt-between">
-                    <h2>
-                      {s.session_date} · {s.start_time.slice(0, 5)}
-                    </h2>
-                    <span className="pt-badge">{statusLabels[s.status]}</span>
-                  </div>
-                  <SimpleLog session={s} />
-                </article>
-              ))}
+            <section className="member-content tracking-content">
+              <section className="pt-card day-workouts">
+                <h2>{day} 운동</h2>
+                {!sessions.some(
+                  (s) => s.session_date === day && s.status !== "cancelled",
+                ) && (
+                  <p className="pt-muted">
+                    이 날의 운동 기록이 없어요. ✓ 표시된 날짜를 눌러보세요.
+                  </p>
+                )}
+                {sessions
+                  .filter(
+                    (s) => s.session_date === day && s.status !== "cancelled",
+                  )
+                  .sort((a, b) => a.start_time.localeCompare(b.start_time))
+                  .map((s) => (
+                    <article className="tracked-session" key={s.id}>
+                      <div className="pt-row pt-between">
+                        <strong>{s.start_time.slice(0, 5)}</strong>
+                        <span
+                          className={`pt-badge ${s.status === "completed" ? "badge-done" : ""}`}
+                        >
+                          {s.status === "completed"
+                            ? "운동 완료 ✓"
+                            : statusLabels[s.status]}
+                        </span>
+                      </div>
+                      <details>
+                        <summary>운동 내용 보기</summary>
+                        <SimpleLog session={s} />
+                      </details>
+                    </article>
+                  ))}
+              </section>
+              <TrainingProgress
+                sessions={sessions}
+                month={month}
+                onSelect={setDay}
+              />
             </section>
           )}
         </>

@@ -186,8 +186,11 @@ export default function PTAdmin({
             <Calendar
               value={day}
               onChange={changeDay}
-              dates={data.sessions
-                .filter((s) => s.status !== "cancelled")
+              completedDates={data.sessions
+                .filter((s) => s.status === "completed")
+                .map((s) => s.session_date)}
+              scheduledDates={data.sessions
+                .filter((s) => s.status === "scheduled")
                 .map((s) => s.session_date)}
             />
             <section className="day-agenda">

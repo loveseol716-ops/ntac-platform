@@ -4,18 +4,26 @@ export function Calendar({
   value,
   onChange,
   dates = [],
+  completedDates = [],
+  scheduledDates = [],
+  onMonthChange,
   label = "수업 캘린더",
 }) {
   const [month, setMonth] = useState((value || today()).slice(0, 7));
   useEffect(() => {
     if (value) setMonth(value.slice(0, 7));
   }, [value]);
+  useEffect(() => {
+    onMonthChange?.(month);
+  }, [month, onMonthChange]);
   const [y, m] = month.split("-").map(Number),
     first = new Date(y, m - 1, 1).getDay(),
     last = new Date(y, m, 0).getDate();
   function move(n) {
     const d = new Date(y, m - 1 + n, 1);
-    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    setMonth(next);
+    onChange(next === today().slice(0, 7) ? today() : `${next}-01`);
   }
   return (
     <section className="pt-calendar" aria-label={label}>
@@ -41,23 +49,54 @@ export function Calendar({
         ))}
         {Array.from({ length: last }, (_, i) => {
           const date = `${month}-${String(i + 1).padStart(2, "0")}`;
+          const done = completedDates.filter((d) => d === date).length,
+            booked = scheduledDates.filter((d) => d === date).length;
           return (
             <button
               type="button"
               key={date}
               aria-label={date}
+              title={
+                [
+                  done ? `운동 완료 ${done}회` : null,
+                  booked ? `예약 ${booked}회` : null,
+                  dates.includes(date) ? "예약 가능 시간 있음" : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || "일정 없음"
+              }
               aria-pressed={value === date}
-              className={`${value === date ? "selected" : ""} ${date === today() ? "is-today" : ""}`}
+              className={`${value === date ? "selected" : ""} ${date === today() ? "is-today" : ""} ${done ? "day-completed" : ""}`}
               onClick={() => onChange(date)}
             >
               {i + 1}
-              <i className={dates.includes(date) ? "has-event" : ""} />
+              <span className="day-marks">
+                {done > 0 && (
+                  <span
+                    className="done-mark"
+                    aria-label={`운동 완료 ${done}회`}
+                  >
+                    ✓
+                  </span>
+                )}
+                {booked > 0 && (
+                  <span className="booked-mark" aria-label={`예약 ${booked}회`}>
+                    ●
+                  </span>
+                )}
+                {!done && !booked && (
+                  <i className={dates.includes(date) ? "has-event" : ""} />
+                )}
+              </span>
             </button>
           );
         })}
       </div>
       <p className="pt-muted calendar-hint">
-        ● 일정이 있는 날 · 한국 시간 기준
+        <span>✓ 운동 완료</span>
+        <span className="booked-legend">● 예약</span>
+        <span>· 예약 가능</span>
+        <span>한국 시간</span>
       </p>
     </section>
   );
