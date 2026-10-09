@@ -196,6 +196,23 @@ const fixtures = {
               ),
           ),
         });
+      if (table === "ntac_save_profile") {
+        const p = req.postDataJSON();
+        Object.assign(
+          profiles.find((x) => x.id === p.target_id),
+          p.payload,
+        );
+        return route.fulfill({ json: null });
+      }
+      if (table === "ntac-admin-password")
+        return route.fulfill({ json: { success: true } });
+      if (table === "pt_save_package") {
+        const p = req.postDataJSON().payload;
+        const old = packages.find((x) => x.id === p.id);
+        if (old) Object.assign(old, p);
+        else packages.push({ ...p, created_at: date });
+        return route.fulfill({ json: p.id });
+      }
       if (table === "pt_change_booking") {
         const p = req.postDataJSON(),
           session = sessions.find((x) => x.id === p.sid);
@@ -322,6 +339,32 @@ const fixtures = {
   });
   await page.setViewportSize({ width: 1200, height: 1000 });
 
+  await page.setViewportSize({ width: 900, height: 1000 });
+  assert(
+    await page.evaluate(() =>
+      [...document.querySelectorAll(".roster-row button")].every(
+        (b) =>
+          b.getBoundingClientRect().right <=
+          b.closest(".surface").getBoundingClientRect().right - 10,
+      ),
+    ),
+    "roster buttons overflow card at 900px",
+  );
+  await page
+    .getByRole("button", { name: "프로필", exact: true })
+    .first()
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByLabel("이름", { exact: true })
+    .fill("김민수");
+  await page.getByRole("button", { name: "프로필 저장", exact: true }).click();
+  await page.getByText("프로필을 저장했어요.", { exact: true }).waitFor();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "닫기", exact: true })
+    .click();
+  await page.screenshot({ path: "/tmp/ntac-roster-900.png", fullPage: true });
   await page.getByRole("button", { name: "배정", exact: true }).first().click();
   await page
     .getByRole("dialog")
@@ -337,6 +380,11 @@ const fixtures = {
     .first()
     .click();
   await page.getByRole("heading", { name: "김민수님의 PT" }).waitFor();
+  await page.getByRole("button", { name: "횟수권 등록", exact: true }).click();
+  await page.getByLabel("횟수권 이름", { exact: true }).fill("재구매 10회권");
+  await page.getByRole("button", { name: "횟수권 저장", exact: true }).click();
+  await page.getByText("횟수권을 저장했어요.", { exact: true }).waitFor();
+  assert.equal(packages.filter((p) => p.member_id === "m1").length, 2);
   await page.getByRole("button", { name: "수업 추가", exact: true }).click();
   assert.equal(await page.locator("textarea").count(), 3);
   await page.getByLabel("수업 시간").fill("08:00");
@@ -385,6 +433,28 @@ const fixtures = {
     "true",
   );
   await page.getByRole("img", { name: "NTAC", exact: true }).waitFor();
+  await page.getByRole("button", { name: "내 프로필", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByLabel("연락처", { exact: true })
+    .fill("01012345678");
+  await page.getByRole("button", { name: "프로필 저장", exact: true }).click();
+  await page.getByText("프로필을 저장했어요.", { exact: true }).waitFor();
+  await page.screenshot({
+    path: "/tmp/ntac-profile-mobile.png",
+    fullPage: true,
+  });
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "닫기", exact: true })
+    .click();
+  await page.getByRole("button", { name: "이용 내역", exact: true }).click();
+  await page.getByRole("region", { name: "횟수권과 사용 내역" }).waitFor();
+  assert.equal(await page.locator(".pass-card").count(), 2);
+  await page.screenshot({
+    path: "/tmp/ntac-passes-mobile.png",
+    fullPage: true,
+  });
   await page.getByRole("button", { name: "운동 기록", exact: true }).click();
   await page.getByRole("region", { name: "운동 통계" }).waitFor();
   await page.getByText("이번 주 운동", { exact: true }).waitFor();

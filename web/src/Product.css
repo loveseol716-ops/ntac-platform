@@ -1,0 +1,456 @@
+/* NTAC: generous, readable mobile surfaces with a NOLTO green action hierarchy. */
+:root {
+  --ntac-green: #0b3d2e;
+  --ntac-ink: #191f28;
+  --ntac-muted: #6b7684;
+  --ntac-bg: #f2f4f6;
+  --ntac-line: #e5e8eb;
+}
+body,
+.member-shell {
+  background: var(--ntac-bg);
+}
+.member-shell,
+.manage,
+.pt {
+  color: var(--ntac-ink);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR",
+    "Segoe UI", sans-serif;
+  letter-spacing: -0.25px;
+}
+.member-shell {
+  max-width: 720px;
+}
+.member-shell.wide-shell {
+  max-width: 1180px;
+}
+.account-header {
+  padding: 28px 24px 20px;
+}
+.account-header .brand-word .ntac-logo {
+  color: var(--ntac-green);
+  width: 102px;
+}
+.account-actions {
+  gap: 4px;
+  min-width: 0;
+}
+.account-actions button {
+  max-width: 170px;
+  overflow-wrap: anywhere;
+  color: #4e5968;
+}
+.manage h1,
+.simple-pt h1 {
+  line-height: 1.45;
+  letter-spacing: -0.8px;
+}
+.manage .eyebrow,
+.simple-pt .pt-eyebrow {
+  display: none;
+}
+.manage button,
+.pt button {
+  border: 0;
+  border-radius: 12px;
+  background: #f2f4f6;
+  color: #4e5968;
+  min-height: 44px;
+  font-weight: 600;
+}
+.manage button.primary,
+.simple-pt button.pt-primary,
+.simple-pt button.selected {
+  background: var(--ntac-green);
+  color: white;
+}
+.manage button.primary:hover,
+.simple-pt button.pt-primary:hover {
+  background: #15513e;
+}
+.manage .surface,
+.simple-pt .pt-card,
+.simple-pt .pt-calendar,
+.simple-pt .next-session,
+.simple-pt .tracking-stats {
+  border: 0;
+  border-radius: 24px;
+  box-shadow: none;
+  padding: 24px;
+}
+.manage .surface {
+  container-type: inline-size;
+}
+.management-layout {
+  gap: 24px;
+}
+.management-layout > *,
+.roster-list,
+.roster-row > *,
+.pt-two > *,
+.pass-ledger > *,
+.profile-two > * {
+  min-width: 0;
+}
+.roster-head,
+.roster-row {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.8fr) minmax(
+      0,
+      0.9fr
+    ) minmax(0, 0.7fr) minmax(0, 1.35fr);
+  gap: 16px;
+}
+.roster-head {
+  color: #8b95a1;
+  padding: 8px 0 16px;
+}
+.roster-row {
+  padding: 22px 0;
+  border-color: #f2f4f6;
+  line-height: 1.6;
+}
+.roster-row .button-row {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.roster-row button {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.member-identity strong {
+  color: var(--ntac-ink);
+  font-size: 17px;
+}
+.manage input,
+.manage select,
+.manage textarea,
+.simple-pt input,
+.simple-pt select,
+.simple-pt textarea {
+  border: 1px solid #e5e8eb;
+  border-radius: 12px;
+  color: var(--ntac-ink);
+  background: #f9fafb;
+  padding: 14px;
+}
+.manage input:focus,
+.manage textarea:focus,
+.simple-pt input:focus,
+.simple-pt textarea:focus {
+  outline: 2px solid #689380;
+  outline-offset: 1px;
+  background: white;
+}
+.manage label,
+.simple-pt label {
+  color: #4e5968;
+  font-size: 14px;
+}
+.manage .muted,
+.simple-pt .pt-muted {
+  color: var(--ntac-muted);
+  line-height: 1.7;
+}
+.service-switch {
+  border: 0;
+  margin-bottom: 12px;
+  padding: 0;
+}
+.service-switch button,
+.workspace-tabs button {
+  border-radius: 14px;
+}
+.workspace-tabs {
+  border: 0;
+  padding: 0;
+}
+.pt.pt-shell .member-intro {
+  margin-bottom: 0;
+}
+.simple-pt .next-session {
+  gap: 10px;
+}
+.simple-pt .next-session > strong {
+  font-size: 24px;
+  font-weight: 700;
+}
+.simple-pt .next-session > small {
+  color: #4e5968;
+}
+.simple-pt .next-session button {
+  color: var(--ntac-green);
+  background: #e9f2ed;
+  padding: 12px 18px;
+}
+.simple-pt .detail-tabs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 5px;
+  background: #e5e8eb;
+  border-radius: 16px;
+}
+.simple-pt .detail-tabs button {
+  min-width: 0;
+  padding: 10px 5px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+.simple-pt .detail-tabs button.selected {
+  color: var(--ntac-ink);
+  background: white;
+  box-shadow: 0 2px 5px #00000007;
+}
+.simple-pt .pt-calendar h2 {
+  color: var(--ntac-ink);
+  font-size: 19px;
+}
+.simple-pt .calendar-grid > button {
+  color: #333d4b;
+  font-weight: 600;
+}
+.simple-pt .calendar-grid > button.selected {
+  color: white;
+  background: var(--ntac-green);
+}
+.simple-pt .calendar-grid .weekday {
+  color: #8b95a1;
+}
+.pass-ledger {
+  display: grid;
+  gap: 18px;
+}
+.pass-ledger h2 {
+  font-size: 21px;
+  margin: 0;
+}
+.pass-ledger > .pt-row {
+  padding: 4px 0;
+}
+.pass-number {
+  color: #8b95a1;
+  font-size: 13px;
+}
+.pass-card h3 {
+  font-size: 20px;
+  margin: 18px 0 8px;
+}
+.pass-balance {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.pass-balance > strong {
+  font-size: 36px;
+  color: var(--ntac-green);
+  letter-spacing: -1.2px;
+  line-height: 1.2;
+}
+.pass-balance small {
+  font-size: 20px;
+  margin-left: 4px;
+}
+.pass-balance > span {
+  font-size: 13px;
+  color: #6b7684;
+}
+.pass-card progress {
+  display: block;
+  width: 100%;
+  height: 8px;
+  border: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #e5e8eb;
+  accent-color: var(--ntac-green);
+}
+.pass-card progress::-webkit-progress-bar {
+  background: #e5e8eb;
+  border-radius: 8px;
+}
+.pass-card progress::-webkit-progress-value {
+  background: var(--ntac-green);
+  border-radius: 8px;
+}
+.pass-counts {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 18px 0;
+  font-size: 14px;
+  color: #6b7684;
+}
+.pass-counts b {
+  color: #333d4b;
+  font-weight: 600;
+  margin-left: 3px;
+}
+.pass-period {
+  color: #4e5968;
+  font-size: 14px;
+}
+.pass-history {
+  border-top: 1px solid #f2f4f6;
+  margin-top: 16px;
+  padding-top: 16px;
+}
+.pass-history summary {
+  cursor: pointer;
+  font-size: 14px;
+  color: #4e5968;
+}
+.ledger-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid #f2f4f6;
+  font-size: 13px;
+}
+.ledger-row > span:first-child {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ledger-row strong {
+  font-weight: 600;
+}
+.ledger-row small {
+  color: #8b95a1;
+  font-size: 12px;
+}
+.ledger-debit,
+.ledger-row > b {
+  color: var(--ntac-green);
+  white-space: nowrap;
+}
+.simple-pt .pass-edit {
+  margin-top: 18px;
+  font-size: 13px;
+}
+.pass-session-label {
+  color: #6b7684;
+  font-size: 12px;
+}
+.pass-editor {
+  display: grid;
+  gap: 16px;
+}
+.simple-pt .pass-editor fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+}
+.profile-dialog {
+  width: min(520px, calc(100vw - 24px)) !important;
+  border: 0 !important;
+  border-radius: 24px !important;
+}
+.profile-dialog .profile-two {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.profile-dialog input[readonly] {
+  color: #8b95a1;
+}
+.profile-dialog textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+.password-settings {
+  border-top: 1px solid var(--ntac-line);
+  padding-top: 22px;
+  margin-top: 26px;
+}
+.password-settings summary {
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+}
+@container (max-width:850px) {
+  .roster-head {
+    display: none;
+  }
+  .roster-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px 12px;
+  }
+  .roster-row .member-identity {
+    grid-column: 1/-1;
+  }
+  .roster-row > div[data-label]:before {
+    content: attr(data-label);
+    display: block;
+    color: #8b95a1;
+    font-size: 12px;
+    margin-bottom: 5px;
+  }
+  .roster-row > .button-row {
+    grid-column: 1/-1;
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 480px) {
+  .account-header {
+    padding: 22px 20px 16px;
+    gap: 8px;
+  }
+  .account-actions button {
+    font-size: 12px;
+    max-width: 105px;
+  }
+  .manage .surface,
+  .simple-pt .pt-card,
+  .simple-pt .pt-calendar,
+  .simple-pt .next-session {
+    padding: 22px 20px;
+    border-radius: 22px;
+  }
+  .management-layout {
+    padding: 12px 16px 48px;
+  }
+  .filter-row .search-field {
+    min-width: 0;
+  }
+  .filter-row label {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+  .roster-row {
+    font-size: 13px;
+  }
+  .simple-pt .next-session > strong {
+    font-size: 22px;
+  }
+  .simple-pt .tracking-stats {
+    padding: 20px 8px;
+  }
+  .simple-pt .pt-two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .profile-dialog {
+    padding: 22px !important;
+  }
+  .simple-pt .pt-calendar {
+    padding: 18px 14px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .manage button,
+  .pt button {
+    transition:
+      background 0.15s ease,
+      transform 0.15s ease;
+  }
+  .manage button:active,
+  .pt button:active {
+    transform: scale(0.98);
+  }
+}

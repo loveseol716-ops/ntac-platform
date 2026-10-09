@@ -1,3 +1,5 @@
+import PassLedger from "./PassLedger.jsx";
+import { currentBalance, passUsage, passLabel } from "./passes.js";
 import { koreaDate, koreaTime } from "./dates.js";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase.js";
@@ -127,10 +129,11 @@ export default function PTMember({ profile }) {
   const sessions = data?.sessions || [],
     completed = sessions.filter((s) => s.status === "completed"),
     scheduled = sessions.filter((s) => s.status === "scheduled"),
-    remaining =
-      (data?.packages || []).reduce((n, p) => n + p.total_sessions, 0) -
-      completed.length,
-    available = remaining - scheduled.length,
+    remaining = currentBalance(data?.packages || [], sessions),
+    available = (data?.packages || []).reduce(
+      (n, p) => n + passUsage(p, sessions, day).available,
+      0,
+    ),
     next = scheduled
       .filter(
         (s) =>
@@ -143,6 +146,16 @@ export default function PTMember({ profile }) {
           b.session_date + b.start_time,
         ),
       )[0];
+  const eligibleSlots = slots.filter((slot) => {
+    const date = koreaDate(slot.starts_at);
+    return (data?.packages || []).some((p) =>
+      editing
+        ? p.id === editing.package_id &&
+          p.starts_on <= date &&
+          (!p.expires_on || p.expires_on >= date)
+        : passUsage(p, sessions, date).available > 0,
+    );
+  });
   return (
     <main className="pt pt-shell simple-pt">
       <header className="member-intro">
@@ -205,6 +218,17 @@ export default function PTMember({ profile }) {
             >
               운동 기록
             </button>
+            <button
+              className={tab === "passes" ? "selected" : ""}
+              aria-pressed={tab === "passes"}
+              onClick={() => {
+                setTab("passes");
+                setEditing(null);
+                setChoice(null);
+              }}
+            >
+              이용 내역
+            </button>
           </nav>
           {tab === "history" && (
             <ProgressSummary
@@ -232,19 +256,23 @@ export default function PTMember({ profile }) {
               </button>
             </section>
           )}
-          <Calendar
-            value={day}
-            onChange={(d) => {
-              setDay(d);
-              setChoice(null);
-            }}
-            onMonthChange={setMonth}
-            completedDates={completed.map((s) => s.session_date)}
-            scheduledDates={scheduled.map((s) => s.session_date)}
-            dates={slots.map((s) => koreaDate(s.starts_at))}
-            label={tab === "booking" ? "예약 캘린더" : "운동 기록 캘린더"}
-          />
-          {tab === "booking" ? (
+          {tab !== "passes" && (
+            <Calendar
+              value={day}
+              onChange={(d) => {
+                setDay(d);
+                setChoice(null);
+              }}
+              onMonthChange={setMonth}
+              completedDates={completed.map((s) => s.session_date)}
+              scheduledDates={scheduled.map((s) => s.session_date)}
+              dates={eligibleSlots.map((s) => koreaDate(s.starts_at))}
+              label={tab === "booking" ? "예약 캘린더" : "운동 기록 캘린더"}
+            />
+          )}
+          {tab === "passes" ? (
+            <PassLedger packages={data.packages} sessions={sessions} />
+          ) : tab === "booking" ? (
             <>
               <section className="pt-card">
                 <h2>{day} 예약</h2>
@@ -278,13 +306,13 @@ export default function PTMember({ profile }) {
                   <p>담당 코치 배정 후 예약할 수 있어요.</p>
                 ) : available <= 0 && !editing ? (
                   <p>
-                    남은 횟수만큼 예약되어 있어요. 추가 예약은 코치에게 문의해
-                    주세요.
+                    선택한 날짜에 예약 가능한 횟수권이 없거나, 남은 횟수만큼
+                    예약되어 있어요. 이용 내역을 확인해 주세요.
                   </p>
                 ) : (
                   <>
                     <div className="booking-slots">
-                      {slots
+                      {eligibleSlots
                         .filter((s) => koreaDate(s.starts_at) === day)
                         .map((s) => (
                           <button
@@ -297,7 +325,9 @@ export default function PTMember({ profile }) {
                           </button>
                         ))}
                     </div>
-                    {!slots.some((s) => koreaDate(s.starts_at) === day) && (
+                    {!eligibleSlots.some(
+                      (s) => koreaDate(s.starts_at) === day,
+                    ) && (
                       <p className="pt-muted">
                         열린 시간이 없어요. 다른 날짜를 선택해 주세요.
                       </p>
@@ -361,6 +391,10 @@ export default function PTMember({ profile }) {
                             : statusLabels[s.status]}
                         </span>
                       </div>
+                      <p className="pass-session-label">
+                        {passLabel(data.packages, s.package_id)} ·{" "}
+                        {s.status === "completed" ? "1회 사용" : "차감 없음"}
+                      </p>
                       <details>
                         <summary>운동 내용 보기</summary>
                         <SimpleLog session={s} />

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import ProfileDialog from "./ProfileDialog.jsx";
 import NTACLogo from "./NTACLogo.jsx";
 import AuthGate from "./AuthGate.jsx";
 import PTMember from "./pt/PTMember.jsx";
@@ -25,6 +26,7 @@ export default function EntryGate() {
     [loading, setLoading] = useState(false),
     [error, setError] = useState(""),
     [refresh, setRefresh] = useState(0);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [busy, setBusy] = useState(false),
     [notice, setNotice] = useState(""),
     [recovery, setRecovery] = useState(
@@ -175,10 +177,28 @@ export default function EntryGate() {
             <NTACLogo />
           </a>
           <div className="account-actions">
-            <span>{profile.full_name || "회원"}</span>
+            <button onClick={() => setProfileOpen(true)} aria-label="내 프로필">
+              {profile.full_name || "회원"} <span aria-hidden="true">›</span>
+            </button>
             <button onClick={logout}>로그아웃</button>
           </div>
         </header>
+        {profileOpen && (
+          <ProfileDialog
+            targetId={profile.id}
+            onClose={() => setProfileOpen(false)}
+            onSaved={() => {
+              supabase
+                .from("profiles")
+                .select("*")
+                .eq("id", profile.id)
+                .single()
+                .then(({ data }) => {
+                  if (data) setProfile(data);
+                });
+            }}
+          />
+        )}
         {views.length > 1 && (
           <nav className="service-switch" aria-label="이용 프로그램">
             {views.map((v) => (

@@ -23,3 +23,10 @@ Member home defaults to 운동 기록: calendar marks distinguish completed sess
 `pt-member-booking-changes.sql`: rollback-only member rescheduling/cancellation, full-package moves, collision preservation, exact one-hour cutoff, coach override, independent optional pre/post notes and completion.
 `pt-tracking.mjs`: includes cross-year Monday–Sunday weekly counts, excluding cancelled/scheduled sessions.
 `ux-browser.cjs`: booking-first navigation, NTAC SVG wordmark, weekly/monthly switch, member change/cancel and disabled cutoff actions.
+
+Pass ledger and profile release:
+- `node tests/pt-pass-model.mjs`: renewed-pass balances, reservation capacity, expiry and inclusive end date.
+- `node tests/admin-password.mjs`: invalid token/member/coach denial, staff-target denial, input validation and admin update; synthetic credentials only.
+- `pt-pass-ledger.sql`: rollback-only purchase retry, repeated completion, completion reversal, renewal allocation, expiry, package edits with reservations, event visibility, profile field allowlist and member isolation.
+- Browser fixtures cover own/admin profile editing, pass creation/history and 900px member-card boundaries.
+- Existing passes retain unlimited terms until an administrator explicitly sets an end date. Stored sessions remain tied to their original package.

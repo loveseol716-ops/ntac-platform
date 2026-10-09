@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./lib/supabase.js";
 import { checked } from "./pt/api.js";
 import { today } from "./pt/model.js";
+import ProfileDialog from "./ProfileDialog.jsx";
+import { currentBalance } from "./pt/passes.js";
 import PTAdmin from "./pt/PTAdmin.jsx";
 import CoachCalendar from "./pt/CoachCalendar.jsx";
 import "./management/Management.css";
@@ -32,8 +34,7 @@ function getPTStats(member, packages, sessions) {
     )[0];
   return {
     used: completed.length,
-    remaining:
-      packs.reduce((sum, p) => sum + p.total_sessions, 0) - completed.length,
+    remaining: currentBalance(packs, sessions),
     last: completed[0]?.session_date,
     next,
     packs: packs.length,
@@ -71,6 +72,7 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
   const [selectedDate, setSelectedDate] = useState(today()),
     [startNew, setStartNew] = useState(false);
   const [editing, setEditing] = useState(null),
+    [profileEditing, setProfileEditing] = useState(null),
     [service, setService] = useState(""),
     [coach, setCoach] = useState("");
   const [error, setError] = useState(""),
@@ -233,6 +235,14 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
     );
   return (
     <main className="manage management-layout">
+      {profileEditing && (
+        <ProfileDialog
+          targetId={profileEditing}
+          isAdmin
+          onClose={() => setProfileEditing(null)}
+          onSaved={() => setVersion((v) => v + 1)}
+        />
+      )}
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">{admin ? "COACH WORKSPACE" : "MY MEMBERS"}</p>
@@ -396,7 +406,14 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
                       수업 관리
                     </button>
                   )}
-                  {admin && <button onClick={() => edit(p, m)}>배정</button>}
+                  {admin && (
+                    <>
+                      <button onClick={() => setProfileEditing(p.id)}>
+                        프로필
+                      </button>
+                      <button onClick={() => edit(p, m)}>배정</button>
+                    </>
+                  )}
                 </div>
               </article>
             ))}
@@ -439,7 +456,7 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
           <section className="surface">
             <h2>등록된 코치</h2>
             <p className="muted">
-              코치는 배정된 PT 회원의 수업과 평가를 관리합니다. 회원 배정은
+              코치는 배정된 PT 회원의 수업과 운동 기록을 관리합니다. 회원 배정은
               관리자만 할 수 있습니다.
             </p>
             {coaches.map((c) => (
@@ -549,8 +566,8 @@ export default function CoachAdminPage({ profile: initialProfile, onClose }) {
                 </select>
               </label>
               <p className="muted">
-                회원에게는 지정된 프로그램만 표시됩니다. 이용 기간 제한은
-                없습니다.
+                회원에게는 지정된 프로그램만 표시됩니다. PT 횟수권의 사용 기간은
+                별도로 설정합니다.
               </p>
               {error && (
                 <p role="alert" className="error-banner">

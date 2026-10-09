@@ -3,7 +3,8 @@ import { supabase } from "../lib/supabase.js";
 import { checked, loadPT } from "./api.js";
 import { today, statusLabels } from "./model.js";
 import { Calendar, SimpleLog } from "./Calendar.jsx";
-import { Packages } from "./Shared.jsx";
+import PassLedger from "./PassLedger.jsx";
+import { currentBalance, passLabel } from "./passes.js";
 import "./PT.css";
 import "./Calendar.css";
 export default function PTAdmin({
@@ -129,8 +130,7 @@ export default function PTAdmin({
           : "수업을 취소했어요.",
     );
   }
-  const done = data?.sessions.filter((s) => s.status === "completed") || [],
-    next = data?.sessions
+  const next = data?.sessions
       .filter(
         (s) =>
           s.status === "scheduled" &&
@@ -143,9 +143,7 @@ export default function PTAdmin({
           b.session_date + b.start_time,
         ),
       )[0],
-    remaining =
-      (data?.packages || []).reduce((n, p) => n + p.total_sessions, 0) -
-      done.length;
+    remaining = currentBalance(data?.packages || [], data?.sessions || []);
   return (
     <section className="pt simple-pt">
       <header className="pt-row pt-between">
@@ -304,6 +302,10 @@ export default function PTAdmin({
                             {statusLabels[s.status]}
                           </span>
                         </div>
+                        <p className="pass-session-label">
+                          {passLabel(data.packages, s.package_id)} ·{" "}
+                          {s.status === "completed" ? "1회 사용" : "차감 없음"}
+                        </p>
                         <SimpleLog session={s} />
                         {s.status === "scheduled" && (
                           <p className="pt-muted">
@@ -351,43 +353,16 @@ export default function PTAdmin({
               )}
             </section>
           </div>
-          {isAdmin && (
-            <details className="pt-card package-settings">
-              <summary>수업 횟수 관리</summary>
-              <Packages packages={data.packages} sessions={data.sessions} />
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const f = new FormData(e.currentTarget);
-                  act(
-                    () =>
-                      checked(
-                        supabase.from("pt_packages").insert({
-                          member_id: initialMemberId,
-                          title: `PT ${f.get("count")}회`,
-                          total_sessions: Number(f.get("count")),
-                          starts_on: today(),
-                        }),
-                      ),
-                    "수업 횟수를 추가했어요.",
-                  );
-                }}
-              >
-                <label>
-                  추가할 횟수
-                  <input
-                    name="count"
-                    type="number"
-                    min="1"
-                    max="1000"
-                    required
-                    defaultValue="10"
-                  />
-                </label>
-                <button disabled={busy}>횟수 추가</button>
-              </form>
-            </details>
-          )}
+          <PassLedger
+            packages={data.packages}
+            sessions={data.sessions}
+            memberId={initialMemberId}
+            editable={isAdmin}
+            onSaved={() => {
+              setVersion((v) => v + 1);
+              setMessage("횟수권을 저장했어요.");
+            }}
+          />
         </>
       )}
     </section>
