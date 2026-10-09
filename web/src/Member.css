@@ -1,0 +1,440 @@
+/* NTAC member surfaces share the same palette as PT and management. */
+:root[data-theme="dark"] .member-shell .app {
+  --member-text: #edf0f3;
+  --member-secondary: #a6aeb8;
+  color: var(--member-text);
+  padding-bottom: 112px;
+}
+:root[data-theme="dark"]
+  .member-shell
+  .app
+  :is(
+    .selected-training-section,
+    .training-section,
+    .training-calendar-summary,
+    .personal-plan,
+    .status-row,
+    .calendar-program-target,
+    .target-rpe,
+    .completed-record,
+    .calendar-guide-message,
+    .personal-item
+  ) {
+  background: var(--ntac-surface);
+  color: var(--member-text);
+  border-color: var(--ntac-line);
+  box-shadow: none;
+}
+:root[data-theme="dark"]
+  .member-shell
+  .app
+  :is(
+    .training-section-title,
+    .target-rpe,
+    .personal-item,
+    .calendar-program-target,
+    .calendar-guide-message
+  ) {
+  background: var(--ntac-raised);
+}
+:root[data-theme="dark"]
+  .member-shell
+  .app
+  :is(
+    .training-item,
+    .training-section,
+    .calendar-legend,
+    .calendar-record-area,
+    .coach-note
+  ) {
+  border-color: var(--ntac-line);
+}
+:root[data-theme="dark"]
+  .member-shell
+  .app
+  :is(
+    .training-item p,
+    .workout-steps,
+    .target-rpe strong,
+    .personal-item strong,
+    .completed-record strong,
+    .section-title strong,
+    .calendar-progress-area > strong,
+    .calendar-date-number
+  ) {
+  color: var(--member-text);
+}
+:root[data-theme="dark"]
+  .member-shell
+  .app
+  :is(
+    .calendar-legend span,
+    .calendar-weekdays span,
+    .calendar-record-time,
+    .workout-info span,
+    .detail-description,
+    .selected-training-head p,
+    .calendar-month-head p,
+    .calendar-summary-counts span,
+    .weekly-date-range,
+    .training-calendar-summary > div:first-child span,
+    .session-subtitle,
+    .coach-note p
+  ) {
+  color: var(--member-secondary);
+}
+:root[data-theme="dark"]
+  .member-shell
+  .app
+  :is(.training-section-title span, .run-trainer-button-text strong) {
+  color: var(--member-text);
+}
+:root[data-theme="dark"]
+  .member-shell
+  .app
+  :is(
+    .session-tag,
+    .workout-type,
+    .calendar-program-type,
+    .selected-training-head > span,
+    .access-badge,
+    .locked-badge,
+    .calendar-lock-badge,
+    .welcome > span
+  ) {
+  background: var(--ntac-raised);
+  color: #bcc5cf;
+  border: 0;
+}
+:root[data-theme="dark"]
+  .member-shell
+  .app
+  :is(.done-badge, .calendar-done-badge, .personal-plan-head > span) {
+  background: #203b2e;
+  color: #c4ddce;
+}
+:root[data-theme="dark"]
+  .member-shell
+  .app
+  :is(.calendar-record-area, .training-items) {
+  background: transparent;
+}
+:root[data-theme="dark"] .member-shell .app button {
+  min-height: 44px;
+  border-radius: 12px;
+  background: var(--ntac-raised);
+  color: #e4e9ef;
+  font-weight: 600;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+:root[data-theme="dark"]
+  .member-shell
+  .app
+  :is(
+    .primary-button,
+    .complete-button,
+    .calendar-save-button,
+    .checkin-submit,
+    .feature-card button,
+    .coach-card button,
+    .checkin-card button
+  ) {
+  background: var(--ntac-green);
+  color: #fff;
+  border: 0;
+}
+:root[data-theme="dark"]
+  .member-shell
+  .app
+  :is(.text-button, .arrow-button, .back-button) {
+  background: transparent;
+  color: #bdc6d0;
+}
+:root[data-theme="dark"] .member-shell .app .calendar-detail-button {
+  background: var(--ntac-raised);
+  color: var(--member-text);
+  border: 0;
+}
+:root[data-theme="dark"] .member-shell .app button:disabled {
+  background: #24282d;
+  color: #7e8791;
+  cursor: default;
+  opacity: 0.6;
+}
+:root[data-theme="dark"] .member-shell .app :is(input, select, textarea) {
+  background: #15181b;
+  color: var(--member-text);
+  border: 1px solid #3a4149;
+  font-size: 16px;
+}
+:root[data-theme="dark"] .member-shell .app .training-calendar-grid {
+  gap: 3px;
+}
+:root[data-theme="dark"] .member-shell .app .training-calendar-day {
+  background: transparent;
+  color: var(--member-text);
+  min-height: 44px;
+  border-radius: 12px;
+}
+:root[data-theme="dark"] .member-shell .app .training-calendar-day.empty {
+  background: transparent;
+}
+:root[data-theme="dark"] .member-shell .app .training-calendar-day.has-event {
+  background: #252a2f;
+}
+:root[data-theme="dark"] .member-shell .app .training-calendar-day.completed {
+  background: #20372c;
+}
+:root[data-theme="dark"] .member-shell .app .training-calendar-day.today {
+  box-shadow: inset 0 0 0 1px #789889;
+}
+:root[data-theme="dark"] .member-shell .app .training-calendar-day.selected {
+  background: var(--ntac-green);
+  color: white;
+  box-shadow: inset 0 0 0 1px #527b66;
+}
+:root[data-theme="dark"]
+  .member-shell
+  .app
+  :is(.calendar-event-dot.run, .calendar-legend-dot.run, .training-dot) {
+  background: #8aab99;
+}
+:root[data-theme="dark"]
+  .member-shell
+  .app
+  :is(.calendar-event-dot.build, .calendar-legend-dot.build) {
+  background: #c5ccd4;
+}
+:root[data-theme="dark"]
+  .member-shell
+  .app
+  :is(
+    .calendar-event-dot.recovery,
+    .calendar-event-dot.event,
+    .calendar-legend-dot.recovery
+  ) {
+  background: #78838f;
+}
+:root[data-theme="dark"] .member-shell .app .calendar-complete-mark {
+  color: #b2d3bf;
+}
+:root[data-theme="dark"] .member-shell .app .calendar-month-navigation button {
+  border: 0;
+  min-width: 40px;
+  min-height: 44px;
+}
+:root[data-theme="dark"] .member-shell .app .run-trainer-button {
+  background: var(--ntac-green);
+  color: white;
+  box-shadow: none;
+  border-radius: 18px;
+}
+:root[data-theme="dark"] .member-shell .app .run-trainer-play {
+  background: #245743;
+  color: #fff;
+  box-shadow: none;
+}
+:root[data-theme="dark"] .member-shell .app .bottom-nav {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  max-width: 720px;
+  background: #191c20f5;
+  border-color: var(--ntac-line);
+  padding: 8px 12px calc(10px + env(safe-area-inset-bottom));
+  backdrop-filter: blur(18px);
+}
+:root[data-theme="dark"] .member-shell .app .bottom-nav button {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 0;
+  color: #939eab;
+  min-height: 54px;
+  padding: 6px 2px;
+  font-size: 11px;
+  font-weight: 500;
+}
+:root[data-theme="dark"] .member-shell .app .bottom-nav button.active {
+  background: transparent;
+  color: #c6dfd1;
+  font-weight: 650;
+}
+.member-nav-icon {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.member-shell .app .calendar-legend {
+  flex-wrap: wrap;
+  gap: 12px;
+  border: 0;
+  padding: 6px 4px;
+  margin: 12px 0;
+}
+.member-shell .app .calendar-legend span,
+.member-shell .app .calendar-weekdays span {
+  font-size: 11px;
+  font-weight: 500;
+}
+.member-shell .app .calendar-date-number {
+  font-size: 13px;
+  font-weight: 600;
+}
+.member-shell .app .training-calendar-summary {
+  padding: 20px;
+  border-radius: 20px;
+}
+.member-shell .app .calendar-month-card {
+  padding: 20px 14px;
+  border: 0;
+  border-radius: 22px;
+}
+.member-shell .app .selected-training-section {
+  padding: 20px 16px;
+  border: 0;
+  border-radius: 22px;
+}
+.member-shell .app .calendar-program-card {
+  border: 1px solid var(--ntac-line);
+  box-shadow: none;
+}
+.member-shell .app .calendar-program-type,
+.member-shell .app .calendar-done-badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 6px 9px;
+}
+.member-shell .app .calendar-program-card > p {
+  font-size: 13px;
+  line-height: 1.7;
+}
+.member-shell .app .training-item p {
+  font-size: 14px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.member-shell .app .training-section-title {
+  padding: 14px 16px;
+}
+.member-shell .app .training-section-title span {
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  font-weight: 600;
+}
+.member-shell .app .session-card {
+  padding: 22px 18px;
+  border: 0;
+  border-radius: 22px;
+}
+.member-shell .app .session-top {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.member-shell .app .workout-info,
+.member-shell .app .detail-header > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.member-shell .app .detail-header h2 {
+  font-size: 23px;
+  line-height: 1.4;
+}
+.member-shell .app .detail-description {
+  margin-left: 0;
+  line-height: 1.7;
+}
+.member-shell .app .page-heading > p,
+.member-shell .app .calendar-month-head > div > p {
+  display: none;
+}
+.member-shell .app .calendar-month-head {
+  align-items: center;
+  gap: 8px;
+}
+.member-shell .app .calendar-month-head h3 {
+  font-size: 18px;
+  white-space: nowrap;
+}
+@media (max-width: 360px) {
+  .member-shell .app .calendar-month-navigation {
+    gap: 3px;
+  }
+  .member-shell .app .calendar-month-navigation button {
+    min-width: 34px;
+    padding: 0 6px;
+  }
+  .member-shell .app .calendar-month-head h3 {
+    font-size: 16px;
+  }
+  .member-shell .app .calendar-month-card {
+    padding: 18px 10px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-theme="dark"] .member-shell .app button {
+    transition:
+      transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 0.18s ease,
+      color 0.18s ease;
+    transform-origin: center;
+  }
+  :root[data-theme="dark"] .member-shell .app button:active:not(:disabled) {
+    transform: scale(0.97);
+    transition-duration: 0.08s;
+  }
+  .member-view,
+  .member-shell .program-detail {
+    animation: member-screen-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @keyframes member-screen-in {
+    from {
+      opacity: 0;
+      transform: translateY(7px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .member-shell .app * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .member-shell .app button:active {
+    transform: none !important;
+  }
+}
+:root[data-theme="dark"]
+  .member-shell
+  .app
+  :is(
+    .session-card,
+    .session-card.completed,
+    .workout-card,
+    .calendar-program-card,
+    .calendar-program-card.completed,
+    .calendar-rest-card,
+    .feature-card,
+    .coach-card,
+    .attendance-card,
+    .community-card
+  ) {
+  background: var(--ntac-surface);
+  color: var(--member-text);
+  border-color: var(--ntac-line);
+  box-shadow: none;
+}
+.member-shell .app .selected-training-head p {
+  display: none;
+}

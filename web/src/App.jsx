@@ -2694,69 +2694,17 @@ function App({
         </button>
       </header>
 
-      <main>
+      <main className="member-view" key={activeTab}>
         {renderPage()}
       </main>
 
-      <nav className="bottom-nav">
-        <button
-          type="button"
-          className={
-            activeTab === 'home'
-              ? 'active'
-              : ''
-          }
-          onClick={() =>
-            setActiveTab('home')
-          }
-        >
-          홈
-        </button>
-
-        <button
-          type="button"
-          className={
-            activeTab === 'training'
-              ? 'active'
-              : ''
-          }
-          onClick={() =>
-            setActiveTab('training')
-          }
-        >
-          트레이닝
-        </button>
-
-        <button
-          type="button"
-          className={
-            activeTab ===
-            'community'
-              ? 'active'
-              : ''
-          }
-          onClick={() =>
-            setActiveTab(
-              'community',
-            )
-          }
-        >
-          커뮤니티
-        </button>
-
-        <button
-          type="button"
-          className={
-            activeTab === 'my'
-              ? 'active'
-              : ''
-          }
-          onClick={() =>
-            setActiveTab('my')
-          }
-        >
-          마이
-        </button>
+      <nav className="bottom-nav" aria-label="회원 메뉴">
+        {[
+          ['home','홈','M3 10 12 3l9 7 M5 9v12h5v-7h4v7h5V9'],
+          ['training','트레이닝','M5 5h14v16H5z M8 3v4 M16 3v4 M5 10h14 M8 14h2 M14 14h2 M8 17h2'],
+          ['community','커뮤니티','M4 4h16v12H9l-5 4z M8 8h8 M8 12h5'],
+          ['my','마이','M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0 M4 21v-2a8 8 0 0 1 16 0v2'],
+        ].map(([id,label,path])=><button key={id} type="button" className={activeTab===id?'active':''} aria-current={activeTab===id?'page':undefined} onClick={()=>{if(activeTab!==id){setActiveTab(id);window.scrollTo(0,0);}}}><svg className="member-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d={path}/></svg><span>{label}</span></button>)}
       </nav>
 
       {checkinOpen && (

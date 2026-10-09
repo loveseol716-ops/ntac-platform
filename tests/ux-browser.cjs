@@ -781,6 +781,86 @@ const fixtures = {
   ({ page, context } = await open("ntac", 390));
   await page.getByText("오늘도 훈련을 이어가세요.").waitFor();
   assert.equal(await page.locator(".service-switch").count(), 0);
+  await page.screenshot({
+    path: "/tmp/ntac-home-dark.png",
+    fullPage: true,
+    animations: "disabled",
+  });
+  const trainingButton = page
+    .getByRole("navigation", { name: "회원 메뉴" })
+    .getByRole("button", { name: "트레이닝", exact: true });
+  await trainingButton.hover();
+  await page.mouse.down();
+  await page.waitForFunction(() => {
+    const b = document.querySelector(".bottom-nav button:nth-child(2)");
+    return getComputedStyle(b).transform !== "none";
+  });
+  await page.mouse.up();
+  await page
+    .getByRole("heading", { name: "트레이닝 캘린더", exact: true })
+    .waitFor();
+  assert.equal(
+    await page
+      .locator(".bottom-nav button.active")
+      .evaluate((el) => getComputedStyle(el).backgroundColor),
+    "rgba(0, 0, 0, 0)",
+  );
+  assert.equal(
+    await page
+      .locator(".selected-training-section")
+      .evaluate((el) => getComputedStyle(el).backgroundColor),
+    "rgb(28, 31, 35)",
+  );
+  await page.screenshot({
+    path: "/tmp/ntac-training-dark.png",
+    fullPage: true,
+    animations: "disabled",
+  });
+  await page.locator(".calendar-detail-button").first().click();
+  await page.locator(".training-section").first().waitFor();
+  assert.equal(
+    await page
+      .locator(".training-section")
+      .first()
+      .evaluate((el) => getComputedStyle(el).backgroundColor),
+    "rgb(28, 31, 35)",
+  );
+  assert.equal(
+    await page
+      .locator(".session-card")
+      .first()
+      .evaluate((el) => getComputedStyle(el).backgroundColor),
+    "rgb(28, 31, 35)",
+  );
+  await page.screenshot({
+    path: "/tmp/ntac-workout-dark.png",
+    fullPage: true,
+    animations: "disabled",
+  });
+  await page.setViewportSize({ width: 320, height: 750 });
+  assert(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+    "NTAC detail overflow",
+  );
+  await page.locator(".back-button").click();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  assert.equal(
+    await page
+      .locator(".bottom-nav button")
+      .first()
+      .evaluate((el) => getComputedStyle(el).transitionDuration),
+    "0s",
+  );
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  assert(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+    "NTAC calendar overflow",
+  );
+  await page.setViewportSize({ width: 390, height: 1000 });
   await page.getByRole("button", { name: "마이", exact: true }).click();
   await page.getByRole("heading", { name: "나의 기록" }).waitFor();
   assert(
