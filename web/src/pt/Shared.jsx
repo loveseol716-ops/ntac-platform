@@ -1,4 +1,4 @@
-import { assessmentSeries, packageUsage, statusLabels, today } from "./model.js";
+import { assessmentSeries, packageUsage, statusLabels } from "./model.js";
 export function Packages({ packages, sessions }) {
   return (
     <section className="pt-card">
@@ -15,10 +15,7 @@ export function Packages({ packages, sessions }) {
               <span className="pt-stat">{u.remaining}</span>회 남음 · {u.used}/
               {p.total_sessions}회 사용
             </p>
-            <p className="pt-muted">
-              {p.starts_on} ~ {p.expires_on || "기한 없음"}
-              {p.expires_on && p.expires_on < today() ? " · 기간 만료" : ""}
-            </p>
+            <p className="pt-muted">등록일 · {p.starts_on}</p>
           </div>
         );
       })}

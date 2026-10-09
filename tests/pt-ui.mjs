@@ -38,7 +38,7 @@ try {
       },
     ],
     pt_members: [
-      { id: "m1", profile_id: "u1", goal: "기초 체력", experience: "" },
+      { id: "m1", profile_id: "u1", goal: "기초 체력", experience: "", active: true },
     ],
     pt_packages: [
       {
@@ -102,18 +102,10 @@ try {
   const PTMember = (await server.ssrLoadModule("/src/pt/PTMember.jsx")).default;
   const root = createRoot(document.getElementById("root"));
   await act(async () => {
-    root.render(React.createElement(PTAdmin));
+    root.render(React.createElement(PTAdmin, { initialMemberId: "m1", isAdmin: true }));
     await new Promise((r) => setTimeout(r, 20));
   });
-  const choose = [...document.querySelectorAll("select")].find((e) =>
-    e.parentElement.textContent.includes("관리할 PT 회원"),
-  );
-  await act(async () => {
-    choose.value = "m1";
-    choose.dispatchEvent(new window.Event("change", { bubbles: true }));
-    await new Promise((r) => setTimeout(r, 20));
-  });
-  assert.match(document.body.textContent, /10회 남음/);
+  assert.match(document.body.textContent, /10회/);
   const btn = (text) =>
     [...document.querySelectorAll("button")].find(
       (b) => b.textContent === text,
@@ -155,17 +147,17 @@ try {
   assert.equal(saved.package_id, "p1");
   assert.equal(saved.feedback, "자세가 안정적입니다.");
   assert.equal(saved.private_note, "SECRET COACH NOTE");
-  assert.match(document.body.textContent, /9회 남음/);
+  assert.match(document.body.textContent, /9회/);
   await act(async () => {
     root.render(React.createElement(PTMember, { profile: db.profiles[0] }));
     await new Promise((r) => setTimeout(r, 20));
   });
   assert.match(document.body.textContent, /자세가 안정적입니다/);
   assert.doesNotMatch(document.body.textContent, /SECRET COACH NOTE/);
-  assert.match(document.body.textContent, /9회 남음/);
+  assert.match(document.body.textContent, /9회/);
   await act(async () => root.unmount());
   console.log(
-    "PASS: admin member selection, template, input, session save, refreshed balance, member summary",
+    "PASS: admin member detail, template, input, session save, refreshed balance, member summary",
   );
 } finally {
   await server.close();

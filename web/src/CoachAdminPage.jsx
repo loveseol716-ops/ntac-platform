@@ -1,1992 +1,615 @@
-import PTAdmin from './pt/PTAdmin.jsx'
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
-
-import WeeklyProgramAdmin from './WeeklyProgramAdmin'
-import PersonalProgramAdmin from './PersonalProgramAdmin'
-import CommunityAdmin from './CommunityAdmin'
-import AdminAccessManagement from './AdminAccessManagement'
-import WeeklyAthleteReportAdmin from './WeeklyAthleteReportAdmin'
-import CoachSessionRequestAdmin from './CoachSessionRequestAdmin'
-import CoachOperationsDashboard from './CoachOperationsDashboard.jsx'
-import {
-  loadAllCoachSessionRequests,
-  subscribeToCoachSessionRequests,
-} from './data/coachSessionRequests.js'
-import { supabase } from './lib/supabase.js'
-
-const adminTabs = [
-  { id: 'pt', label: 'PT 관리' },
-  {
-    id: 'dashboard',
-    label: '운영 콘솔',
-  },
-  {
-    id: 'members',
-    label: '멤버 관리',
-  },
-  {
-    id: 'programs',
-    label: '프로그램 관리',
-  },
-  {
-    id: 'personal',
-    label: '개인 프로그램',
-  },
-  {
-    id: 'reports',
-    label: '주간 리포트',
-  },
-  {
-    id: 'coachRequests',
-    label: '1:1 요청',
-  },
-  {
-    id: 'community',
-    label: '커뮤니티 관리',
-  },
-  {
-    id: 'access',
-    label: '권한 관리',
-  },
-]
-
-const membershipOptions = [
-  'PT',
-  'NTAC RUN',
-  'NTAC BUILD',
-  'NTAC COMPLETE',
-  'NTAC ATHLETE',
-  'NTAC COMMUNITY',
-]
-
-const membershipStatusOptions = [
-  {
-    value: 'active',
-    label: '이용 중',
-  },
-  {
-    value: 'paused',
-    label: '일시정지',
-  },
-  {
-    value: 'expired',
-    label: '만료',
-  },
-]
-
-const emptyMemberSettings = {
-  fullName: '',
-  membership: 'NTAC RUN',
-  membershipStatus: 'active',
-  coachCare: false,
-  coachName: '미배정',
-  paidUntil: '',
-  trialEndsAt: '',
-  accessOverrideUntil: '',
-}
-
-function formatDateTime(value) {
-  if (!value) {
-    return '시간 기록 없음'
-  }
-
-  return new Date(value).toLocaleString(
-    'ko-KR',
-    {
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    },
-  )
-}
-
-function normalizeCheckin(row) {
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "./lib/supabase.js";
+import { checked } from "./pt/api.js";
+import { today } from "./pt/model.js";
+import PTAdmin from "./pt/PTAdmin.jsx";
+import "./management/Management.css";
+const WeeklyProgramAdmin = lazy(() => import("./WeeklyProgramAdmin.jsx"));
+const PersonalProgramAdmin = lazy(() => import("./PersonalProgramAdmin.jsx"));
+const WeeklyAthleteReportAdmin = lazy(
+  () => import("./WeeklyAthleteReportAdmin.jsx"),
+);
+const CommunityAdmin = lazy(() => import("./CommunityAdmin.jsx"));
+const AdminAccessManagement = lazy(() => import("./AdminAccessManagement.jsx"));
+const isStaff = (p) => ["owner", "admin", "coach"].includes(p?.role);
+function getPTStats(member, packages, sessions) {
+  const completed = sessions
+    .filter((s) => s.member_id === member.id && s.status === "completed")
+    .sort((a, b) => b.session_date.localeCompare(a.session_date));
+  const packs = packages.filter((p) => p.member_id === member.id);
+  const next = sessions
+    .filter(
+      (s) =>
+        s.member_id === member.id &&
+        s.status === "scheduled" &&
+        s.session_date >= today(),
+    )
+    .sort((a, b) =>
+      `${a.session_date} ${a.start_time}`.localeCompare(
+        `${b.session_date} ${b.start_time}`,
+      ),
+    )[0];
   return {
-    id: row.id,
-    date: row.checkin_date,
-    condition: Number(
-      row.condition_score,
-    ),
-    sleep: Number(row.sleep_hours),
-    soreness: Number(
-      row.soreness_score,
-    ),
-    stress: Number(
-      row.stress_score,
-    ),
-    pain: row.pain_level,
-    painArea: row.pain_area || '',
-    message: row.message || '',
-    completedAt:
-      row.updated_at ||
-      row.created_at,
-  }
+    used: completed.length,
+    remaining:
+      packs.reduce((sum, p) => sum + p.total_sessions, 0) - completed.length,
+    last: completed[0]?.session_date,
+    next,
+    packs: packs.length,
+  };
 }
-
-function normalizeWorkoutRecord(row) {
-  return {
-    id: row.id,
-    sessionId: row.session_id,
-    eventId: row.event_id,
-    date: row.workout_date,
-    title:
-      row.title ||
-      row.session_id ||
-      '운동 기록',
-    type:
-      row.workout_type ||
-      'TRAINING',
-    rpe: Number(row.rpe),
-    targetRpe:
-      row.target_rpe === null ||
-      row.target_rpe === undefined
-        ? null
-        : Number(row.target_rpe),
-    targetRpeLabel:
-      row.target_rpe_label || '',
-    weekId: row.week_key || '',
-    weekType: row.week_type || '',
-    rpeGap:
-      row.target_rpe === null ||
-      row.target_rpe === undefined
-        ? null
-        : Number(
-            (
-              Number(row.rpe) -
-              Number(row.target_rpe)
-            ).toFixed(1),
-          ),
-    completedAt: row.completed_at,
-  }
-}
-
-function isAttentionCheckin(checkin) {
-  if (!checkin) {
-    return false
-  }
-
+function Modal({ title, onClose, children }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    ref.current?.showModal();
+  }, []);
   return (
-    Number(checkin.condition) <= 2 ||
-    checkin.pain !== '없음'
-  )
-}
-
-function getStatusLabel(status) {
-  return (
-    membershipStatusOptions.find(
-      (option) =>
-        option.value === status,
-    )?.label || '이용 중'
-  )
-}
-
-function CoachAdminPage({
-  onClose,
-}) {
-  const [
-    activeAdminTab,
-    setActiveAdminTab,
-  ] = useState('dashboard')
-
-  const [
-    membersRefreshKey,
-    setMembersRefreshKey,
-  ] = useState(0)
-
-  const [
-    coachRequestCount,
-    setCoachRequestCount,
-  ] = useState(0)
-
-  const [members, setMembers] =
-    useState([])
-
-  const [
-    memberSearch,
-    setMemberSearch,
-  ] = useState('')
-
-  const [
-    membershipFilter,
-    setMembershipFilter,
-  ] = useState('ALL')
-
-  const [
-    selectedMemberId,
-    setSelectedMemberId,
-  ] = useState('')
-
-  const [
-    memberSettings,
-    setMemberSettings,
-  ] = useState(emptyMemberSettings)
-
-  const [
-    checkinHistory,
-    setCheckinHistory,
-  ] = useState([])
-
-  const [
-    workoutRecords,
-    setWorkoutRecords,
-  ] = useState([])
-
-  const [
-    membersLoading,
-    setMembersLoading,
-  ] = useState(true)
-
-  const [
-    recordsLoading,
-    setRecordsLoading,
-  ] = useState(false)
-
-  const [saving, setSaving] =
-    useState(false)
-
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState('')
-
-  const updateCoachRequestCount = (
-    requests,
-  ) => {
-    setCoachRequestCount(
-      (
-        Array.isArray(requests)
-          ? requests
-          : []
-      ).filter(
-        (request) =>
-          !request.isRead &&
-          request.status ===
-            'REQUESTED',
-      ).length,
-    )
-  }
-
-  useEffect(() => {
-    let isMounted = true
-
-    const refreshCount =
-      async () => {
-        try {
-          const requests =
-            await loadAllCoachSessionRequests()
-
-          if (isMounted) {
-            updateCoachRequestCount(
-              requests,
-            )
-          }
-        } catch (error) {
-          console.error(
-            '1:1 요청 알림 조회 실패:',
-            error,
-          )
-        }
-      }
-
-    refreshCount()
-
-    const unsubscribe =
-      subscribeToCoachSessionRequests(
-        refreshCount,
-        'admin-badge',
-      )
-
-    return () => {
-      isMounted = false
-      unsubscribe()
-    }
-  }, [])
-
-  const filteredMembers = useMemo(() => {
-    const keyword = memberSearch
-      .trim()
-      .toLowerCase()
-
-    return members.filter((member) => {
-      const memberName =
-        member.full_name
-          ?.toLowerCase() || ''
-
-      const memberEmail =
-        member.email
-          ?.toLowerCase() || ''
-
-      const matchesSearch =
-        !keyword ||
-        memberName.includes(keyword) ||
-        memberEmail.includes(keyword)
-
-      const matchesMembership =
-        membershipFilter === 'ALL' ||
-        member.membership ===
-          membershipFilter
-
-      return (
-        matchesSearch &&
-        matchesMembership
-      )
-    })
-  }, [
-    members,
-    memberSearch,
-    membershipFilter,
-  ])
-
-  const selectedMember =
-    members.find(
-      (member) =>
-        member.id ===
-        selectedMemberId,
-    ) || null
-
-  useEffect(() => {
-    let isMounted = true
-
-    const loadMembers = async () => {
-      setMembersLoading(true)
-      setErrorMessage('')
-
-      const {
-        data,
-        error,
-      } = await supabase
-        .from('profiles')
-        .select(
-          `
-            id,
-            email,
-            full_name,
-            role,
-            membership,
-            membership_status,
-            coach_care,
-            coach_name,
-            paid_until,
-            trial_ends_at,
-            access_override_until
-          `,
-        )
-        .eq('role', 'member')
-        .order('full_name', {
-          ascending: true,
-        })
-
-      if (!isMounted) {
-        return
-      }
-
-      if (error) {
-        console.error(
-          '회원 목록 조회 실패:',
-          error,
-        )
-
-        setErrorMessage(
-          error.message ||
-            '회원 목록을 불러오지 못했습니다.',
-        )
-
-        setMembersLoading(false)
-        return
-      }
-
-      setMembers(data || [])
-      setMembersLoading(false)
-    }
-
-    loadMembers()
-
-    return () => {
-      isMounted = false
-    }
-  }, [membersRefreshKey])
-
-  useEffect(() => {
-    if (membersLoading) {
-      return
-    }
-
-    if (filteredMembers.length === 0) {
-      if (selectedMemberId) {
-        setSelectedMemberId('')
-      }
-
-      return
-    }
-
-    const selectedMemberExists =
-      filteredMembers.some(
-        (member) =>
-          member.id ===
-          selectedMemberId,
-      )
-
-    if (!selectedMemberExists) {
-      setSelectedMemberId(
-        filteredMembers[0].id,
-      )
-    }
-  }, [
-    filteredMembers,
-    membersLoading,
-    selectedMemberId,
-  ])
-
-  useEffect(() => {
-    let isMounted = true
-
-    const loadSelectedMember =
-      async () => {
-        if (!selectedMemberId) {
-          setMemberSettings(
-            emptyMemberSettings,
-          )
-          setCheckinHistory([])
-          setWorkoutRecords([])
-          setRecordsLoading(false)
-          return
-        }
-
-        const member = members.find(
-          (item) =>
-            item.id ===
-            selectedMemberId,
-        )
-
-        if (member) {
-          setMemberSettings({
-            fullName:
-              member.full_name || '',
-            membership:
-              member.membership ||
-              'NTAC RUN',
-            membershipStatus:
-              member.membership_status ||
-              'active',
-            coachCare: Boolean(
-              member.coach_care,
-            ),
-            coachName:
-              member.coach_name ||
-              '미배정',
-            paidUntil:
-              member.paid_until || '',
-            trialEndsAt:
-              member.trial_ends_at || '',
-            accessOverrideUntil:
-              member.access_override_until || '',
-          })
-        }
-
-        setRecordsLoading(true)
-        setErrorMessage('')
-
-        const [
-          checkinResult,
-          workoutResult,
-        ] = await Promise.all([
-          supabase
-            .from('daily_checkins')
-            .select(
-              `
-                id,
-                checkin_date,
-                condition_score,
-                sleep_hours,
-                soreness_score,
-                stress_score,
-                pain_level,
-                pain_area,
-                message,
-                created_at,
-                updated_at
-              `,
-            )
-            .eq(
-              'user_id',
-              selectedMemberId,
-            )
-            .order('checkin_date', {
-              ascending: false,
-            }),
-
-          supabase
-            .from('workout_records')
-            .select(
-              `
-                id,
-                session_id,
-                event_id,
-                workout_date,
-                title,
-                workout_type,
-                rpe,
-                target_rpe,
-                target_rpe_label,
-                week_key,
-                week_type,
-                completed_at
-              `,
-            )
-            .eq(
-              'user_id',
-              selectedMemberId,
-            )
-            .order('completed_at', {
-              ascending: false,
-            }),
-        ])
-
-        if (!isMounted) {
-          return
-        }
-
-        if (checkinResult.error) {
-          console.error(
-            '체크인 조회 실패:',
-            checkinResult.error,
-          )
-
-          setErrorMessage(
-            checkinResult.error.message,
-          )
-        }
-
-        if (workoutResult.error) {
-          console.error(
-            '운동 기록 조회 실패:',
-            workoutResult.error,
-          )
-
-          setErrorMessage(
-            workoutResult.error.message,
-          )
-        }
-
-        setCheckinHistory(
-          (
-            checkinResult.data || []
-          ).map(normalizeCheckin),
-        )
-
-        setWorkoutRecords(
-          (
-            workoutResult.data || []
-          ).map(
-            normalizeWorkoutRecord,
-          ),
-        )
-
-        setRecordsLoading(false)
-      }
-
-    loadSelectedMember()
-
-    return () => {
-      isMounted = false
-    }
-  }, [
-    selectedMemberId,
-    members,
-  ])
-
-  const latestCheckin =
-    checkinHistory[0] || null
-
-  const trendCheckins = useMemo(
-    () =>
-      [...checkinHistory]
-        .sort(
-          (first, second) =>
-            new Date(
-              first.completedAt,
-            ).getTime() -
-            new Date(
-              second.completedAt,
-            ).getTime(),
-        )
-        .slice(-7),
-    [checkinHistory],
-  )
-
-  const averageCondition =
-    checkinHistory.length > 0
-      ? (
-          checkinHistory.reduce(
-            (total, checkin) =>
-              total +
-              Number(
-                checkin.condition || 0,
-              ),
-            0,
-          ) / checkinHistory.length
-        ).toFixed(1)
-      : '-'
-
-  const averageRpe =
-    workoutRecords.length > 0
-      ? (
-          workoutRecords.reduce(
-            (total, record) =>
-              total +
-              Number(record.rpe || 0),
-            0,
-          ) / workoutRecords.length
-        ).toFixed(1)
-      : '-'
-
-  const needsAttention =
-    isAttentionCheckin(
-      latestCheckin,
-    )
-
-  const updateMemberSettings = (
-    name,
-    value,
-  ) => {
-    setMemberSettings(
-      (current) => {
-        if (name === 'membership') {
-          return {
-            ...current,
-            membership: value,
-            coachCare:
-              value === 'NTAC ATHLETE'
-                ? true
-                : current.coachCare,
-          }
-        }
-
-        return {
-          ...current,
-          [name]: value,
-        }
-      },
-    )
-  }
-
-  const resetMemberFilters = () => {
-    setMemberSearch('')
-    setMembershipFilter('ALL')
-  }
-
-  const saveMemberSettings =
-    async (event) => {
-      event.preventDefault()
-
-      if (
-        !selectedMemberId ||
-        saving
-      ) {
-        return
-      }
-
-      if (
-        !memberSettings.fullName.trim()
-      ) {
-        alert(
-          '멤버 이름을 입력해 주세요.',
-        )
-        return
-      }
-
-      setSaving(true)
-      setErrorMessage('')
-
-      const {
-        data,
-        error,
-      } = await supabase
-        .from('profiles')
-        .update({
-          full_name:
-            memberSettings.fullName.trim(),
-
-          membership:
-            memberSettings.membership,
-
-          membership_status:
-            memberSettings
-              .membershipStatus,
-
-          coach_care:
-            memberSettings.membership ===
-            'NTAC ATHLETE'
-              ? true
-              : memberSettings.coachCare,
-
-          coach_name:
-            memberSettings.coachName
-              .trim() || '미배정',
-
-          paid_until:
-            memberSettings.paidUntil || null,
-
-          trial_ends_at:
-            memberSettings.trialEndsAt || null,
-
-          access_override_until:
-            memberSettings.accessOverrideUntil || null,
-        })
-        .eq('id', selectedMemberId)
-        .select(
-          `
-            id,
-            email,
-            full_name,
-            role,
-            membership,
-            membership_status,
-            coach_care,
-            coach_name,
-            paid_until,
-            trial_ends_at,
-            access_override_until
-          `,
-        )
-        .single()
-
-      if (error) {
-        console.error(
-          '회원 정보 저장 실패:',
-          error,
-        )
-
-        setErrorMessage(
-          error.message ||
-            '회원 정보를 저장하지 못했습니다.',
-        )
-
-        alert(
-          `저장에 실패했습니다.\n${
-            error.message ||
-            '알 수 없는 오류'
-          }`,
-        )
-
-        setSaving(false)
-        return
-      }
-
-      setMembers((current) =>
-        current.map((member) =>
-          member.id === data.id
-            ? data
-            : member,
-        ),
-      )
-
-      setMemberSettings({
-        fullName:
-          data.full_name || '',
-
-        membership:
-          data.membership ||
-          'NTAC RUN',
-
-        membershipStatus:
-          data.membership_status ||
-          'active',
-
-        coachCare: Boolean(
-          data.coach_care,
-        ),
-
-        coachName:
-          data.coach_name ||
-          '미배정',
-
-        paidUntil:
-          data.paid_until || '',
-
-        trialEndsAt:
-          data.trial_ends_at || '',
-
-        accessOverrideUntil:
-          data.access_override_until || '',
-      })
-
-      setSaving(false)
-
-      alert(
-        '멤버 정보가 Supabase에 저장되었습니다.',
-      )
-    }
-
-  const renderMemberManagement =
-    () => (
-      <>
-        {membersLoading && (
-          <article className="feature-card">
-            <h3>
-              회원 목록을 불러오는
-              중입니다.
-            </h3>
-
-            <p>
-              Supabase의 회원 정보를
-              확인하고 있어요.
-            </p>
-          </article>
-        )}
-
-        {errorMessage && (
-          <article className="feature-card locked">
-            <span className="locked-badge">
-              ADMIN ERROR
-            </span>
-
-            <h3>
-              관리자 데이터를 불러오지
-              못했습니다.
-            </h3>
-
-            <p>{errorMessage}</p>
-          </article>
-        )}
-
-        {!membersLoading &&
-          members.length === 0 && (
-            <article className="feature-card locked">
-              <h3>
-                등록된 멤버가 없습니다.
-              </h3>
-            </article>
-          )}
-
-        {!membersLoading &&
-          members.length > 0 && (
-            <>
-              <div className="admin-select-grid">
-                <label className="admin-field">
-                  이름 또는 이메일 검색
-
-                  <input
-                    type="search"
-                    placeholder="예: 설재현"
-                    value={memberSearch}
-                    onChange={(event) =>
-                      setMemberSearch(
-                        event.target.value,
-                      )
-                    }
-                  />
-                </label>
-
-                <label className="admin-field">
-                  이용 상품 필터
-
-                  <select
-                    value={membershipFilter}
-                    onChange={(event) =>
-                      setMembershipFilter(
-                        event.target.value,
-                      )
-                    }
-                  >
-                    <option value="ALL">
-                      전체 상품
-                    </option>
-
-                    {membershipOptions.map(
-                      (membership) => (
-                        <option
-                          key={membership}
-                          value={membership}
-                        >
-                          {membership}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </label>
-
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent:
-                      'space-between',
-                    gap: '12px',
-                    gridColumn: '1 / -1',
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: '700',
-                      color: '#66736e',
-                    }}
-                  >
-                    전체 {members.length}명
-                    {' · '}
-                    검색 결과{' '}
-                    {filteredMembers.length}명
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={
-                      resetMemberFilters
-                    }
-                    style={{
-                      padding: '8px 12px',
-                      border:
-                        '1px solid #d6dedb',
-                      borderRadius: '10px',
-                      background: '#ffffff',
-                      fontSize: '12px',
-                      fontWeight: '800',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    필터 초기화
-                  </button>
-                </div>
-
-                {filteredMembers.length >
-                0 ? (
-                  <label className="admin-field">
-                    멤버 선택
-
-                    <select
-                      value={selectedMemberId}
-                      onChange={(event) =>
-                        setSelectedMemberId(
-                          event.target.value,
-                        )
-                      }
-                    >
-                      {filteredMembers.map(
-                        (member) => (
-                          <option
-                            key={member.id}
-                            value={member.id}
-                          >
-                            {member.full_name ||
-                              member.email}
-
-                            {' · '}
-
-                            {member.membership ||
-                              'NTAC RUN'}
-                          </option>
-                        ),
-                      )}
-                    </select>
-                  </label>
-                ) : (
-                  <article
-                    className="feature-card locked"
-                    style={{
-                      gridColumn: '1 / -1',
-                    }}
-                  >
-                    <span className="locked-badge">
-                      검색 결과 없음
-                    </span>
-
-                    <h3>
-                      조건에 맞는 멤버가
-                      없습니다.
-                    </h3>
-
-                    <p>
-                      검색어나 상품 필터를
-                      변경해 주세요.
-                    </p>
-                  </article>
-                )}
-              </div>
-
-              {selectedMember &&
-                filteredMembers.length >
-                  0 && (
-                  <>
-                    <article className="admin-member-card">
-                      <div>
-                        <p>
-                          SELECTED ATHLETE
-                        </p>
-
-                        <h3>
-                          {selectedMember.full_name ||
-                            selectedMember.email}
-                        </h3>
-
-                        <span>
-                          {
-                            memberSettings.membership
-                          }
-
-                          {' · '}
-
-                          {getStatusLabel(
-                            memberSettings
-                              .membershipStatus,
-                          )}
-                        </span>
-                      </div>
-
-                      <div className="admin-coach-info">
-                        <span>
-                          담당 코치
-                        </span>
-
-                        <strong>
-                          {
-                            memberSettings.coachName
-                          }
-                        </strong>
-                      </div>
-                    </article>
-
-                    <section className="coach-dashboard">
-                      <div className="admin-form-heading">
-                        <p>
-                          ATHLETE DASHBOARD
-                        </p>
-
-                        <h3>
-                          체크인 및 수행 현황
-                        </h3>
-                      </div>
-
-                      {recordsLoading ? (
-                        <div className="dashboard-empty">
-                          기록을 불러오는
-                          중입니다.
-                        </div>
-                      ) : (
-                        <>
-                          <div className="dashboard-summary-grid">
-                            <article>
-                              <span>
-                                체크인 기록
-                              </span>
-
-                              <strong>
-                                {
-                                  checkinHistory.length
-                                }
-                                개
-                              </strong>
-                            </article>
-
-                            <article>
-                              <span>
-                                평균 컨디션
-                              </span>
-
-                              <strong>
-                                {
-                                  averageCondition
-                                }
-                              </strong>
-                            </article>
-
-                            <article>
-                              <span>
-                                완료한 과제
-                              </span>
-
-                              <strong>
-                                {
-                                  workoutRecords.length
-                                }
-                                개
-                              </strong>
-                            </article>
-
-                            <article>
-                              <span>
-                                평균 실제 RPE
-                              </span>
-
-                              <strong>
-                                {averageRpe}
-                              </strong>
-                            </article>
-                          </div>
-
-                          <article
-                            className={`dashboard-checkin-card ${
-                              needsAttention
-                                ? 'attention'
-                                : ''
-                            }`}
-                          >
-                            <div className="dashboard-card-heading">
-                              <div>
-                                <span>
-                                  DAILY CHECK-IN
-                                </span>
-
-                                <h4>
-                                  최근 컨디션 기록
-                                </h4>
-                              </div>
-
-                              {needsAttention && (
-                                <strong>
-                                  확인 필요
-                                </strong>
-                              )}
-                            </div>
-
-                            {latestCheckin ? (
-                              <>
-                                <div className="checkin-score-grid">
-                                  <div>
-                                    <span>
-                                      컨디션
-                                    </span>
-
-                                    <strong>
-                                      {
-                                        latestCheckin.condition
-                                      }
-                                      {' / 5'}
-                                    </strong>
-                                  </div>
-
-                                  <div>
-                                    <span>
-                                      수면
-                                    </span>
-
-                                    <strong>
-                                      {
-                                        latestCheckin.sleep
-                                      }
-                                      시간
-                                    </strong>
-                                  </div>
-
-                                  <div>
-                                    <span>
-                                      근육통
-                                    </span>
-
-                                    <strong>
-                                      {
-                                        latestCheckin.soreness
-                                      }
-                                      {' / 5'}
-                                    </strong>
-                                  </div>
-
-                                  <div>
-                                    <span>
-                                      스트레스
-                                    </span>
-
-                                    <strong>
-                                      {
-                                        latestCheckin.stress
-                                      }
-                                      {' / 5'}
-                                    </strong>
-                                  </div>
-                                </div>
-
-                                <div className="dashboard-detail-row">
-                                  <span>
-                                    통증 여부
-                                  </span>
-
-                                  <strong>
-                                    {
-                                      latestCheckin.pain
-                                    }
-
-                                    {latestCheckin.painArea
-                                      ? ` · ${latestCheckin.painArea}`
-                                      : ''}
-                                  </strong>
-                                </div>
-
-                                <div className="dashboard-message">
-                                  <span>
-                                    코치에게 전달한 내용
-                                  </span>
-
-                                  <p>
-                                    {latestCheckin.message ||
-                                      '전달한 내용이 없습니다.'}
-                                  </p>
-                                </div>
-
-                                <p className="dashboard-record-time">
-                                  {formatDateTime(
-                                    latestCheckin.completedAt,
-                                  )}
-                                </p>
-                              </>
-                            ) : (
-                              <div className="dashboard-empty">
-                                아직 체크인 기록이
-                                없습니다.
-                              </div>
-                            )}
-                          </article>
-
-                          <section className="checkin-trend-card">
-                            <div className="dashboard-section-title">
-                              <div>
-                                <span>
-                                  CONDITION TREND
-                                </span>
-
-                                <h4>
-                                  최근 컨디션 변화
-                                </h4>
-                              </div>
-
-                              <strong>
-                                최근 7회
-                              </strong>
-                            </div>
-
-                            {trendCheckins.length >
-                            0 ? (
-                              <div className="trend-list">
-                                {trendCheckins.map(
-                                  (
-                                    checkin,
-                                    index,
-                                  ) => (
-                                    <div
-                                      className="trend-row"
-                                      key={
-                                        checkin.id ||
-                                        index
-                                      }
-                                    >
-                                      <span>
-                                        {formatDateTime(
-                                          checkin.completedAt,
-                                        )}
-                                      </span>
-
-                                      <div className="trend-track">
-                                        <div
-                                          className="trend-value"
-                                          style={{
-                                            width: `${
-                                              (Number(
-                                                checkin.condition,
-                                              ) /
-                                                5) *
-                                              100
-                                            }%`,
-                                          }}
-                                        />
-                                      </div>
-
-                                      <strong>
-                                        {
-                                          checkin.condition
-                                        }
-                                      </strong>
-                                    </div>
-                                  ),
-                                )}
-                              </div>
-                            ) : (
-                              <div className="dashboard-empty">
-                                컨디션 추이를 표시할
-                                기록이 없습니다.
-                              </div>
-                            )}
-                          </section>
-
-                          <section className="checkin-history-section">
-                            <div className="dashboard-section-title">
-                              <div>
-                                <span>
-                                  CHECK-IN HISTORY
-                                </span>
-
-                                <h4>
-                                  날짜별 체크인 기록
-                                </h4>
-                              </div>
-
-                              <strong>
-                                {
-                                  checkinHistory.length
-                                }
-                                개
-                              </strong>
-                            </div>
-
-                            <div className="checkin-history-list">
-                              {checkinHistory.length >
-                              0 ? (
-                                checkinHistory
-                                  .slice(0, 10)
-                                  .map(
-                                    (checkin) => (
-                                      <article
-                                        className={`checkin-history-card ${
-                                          isAttentionCheckin(
-                                            checkin,
-                                          )
-                                            ? 'attention'
-                                            : ''
-                                        }`}
-                                        key={checkin.id}
-                                      >
-                                        <div className="history-card-head">
-                                          <div>
-                                            <span>
-                                              {formatDateTime(
-                                                checkin.completedAt,
-                                              )}
-                                            </span>
-
-                                            <h4>
-                                              컨디션{' '}
-                                              {
-                                                checkin.condition
-                                              }
-                                              {' / 5'}
-                                            </h4>
-                                          </div>
-
-                                          {isAttentionCheckin(
-                                            checkin,
-                                          ) && (
-                                            <strong>
-                                              확인 필요
-                                            </strong>
-                                          )}
-                                        </div>
-
-                                        <div className="history-score-row">
-                                          <span>
-                                            수면{' '}
-                                            {
-                                              checkin.sleep
-                                            }
-                                            시간
-                                          </span>
-
-                                          <span>
-                                            근육통{' '}
-                                            {
-                                              checkin.soreness
-                                            }
-                                            {' / 5'}
-                                          </span>
-
-                                          <span>
-                                            스트레스{' '}
-                                            {
-                                              checkin.stress
-                                            }
-                                            {' / 5'}
-                                          </span>
-                                        </div>
-
-                                        <p>
-                                          통증:{' '}
-                                          {
-                                            checkin.pain
-                                          }
-
-                                          {checkin.painArea
-                                            ? ` · ${checkin.painArea}`
-                                            : ''}
-                                        </p>
-
-                                        {checkin.message && (
-                                          <p className="history-message">
-                                            {
-                                              checkin.message
-                                            }
-                                          </p>
-                                        )}
-                                      </article>
-                                    ),
-                                  )
-                              ) : (
-                                <div className="dashboard-empty">
-                                  저장된 체크인 기록이
-                                  없습니다.
-                                </div>
-                              )}
-                            </div>
-                          </section>
-
-                          <div className="dashboard-workout-section">
-                            <div className="dashboard-section-title">
-                              <div>
-                                <span>
-                                  WORKOUT RECORDS
-                                </span>
-
-                                <h4>
-                                  운동 수행 기록
-                                </h4>
-                              </div>
-
-                              <strong>
-                                {
-                                  workoutRecords.length
-                                }
-                                개 완료
-                              </strong>
-                            </div>
-
-                            <div className="dashboard-workout-list">
-                              {workoutRecords.length >
-                              0 ? (
-                                workoutRecords.map(
-                                  (record) => (
-                                    <article
-                                      className="dashboard-workout-card"
-                                      key={record.id}
-                                    >
-                                      <div>
-                                        <span>
-                                          {
-                                            record.type
-                                          }
-                                        </span>
-
-                                        <h4>
-                                          {
-                                            record.title
-                                          }
-                                        </h4>
-
-                                        <p>
-                                          {formatDateTime(
-                                            record.completedAt,
-                                          )}
-                                        </p>
-                                      </div>
-
-                                      <div className="dashboard-rpe">
-                                        <span>
-                                          목표 → 실제
-                                        </span>
-
-                                        <strong>
-                                          {record.targetRpe ??
-                                            '-'}
-                                          {' → '}
-                                          {record.rpe}
-                                        </strong>
-
-                                        {record.rpeGap !==
-                                          null && (
-                                          <small>
-                                            차이{' '}
-                                            {record.rpeGap >
-                                            0
-                                              ? '+'
-                                              : ''}
-                                            {
-                                              record.rpeGap
-                                            }
-                                          </small>
-                                        )}
-                                      </div>
-                                    </article>
-                                  ),
-                                )
-                              ) : (
-                                <div className="dashboard-empty">
-                                  아직 완료한 운동
-                                  기록이 없습니다.
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </section>
-
-                    <form
-                      className="admin-product-settings"
-                      onSubmit={
-                        saveMemberSettings
-                      }
-                    >
-                      <div className="admin-form-heading">
-                        <p>
-                          MEMBERSHIP ACCESS
-                        </p>
-
-                        <h3>
-                          상품 및 코치 설정
-                        </h3>
-                      </div>
-
-                      <label className="admin-field">
-                        멤버 이름
-
-                        <input
-                          type="text"
-                          value={
-                            memberSettings.fullName
-                          }
-                          onChange={(event) =>
-                            updateMemberSettings(
-                              'fullName',
-                              event.target.value,
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label className="admin-field">
-                        이용 상품
-
-                        <select
-                          value={
-                            memberSettings.membership
-                          }
-                          onChange={(event) =>
-                            updateMemberSettings(
-                              'membership',
-                              event.target.value,
-                            )
-                          }
-                        >
-                          {membershipOptions.map(
-                            (membership) => (
-                              <option
-                                key={membership}
-                                value={membership}
-                              >
-                                {membership}
-                              </option>
-                            ),
-                          )}
-                        </select>
-                      </label>
-
-                      <label className="admin-field">
-                        멤버십 상태
-
-                        <select
-                          value={
-                            memberSettings
-                              .membershipStatus
-                          }
-                          onChange={(event) =>
-                            updateMemberSettings(
-                              'membershipStatus',
-                              event.target.value,
-                            )
-                          }
-                        >
-                          {membershipStatusOptions.map(
-                            (option) => (
-                              <option
-                                key={option.value}
-                                value={option.value}
-                              >
-                                {option.label}
-                              </option>
-                            ),
-                          )}
-                        </select>
-                      </label>
-
-                      <label className="admin-field">
-                        담당 코치
-
-                        <input
-                          type="text"
-                          placeholder="예: 윤다원"
-                          value={
-                            memberSettings.coachName
-                          }
-                          onChange={(event) =>
-                            updateMemberSettings(
-                              'coachName',
-                              event.target.value,
-                            )
-                          }
-                        />
-                      </label>
-
-                      <div
-                        style={{
-                          display: 'grid',
-                          gap: '10px',
-                          padding: '15px',
-                          border: '1px solid #dce5e1',
-                          borderRadius: '15px',
-                          background: '#f6f8f7',
-                        }}
-                      >
-                        <div>
-                          <p
-                            style={{
-                              margin: '0 0 4px',
-                              color: '#0b6b4f',
-                              fontSize: '9px',
-                              fontWeight: '900',
-                              letterSpacing: '0.1em',
-                            }}
-                          >
-                            BILLING ACCESS
-                          </p>
-                          <strong
-                            style={{
-                              color: '#17352c',
-                              fontSize: '14px',
-                            }}
-                          >
-                            이용 기간 설정
-                          </strong>
-                        </div>
-
-                        <label className="admin-field">
-                          유료 이용 종료일
-                          <input
-                            type="date"
-                            value={memberSettings.paidUntil}
-                            onChange={(event) =>
-                              updateMemberSettings(
-                                'paidUntil',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </label>
-
-                        <label className="admin-field">
-                          무료 체험 종료일
-                          <input
-                            type="date"
-                            value={memberSettings.trialEndsAt}
-                            onChange={(event) =>
-                              updateMemberSettings(
-                                'trialEndsAt',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </label>
-
-                        <label className="admin-field">
-                          관리자 임시 연장 종료일
-                          <input
-                            type="date"
-                            value={memberSettings.accessOverrideUntil}
-                            onChange={(event) =>
-                              updateMemberSettings(
-                                'accessOverrideUntil',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </label>
-
-                        <p
-                          style={{
-                            margin: 0,
-                            color: '#78857f',
-                            fontSize: '11px',
-                            lineHeight: 1.55,
-                          }}
-                        >
-                          유료·체험·임시 연장 중 하나라도 현재 날짜까지 유효하면 앱 이용이 유지됩니다.
-                        </p>
-                      </div>
-
-                      <label className="admin-check-field">
-                        <input
-                          type="checkbox"
-                          checked={
-                            memberSettings.membership ===
-                            'NTAC ATHLETE'
-                              ? true
-                              : memberSettings.coachCare
-                          }
-                          disabled={
-                            memberSettings.membership ===
-                            'NTAC ATHLETE'
-                          }
-                          onChange={(event) =>
-                            updateMemberSettings(
-                              'coachCare',
-                              event.target.checked,
-                            )
-                          }
-                        />
-
-                        <span>
-                          COACH CARE 서비스
-                          활성화
-                          {memberSettings.membership ===
-                          'NTAC ATHLETE'
-                            ? ' · ATHLETE 필수'
-                            : ''}
-                        </span>
-                      </label>
-
-                      <button
-                        className="admin-save-button"
-                        type="submit"
-                        disabled={saving}
-                      >
-                        {saving
-                          ? '저장 중...'
-                          : '멤버 정보 저장'}
-                      </button>
-                    </form>
-                  </>
-                )}
-            </>
-          )}
-      </>
-    )
-
-  return (
-    <section className="coach-admin-page">
-      <style>{`
-        .coach-admin-page {
-          position: fixed;
-          inset: 0;
-          z-index: 30000;
-          width: 100vw;
-          max-width: none;
-          min-height: 100vh;
-          margin: 0;
-          padding: 18px 28px 44px;
-          overflow-y: auto;
-          overflow-x: hidden;
-          background: #f4f6f2;
-          color: #17201c;
-        }
-
-        .coach-admin-page > .admin-page-header,
-        .coach-admin-page > .ntac-admin-tabs,
-        .coach-admin-page > .ntac-console {
-          width: min(100%, 1540px);
-          margin-left: auto;
-          margin-right: auto;
-        }
-
-        .coach-admin-page > .admin-page-header {
-          margin-bottom: 12px;
-        }
-
-        .ntac-admin-tabs {
-          scrollbar-width: thin;
-        }
-
-        @media (max-width: 1100px) {
-          .coach-admin-page {
-            padding: 16px 18px 36px;
-          }
-        }
-
-        @media (max-width: 720px) {
-          .coach-admin-page {
-            padding: 14px 12px 30px;
-          }
-        }
-      `}</style>
-
-      <div className="admin-page-header">
-        <button
-          type="button"
-          onClick={onClose}
-        >
-          ←
+    <dialog className="manage member-dialog" ref={ref} onCancel={onClose}>
+      <div className="section-heading">
+        <h2>{title}</h2>
+        <button onClick={onClose} aria-label="닫기">
+          닫기
         </button>
-
-        <div>
-          <p>NTAC ADMIN</p>
-          <h2>관리자</h2>
-        </div>
       </div>
-
-      <nav
-        className="ntac-admin-tabs"
-        style={{
-          position: 'sticky',
-          top: '0',
-          zIndex: 100,
-          display: 'grid',
-          gridTemplateColumns:
-            'repeat(8, minmax(105px, 1fr))',
-          gap: '5px',
-          margin: '0 auto 18px',
-          padding: '6px',
-          overflowX: 'auto',
-          border: '1px solid #dce5e0',
-          borderRadius: '15px',
-          background: 'rgba(244, 246, 242, 0.96)',
-          boxShadow:
-            '0 8px 24px rgba(11, 61, 46, 0.06)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter:
-            'blur(10px)',
-        }}
-      >
-        {adminTabs.map((tab) => {
-          const isActive =
-            activeAdminTab === tab.id
-
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() =>
-                setActiveAdminTab(
-                  tab.id,
-                )
-              }
-              style={{
-                minWidth: 0,
-                minHeight: '42px',
-                padding: '8px 10px',
-                border: 'none',
-                borderRadius: '12px',
-                background: isActive
-                  ? '#0b3d2e'
-                  : 'transparent',
-                color: isActive
-                  ? '#ffffff'
-                  : '#33463f',
-                fontSize: '10px',
-                fontWeight: '800',
-                lineHeight: 1.25,
-                cursor: 'pointer',
-                wordBreak: 'keep-all',
+      {children}
+    </dialog>
+  );
+}
+export default function CoachAdminPage({ profile: initialProfile, onClose }) {
+  const [profile, setProfile] = useState(initialProfile),
+    [tab, setTab] = useState("pt"),
+    [ntacTab, setNtacTab] = useState("programs");
+  const [profiles, setProfiles] = useState([]),
+    [members, setMembers] = useState([]),
+    [packages, setPackages] = useState([]),
+    [sessions, setSessions] = useState([]);
+  const [query, setQuery] = useState(""),
+    [coachFilter, setCoachFilter] = useState("all"),
+    [serviceFilter, setServiceFilter] = useState("all"),
+    [selected, setSelected] = useState(null);
+  const [editing, setEditing] = useState(null),
+    [service, setService] = useState(""),
+    [coach, setCoach] = useState("");
+  const [error, setError] = useState(""),
+    [message, setMessage] = useState(""),
+    [loading, setLoading] = useState(true),
+    [busy, setBusy] = useState(false),
+    [version, setVersion] = useState(0);
+  const lock = useRef(false),
+    admin = ["owner", "admin"].includes(profile?.role);
+  useEffect(() => {
+    let live = true;
+    setLoading(true);
+    setError("");
+    (async () => {
+      let p = initialProfile;
+      if (!p) {
+        const { data } = await supabase.auth.getUser();
+        p = await checked(
+          supabase.from("profiles").select("*").eq("id", data.user.id).single(),
+        );
+      }
+      if (!isStaff(p)) throw Error("관리 권한이 없습니다.");
+      const [ps, ms, pk, ss] = await Promise.all([
+        checked(
+          supabase
+            .from("profiles")
+            .select(
+              "id,full_name,email,phone,role,ntac_enabled,assigned_coach_id,coach_name",
+            )
+            .order("full_name"),
+        ),
+        checked(supabase.from("pt_members").select("*")),
+        checked(supabase.from("pt_packages").select("*")),
+        checked(
+          supabase
+            .from("pt_sessions")
+            .select(
+              "id,member_id,package_id,session_date,start_time,status,title",
+            )
+            .order("session_date", { ascending: false }),
+        ),
+      ]);
+      if (live) {
+        setProfile(p);
+        setProfiles(ps);
+        setMembers(ms);
+        setPackages(pk);
+        setSessions(ss);
+      }
+    })()
+      .catch((e) => {
+        if (live) setError(e.message);
+      })
+      .finally(() => {
+        if (live) setLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [initialProfile, version]);
+  const coaches = profiles.filter(isStaff),
+    activeMembers = members.filter((m) => m.active);
+  const rows = useMemo(
+    () =>
+      profiles.map((p) => {
+        const m = members.find((m) => m.profile_id === p.id);
+        return { p, m, stats: m ? getPTStats(m, packages, sessions) : null };
+      }),
+    [profiles, members, packages, sessions],
+  );
+  const filtered = rows.filter(({ p, m }) => {
+    if (tab === "pt" && !m?.active) return false;
+    if (
+      query &&
+      !`${p.full_name} ${p.email} ${p.phone || ""}`
+        .toLowerCase()
+        .includes(query.toLowerCase())
+    )
+      return false;
+    if (
+      coachFilter !== "all" &&
+      (p.assigned_coach_id || "none") !== coachFilter
+    )
+      return false;
+    const mode = m?.active
+      ? p.ntac_enabled
+        ? "both"
+        : "pt"
+      : p.ntac_enabled
+        ? "ntac"
+        : "none";
+    return serviceFilter === "all" || mode === serviceFilter;
+  });
+  const todaySessions = sessions
+    .filter((s) => s.session_date === today() && s.status !== "cancelled")
+    .sort((a, b) => a.start_time.localeCompare(b.start_time));
+  function edit(p, m) {
+    setEditing(p);
+    setService(
+      m?.active
+        ? p.ntac_enabled
+          ? "both"
+          : "pt"
+        : p.ntac_enabled
+          ? "ntac"
+          : "none",
+    );
+    setCoach(p.assigned_coach_id || "");
+    setError("");
+  }
+  async function save(e) {
+    e.preventDefault();
+    if (lock.current) return;
+    lock.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      await checked(
+        supabase.rpc("set_member_services", {
+          target_id: editing.id,
+          enable_ntac: ["ntac", "both"].includes(service),
+          enable_pt: ["pt", "both"].includes(service),
+          coach_id: coach || null,
+        }),
+      );
+      setEditing(null);
+      setMessage("이용 프로그램과 담당 코치를 저장했어요.");
+      setVersion((v) => v + 1);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      lock.current = false;
+      setBusy(false);
+    }
+  }
+  if (selected)
+    return (
+      <div className="manage management-layout">
+        <button
+          className="back-link"
+          onClick={() => {
+            setSelected(null);
+            setVersion((v) => v + 1);
+          }}
+        >
+          PT 목록으로
+        </button>
+        <PTAdmin initialMemberId={selected} isAdmin={admin} />
+      </div>
+    );
+  return (
+    <main className="manage management-layout">
+      <header className="workspace-heading">
+        <div>
+          <p className="eyebrow">{admin ? "COACH WORKSPACE" : "MY MEMBERS"}</p>
+          <h1>{admin ? "회원과 수업 관리" : "담당 회원 관리"}</h1>
+        </div>
+        <div className="button-row">
+          {onClose && <button onClick={onClose}>닫기</button>}
+          <button disabled={loading} onClick={() => setVersion((v) => v + 1)}>
+            새로고침
+          </button>
+        </div>
+      </header>
+      <nav className="workspace-tabs" aria-label="관리 메뉴">
+        {[
+          ["pt", "PT 관리"],
+          ...(admin
+            ? [
+                ["members", "전체 회원"],
+                ["ntac", "NTAC 운영"],
+                ["staff", "코치·권한"],
+              ]
+            : []),
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            className={tab === id ? "selected" : ""}
+            onClick={() => {
+              setTab(id);
+              setServiceFilter("all");
+              setQuery("");
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+      {error && !editing && (
+        <p className="error-banner" role="alert">
+          {error}
+        </p>
+      )}
+      {message && (
+        <p className="success-banner" role="status">
+          {message}
+        </p>
+      )}
+      {loading && <p role="status">최신 기록을 확인하고 있어요.</p>}
+      {tab === "pt" && (
+        <>
+          <section className="metric-grid" aria-label="PT 현황">
+            <div>
+              <span>PT 회원</span>
+              <strong>
+                {activeMembers.length}
+                <small>명</small>
+              </strong>
+            </div>
+            <div>
+              <span>오늘 수업</span>
+              <strong>
+                {todaySessions.length}
+                <small>회</small>
+              </strong>
+            </div>
+            <div>
+              <span>오늘 출석 완료</span>
+              <strong>
+                {todaySessions.filter((s) => s.status === "completed").length}
+                <small>회</small>
+              </strong>
+            </div>
+            <div>
+              <span>잔여 2회 이하</span>
+              <strong>
+                {
+                  rows.filter(
+                    (r) =>
+                      r.m?.active &&
+                      r.stats.packs > 0 &&
+                      r.stats.remaining <= 2,
+                  ).length
+                }
+                <small>명</small>
+              </strong>
+            </div>
+          </section>
+          <section className="surface">
+            <div className="section-heading">
+              <h2>오늘의 수업</h2>
+              <span className="muted">{today()}</span>
+            </div>
+            {!todaySessions.length ? (
+              <p className="empty-inline">
+                예정된 수업이 없습니다. 아래 회원을 선택해 일정을 추가하세요.
+              </p>
+            ) : (
+              <div className="today-list">
+                {todaySessions.map((s) => {
+                  const m = members.find((m) => m.id === s.member_id),
+                    p = profiles.find((p) => p.id === m?.profile_id);
+                  return (
+                    <button
+                      key={s.id}
+                      className="today-item"
+                      onClick={() => setSelected(s.member_id)}
+                    >
+                      <strong>{s.start_time.slice(0, 5)}</strong>
+                      <span>
+                        {p?.full_name || "회원"}
+                        <small>{s.title}</small>
+                      </span>
+                      <span
+                        className={`status-pill ${s.status === "completed" ? "done" : ""}`}
+                      >
+                        {s.status === "completed" ? "출석 완료" : "예정"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </>
+      )}
+      {["pt", "members"].includes(tab) && (
+        <section className="surface">
+          <div className="section-heading">
+            <h2>
+              {tab === "pt" ? "PT 회원" : "전체 회원"}{" "}
+              <span className="muted">{filtered.length}</span>
+            </h2>
+            {admin && tab === "pt" && (
+              <button onClick={() => setTab("members")}>회원 배정</button>
+            )}
+          </div>
+          <div className="filter-row">
+            <label className="search-field">
+              <span className="sr-only">회원 검색</span>
+              <input
+                placeholder="이름 · 연락처 · 이메일 검색"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </label>
+            {admin && (
+              <label>
+                <span className="sr-only">담당 코치 필터</span>
+                <select
+                  value={coachFilter}
+                  onChange={(e) => setCoachFilter(e.target.value)}
+                >
+                  <option value="all">모든 코치</option>
+                  <option value="none">코치 미배정</option>
+                  {coaches.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.full_name || c.email}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {tab === "members" && (
+              <label>
+                <span className="sr-only">이용 구분 필터</span>
+                <select
+                  value={serviceFilter}
+                  onChange={(e) => setServiceFilter(e.target.value)}
+                >
+                  <option value="all">모든 회원</option>
+                  <option value="pt">PT만</option>
+                  <option value="ntac">NTAC만</option>
+                  <option value="both">PT + NTAC</option>
+                  <option value="none">등록 대기</option>
+                </select>
+              </label>
+            )}
+          </div>
+          <div className="roster-head">
+            <span>회원</span>
+            <span>담당 코치</span>
+            <span>최근 출석</span>
+            <span>PT 잔여</span>
+            <span>관리</span>
+          </div>
+          <div className="roster-list">
+            {filtered.map(({ p, m, stats }) => (
+              <article key={p.id} className="roster-row">
+                <div className="member-identity">
+                  <strong>{p.full_name || "이름 없음"}</strong>
+                  <span className="muted">
+                    {[p.ntac_enabled ? "NTAC" : null, m?.active ? "PT" : null]
+                      .filter(Boolean)
+                      .join(" · ") || "등록 대기"}
+                    {isStaff(p) ? " · 코치" : ""}
+                  </span>
+                </div>
+                <div data-label="담당 코치">
+                  {coaches.find((c) => c.id === p.assigned_coach_id)
+                    ?.full_name ||
+                    p.coach_name ||
+                    "미배정"}
+                </div>
+                <div data-label="최근 출석">{stats?.last || "기록 없음"}</div>
+                <div data-label="PT 잔여">
+                  <strong
+                    className={stats?.remaining <= 2 ? "low-balance" : ""}
+                  >
+                    {stats?.packs ? `${stats.remaining}회` : "—"}
+                  </strong>
+                  {stats?.packs > 0 && (
+                    <small className="muted">누적 {stats.used}회 출석</small>
+                  )}
+                </div>
+                <div className="button-row">
+                  {m?.active && (
+                    <button
+                      className="primary"
+                      onClick={() => setSelected(m.id)}
+                    >
+                      수업 관리
+                    </button>
+                  )}
+                  {admin && <button onClick={() => edit(p, m)}>배정</button>}
+                </div>
+              </article>
+            ))}
+          </div>
+          {!filtered.length && !loading && (
+            <p className="empty-inline">조건에 맞는 회원이 없습니다.</p>
+          )}
+        </section>
+      )}
+      {tab === "ntac" && admin && (
+        <section className="surface">
+          <div className="sub-tabs">
+            {[
+              ["programs", "주간 프로그램"],
+              ["personal", "개인 프로그램"],
+              ["reports", "주간 리포트"],
+              ["community", "커뮤니티"],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                className={ntacTab === id ? "selected" : ""}
+                onClick={() => setNtacTab(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="legacy-panel">
+            <Suspense fallback={<p>불러오는 중...</p>}>
+              {ntacTab === "programs" && <WeeklyProgramAdmin />}
+              {ntacTab === "personal" && <PersonalProgramAdmin />}
+              {ntacTab === "reports" && <WeeklyAthleteReportAdmin />}
+              {ntacTab === "community" && <CommunityAdmin />}
+            </Suspense>
+          </div>
+        </section>
+      )}
+      {tab === "staff" && admin && (
+        <>
+          <section className="surface">
+            <h2>등록된 코치</h2>
+            <p className="muted">
+              코치는 배정된 PT 회원의 수업과 평가를 관리합니다. 회원 배정은
+              관리자만 할 수 있습니다.
+            </p>
+            {coaches.map((c) => (
+              <div className="staff-row" key={c.id}>
+                <strong>{c.full_name || c.email}</strong>
+                <span>
+                  {c.role === "owner"
+                    ? "대표"
+                    : c.role === "admin"
+                      ? "관리자"
+                      : "코치"}
+                </span>
+                <span>
+                  {
+                    members.filter((m) => m.active && m.coach_id === c.id)
+                      .length
+                  }
+                  명 담당
+                </span>
+              </div>
+            ))}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (busy) return;
+                const f = new FormData(e.currentTarget);
+                setBusy(true);
+                setError("");
+                try {
+                  await checked(
+                    supabase.rpc("register_pt_coach", {
+                      target_id: f.get("coach"),
+                    }),
+                  );
+                  setVersion((v) => v + 1);
+                  setMessage(
+                    "코치로 등록했어요. 전체 회원에서 담당 회원을 배정하세요.",
+                  );
+                } catch (e) {
+                  setError(e.message);
+                } finally {
+                  setBusy(false);
+                }
               }}
             >
-              <span>
-                {tab.label}
-              </span>
-
-              {tab.id ===
-                'coachRequests' &&
-                coachRequestCount > 0 && (
-                  <strong
-                    style={{
-                      display:
-                        'inline-grid',
-                      placeItems:
-                        'center',
-                      minWidth:
-                        '18px',
-                      height:
-                        '18px',
-                      marginLeft:
-                        '4px',
-                      padding:
-                        '0 4px',
-                      borderRadius:
-                        '999px',
-                      background:
-                        isActive
-                          ? '#ffffff'
-                          : '#d93f35',
-                      color:
-                        isActive
-                          ? '#0b3d2e'
-                          : '#ffffff',
-                      fontSize:
-                        '9px',
-                    }}
-                  >
-                    {
-                      coachRequestCount
-                    }
-                  </strong>
-                )}
-            </button>
-          )
-        })}
-      </nav>
-
-      {activeAdminTab === 'pt' && <PTAdmin />}
-
-      {activeAdminTab ===
-        'dashboard' && (
-        <CoachOperationsDashboard
-          refreshKey={membersRefreshKey}
-          onDataChanged={() =>
-            setMembersRefreshKey(
-              (current) =>
-                current + 1,
-            )
-          }
-        />
+              <div className="filter-row">
+                <label>
+                  코치로 등록할 계정
+                  <select name="coach" required>
+                    <option value="">가입된 계정 선택</option>
+                    {profiles
+                      .filter((p) => p.role === "member")
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.full_name} · {p.email}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <button disabled={busy}>코치 등록</button>
+              </div>
+            </form>
+          </section>
+          {profile.role === "owner" && (
+            <details className="surface">
+              <summary>관리자 권한 설정</summary>
+              <Suspense fallback={<p>불러오는 중...</p>}>
+                <AdminAccessManagement />
+              </Suspense>
+            </details>
+          )}
+        </>
       )}
-
-      {activeAdminTab ===
-        'members' &&
-        renderMemberManagement()}
-
-      {activeAdminTab ===
-        'programs' && (
-        <WeeklyProgramAdmin />
+      {editing && (
+        <Modal
+          title={`${editing.full_name || "회원"} 배정`}
+          onClose={() => {
+            if (!busy) setEditing(null);
+          }}
+        >
+          <form onSubmit={save}>
+            <fieldset disabled={busy}>
+              <label>
+                이용 프로그램
+                <select
+                  value={service}
+                  onChange={(e) => setService(e.target.value)}
+                >
+                  <option value="none">등록 대기</option>
+                  <option value="pt">PT만</option>
+                  <option value="ntac">NTAC만</option>
+                  <option value="both">PT + NTAC</option>
+                </select>
+              </label>
+              <label>
+                담당 코치
+                <select
+                  value={coach}
+                  onChange={(e) => setCoach(e.target.value)}
+                >
+                  <option value="">미배정</option>
+                  {coaches.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.full_name || c.email}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="muted">
+                회원에게는 지정된 프로그램만 표시됩니다. 이용 기간 제한은
+                없습니다.
+              </p>
+              {error && (
+                <p role="alert" className="error-banner">
+                  {error}
+                </p>
+              )}
+              <button className="primary full">
+                {busy ? "저장 중..." : "배정 저장"}
+              </button>
+            </fieldset>
+          </form>
+        </Modal>
       )}
-
-      {activeAdminTab ===
-        'personal' && (
-        <PersonalProgramAdmin />
-      )}
-
-      {activeAdminTab ===
-        'reports' && (
-        <WeeklyAthleteReportAdmin />
-      )}
-
-      {activeAdminTab ===
-        'coachRequests' && (
-        <CoachSessionRequestAdmin
-          onBack={() =>
-            setActiveAdminTab(
-              'members',
-            )
-          }
-          onRequestsChanged={
-            updateCoachRequestCount
-          }
-        />
-      )}
-
-      {activeAdminTab ===
-        'community' && (
-        <CommunityAdmin />
-      )}
-
-      {activeAdminTab ===
-        'access' && (
-        <AdminAccessManagement
-          onAccessChanged={() =>
-            setMembersRefreshKey(
-              (current) =>
-                current + 1,
-            )
-          }
-        />
-      )}
-    </section>
-  )
+    </main>
+  );
 }
-
-export default CoachAdminPage

@@ -291,6 +291,8 @@ function AuthGate() {
               role,
               membership,
               membership_status,
+              ntac_enabled,
+              assigned_coach_id,
               coach_care,
               coach_name,
               onboarding_completed,

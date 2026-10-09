@@ -1,9 +1,11 @@
 # PT management checks
 
-- `pt-database.sql`: run through an administrative Postgres connection. Uses existing profile IDs for transaction-local fixtures and ends in ROLLBACK. Covers completion retry, package limit, cancellation reversal, owner/other-member reads, private-note isolation, and forbidden member writes. Requires an admin and two member profiles.
-- `pt-ui.mjs`: from `web`, run `NTAC_TEST_MODULES=/path/to/node_modules node ../tests/pt-ui.mjs` with jsdom installed at that path. Uses fake in-memory Supabase responses; never calls production. Covers member selection, workout template, controlled inputs, saving, refreshed balances, and member summaries.
+- `pt-database.sql`: administrative SQL transaction ending in ROLLBACK. Checks completion retry, package limits, cancellation reversal, and member/private-note isolation.
+- `service-permissions.sql`: administrative SQL transaction ending in ROLLBACK. Checks PT/NTAC/both assignment, coach registration, assigned coach writes, and forbidden cross-member access.
+- `pt-ui.mjs`: from `web`, run `NTAC_TEST_MODULES=/path/to/node_modules node ../tests/pt-ui.mjs` with jsdom available. Checks template, controlled inputs, session save, balance refresh and private-note exclusion using fake responses.
+- `ux-browser.cjs`: run with Playwright and a local Vite server using test Supabase environment variables. Synthetic sessions and intercepted responses cover assignment, mobile overflow, service routing and removal of retired UI. See the script for runtime paths.
 - `npm run build` and `npm run lint` from `web`.
 
-Production migrations were applied with Supabase MCP and are recorded under `supabase/migrations`. Existing schema predates this checkout; these files are additive changes, not a full database baseline.
+Migrations are recorded under `supabase/migrations`. Existing schema predates this checkout; these files are additive changes, not a full baseline.
 
-PT onboarding: sign up using PT 회원 가입; coach opens 마이 → 관리자 → PT 관리, enrolls the existing account, adds a package and schedules a session. Existing NTAC members can also be enrolled without changing their membership. Completed sessions count once toward the associated package; reverting to scheduled/cancelled restores the count. PT data is admin-written, owner-readable; private notes and templates are admin-only.
+New accounts wait for admin assignment. In 관리 → 전체 회원 → 배정, select PT, NTAC or both and the responsible coach. Register coaches in 코치·권한. PT 관리 shows latest attendance, upcoming sessions and remaining counts; member details contain session records, assessments and package settings. Assigned programs have no access expiry. Completed PT sessions count once toward their package; reverting to scheduled/cancelled restores the count. Only administrators change service assignments, coaches and packages. Assigned coaches manage their own PT members; private notes remain hidden from members.

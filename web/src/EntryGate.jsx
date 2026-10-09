@@ -1,1112 +1,333 @@
-import PTMember from './pt/PTMember.jsx'
-import {
-  useEffect,
-  useState,
-} from 'react'
-
-import AuthGate from './AuthGate.jsx'
-import MembershipFunnelLayer from './MembershipFunnelLayer.jsx'
-import { supabase } from './lib/supabase.js'
-
-import {
-  loadWeeklyProgramsFromSupabase,
-} from './data/weeklyPrograms.js'
-
-const trainingGoalOptions = [
-  'HYROX 첫 완주',
-  'HYROX 기록 향상',
-  '러닝 능력 향상',
-  '근력 향상',
-  '전반적인 체력 향상',
-  '체성분 개선',
-]
-
-function getAppUrl() {
-  return new URL(
-    import.meta.env.BASE_URL,
-    window.location.origin,
-  ).toString()
+import { lazy, Suspense, useEffect, useState } from "react";
+import AuthGate from "./AuthGate.jsx";
+import PTMember from "./pt/PTMember.jsx";
+import { supabase } from "./lib/supabase.js";
+import { loadWeeklyProgramsFromSupabase } from "./data/weeklyPrograms.js";
+import "./management/Management.css";
+const App = lazy(() => import("./App.jsx"));
+const Management = lazy(() => import("./CoachAdminPage.jsx"));
+function availableViews(profile, ptMember) {
+  const views = [];
+  if (["owner", "admin", "coach"].includes(profile?.role))
+    views.push("management");
+  if (profile?.ntac_enabled || ["owner", "admin"].includes(profile?.role))
+    views.push("ntac");
+  if (ptMember?.active) views.push("pt");
+  return views;
 }
-
-function EntryGate() {
-  const [signupTrack, setSignupTrack] = useState('ntac')
-  const [ptMode, setPTMode] = useState(false)
-  const [hasPT, setHasPT] = useState(false)
-  const [session, setSession] =
-    useState(undefined)
-
-  const [sessionProfile, setSessionProfile] =
-    useState(undefined)
-
-  const [SelfTrialApp, setSelfTrialApp] =
-    useState(null)
-
-  const [view, setView] =
-    useState('welcome')
-
-  const [signupForm, setSignupForm] =
-    useState({
-      fullName: '',
-      email: '',
-      phone: '',
-      trainingGoal: '',
-      referrerName: '',
-      password: '',
-      passwordConfirm: '',
-      privacyConsent: false,
-    })
-
-  const [signupLoading, setSignupLoading] =
-    useState(false)
-
-  const [signupError, setSignupError] =
-    useState('')
-
-  const [signupMessage, setSignupMessage] =
-    useState('')
-
+export default function EntryGate() {
+  const [session, setSession] = useState(undefined),
+    [profile, setProfile] = useState(null),
+    [ptMember, setPTMember] = useState(null);
+  const [view, setView] = useState("welcome"),
+    [mode, setMode] = useState(""),
+    [loading, setLoading] = useState(false),
+    [error, setError] = useState(""),
+    [refresh, setRefresh] = useState(0);
+  const [busy, setBusy] = useState(false),
+    [notice, setNotice] = useState(""),
+    [recovery, setRecovery] = useState(
+      window.location.hash.includes("type=recovery"),
+    );
   useEffect(() => {
-    let mounted = true
-
-    const loadSession = async () => {
-      const { data, error } =
-        await supabase.auth.getSession()
-
-      if (!mounted) {
-        return
+    let live = true;
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (live) {
+        setSession(data.session);
+        if (error) setError(error.message);
       }
-
-      if (error) {
-        console.error(
-          '초기 세션 확인 실패:',
-          error,
-        )
-
-        setSession(null)
-        return
-      }
-
-      setSession(data.session)
-    }
-
-    loadSession()
-
+    });
     const {
       data: { subscription },
-    } =
-      supabase.auth.onAuthStateChange(
-        (_event, nextSession) => {
-          setSession(nextSession)
-        },
-      )
-
+    } = supabase.auth.onAuthStateChange((event, s) => {
+      setSession(s);
+      if (event === "PASSWORD_RECOVERY") setRecovery(true);
+    });
     return () => {
-      mounted = false
-      subscription.unsubscribe()
-    }
-  }, [])
-
+      live = false;
+      subscription.unsubscribe();
+    };
+  }, []);
   useEffect(() => {
-    let mounted = true
-
-    const prepareSessionProfile =
-      async () => {
-        if (!session?.user?.id) {
-          setSessionProfile(null)
-          setSelfTrialApp(null)
-          return
-        }
-
-        setSessionProfile(undefined)
-
-        try {
-          const {
-            data,
-            error,
-          } = await supabase
-            .from('profiles')
-            .select(`
-              id,
-              email,
-              full_name,
-              role,
-              membership,
-              membership_status,
-              coach_care,
-              coach_name,
-              paid_until,
-              trial_started_at,
-              trial_ends_at,
-              access_override_until,
-              signup_source,
-              referrer_name
-            `)
-            .eq('id', session.user.id)
-            .single()
-
-          if (error) {
-            throw error
-          }
-
-          if (!mounted) {
-            return
-          }
-
-          const { data: ptMember } = await supabase.from('pt_members').select('id').eq('profile_id', data.id).maybeSingle()
-          if (mounted) { setHasPT(Boolean(ptMember)); setPTMode(data.membership === 'PT'); setSessionProfile(data) }
-
-          if (
-            data.signup_source ===
-              'self_trial' ||
-            data.membership === 'TRIAL'
-          ) {
-            try {
-              await loadWeeklyProgramsFromSupabase()
-            } catch (programError) {
-              console.error(
-                '프로그램 동기화 실패:',
-                programError,
-              )
-            }
-
-            const appModule =
-              await import('./App.jsx')
-
-            if (mounted) {
-              setSelfTrialApp(
-                () => appModule.default,
-              )
-            }
-          } else {
-            setSelfTrialApp(null)
-          }
-        } catch (error) {
-          console.error(
-            '로그인 프로필 확인 실패:',
-            error,
-          )
-
-          if (mounted) {
-            setSessionProfile(null)
-            setSelfTrialApp(null)
-          }
-        }
+    let live = true;
+    if (!session?.user?.id) {
+      setProfile(null);
+      setPTMember(null);
+      setMode("");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    (async () => {
+      const { data: p, error: e } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
+      if (e) throw e;
+      const { data: m, error: me } = await supabase
+        .from("pt_members")
+        .select("*")
+        .eq("profile_id", session.user.id)
+        .maybeSingle();
+      if (me) throw me;
+      if (p.ntac_enabled || ["owner", "admin"].includes(p.role))
+        await loadWeeklyProgramsFromSupabase();
+      if (live) {
+        setProfile(p);
+        setPTMember(m);
+        const views = availableViews(p, m);
+        setMode((current) =>
+          views.includes(current) ? current : views[0] || "",
+        );
       }
-
-    prepareSessionProfile()
-
+    })()
+      .catch((e) => {
+        if (live) setError(e.message);
+      })
+      .finally(() => {
+        if (live) setLoading(false);
+      });
     return () => {
-      mounted = false
+      live = false;
+    };
+  }, [session?.user?.id, refresh]);
+  async function logout() {
+    const { error: e } = await supabase.auth.signOut({ scope: "local" });
+    if (e) setError(e.message);
+    else {
+      setView("welcome");
+      setRecovery(false);
     }
-  }, [session?.user?.id])
-
-  const handleSelfTrialLogout =
-    async () => {
-      const { error } =
-        await supabase.auth.signOut({
-          scope: 'local',
-        })
-
-      if (error) {
-        alert(
-          '로그아웃에 실패했습니다.',
-        )
-        return
-      }
-
-      window.location.reload()
-    }
-
-  const updateSignupForm = (
-    name,
-    value,
-  ) => {
-    setSignupForm((current) => ({
-      ...current,
-      [name]: value,
-    }))
   }
-
-  const handleSignup = async (
-    event,
-  ) => {
-    event.preventDefault()
-
-    const fullName =
-      signupForm.fullName.trim()
-
-    const normalizedEmail =
-      signupForm.email
-        .trim()
-        .toLowerCase()
-
-    const normalizedPhone =
-      signupForm.phone.replace(
-        /[^0-9]/g,
-        '',
-      )
-
-    const referrerName =
-      signupForm.referrerName.trim()
-
-    setSignupError('')
-    setSignupMessage('')
-
-    if (fullName.length < 2) {
-      setSignupError(
-        '이름을 두 글자 이상 입력해 주세요.',
-      )
-      return
+  async function signup(e) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    if (f.get("password") !== f.get("confirm")) {
+      setError("비밀번호가 일치하지 않습니다.");
+      return;
     }
-
-    if (
-      normalizedPhone.length < 10 ||
-      normalizedPhone.length > 11
-    ) {
-      setSignupError(
-        '휴대전화 번호를 정확하게 입력해 주세요.',
-      )
-      return
-    }
-
-    if (!signupForm.trainingGoal) {
-      setSignupError(
-        '운동 목표를 선택해 주세요.',
-      )
-      return
-    }
-
-    if (
-      signupForm.password.length < 8
-    ) {
-      setSignupError(
-        '비밀번호를 8자 이상 입력해 주세요.',
-      )
-      return
-    }
-
-    if (
-      signupForm.password !==
-      signupForm.passwordConfirm
-    ) {
-      setSignupError(
-        '비밀번호가 서로 일치하지 않습니다.',
-      )
-      return
-    }
-
-    if (!signupForm.privacyConsent) {
-      setSignupError(
-        '개인정보 수집 및 이용에 동의해 주세요.',
-      )
-      return
-    }
-
-    setSignupLoading(true)
-
+    setBusy(true);
+    setError("");
     try {
-      const { data, error } =
-        await supabase.auth.signUp({
-          email: normalizedEmail,
-          password:
-            signupForm.password,
-          options: {
-            emailRedirectTo:
-              getAppUrl(),
-            data: {
-              full_name: fullName,
-              phone: normalizedPhone,
-              training_goal:
-                signupForm.trainingGoal,
-              referrer_name:
-                referrerName,
-              signup_source:
-                signupTrack === 'pt' ? 'pt' : 'self_trial',
-              privacy_consent: true,
-            },
+      const { data, error: e } = await supabase.auth.signUp({
+        email: f.get("email").trim(),
+        password: f.get("password"),
+        options: {
+          emailRedirectTo: new URL(
+            import.meta.env.BASE_URL,
+            window.location.origin,
+          ).toString(),
+          data: {
+            full_name: f.get("name").trim(),
+            phone: f.get("phone"),
+            signup_source: "member",
+            privacy_consent: true,
           },
-        })
-
-      if (error) {
-        throw error
-      }
-
-      if (data.session) {
-        setSignupMessage(
-          '계정이 생성되었습니다. 회원 화면을 준비하고 있습니다.',
-        )
-        return
-      }
-
-      setSignupMessage(
-        '계정이 생성되었습니다. 이메일 인증 메일을 확인한 뒤 로그인해 주세요.',
-      )
-    } catch (error) {
-      console.error(
-        '셀프 회원가입 실패:',
-        error,
-      )
-
-      const message =
-        String(error?.message || '')
-
-      if (
-        message
-          .toLowerCase()
-          .includes('already')
-      ) {
-        setSignupError(
-          '이미 가입된 이메일입니다. 기존 계정으로 로그인해 주세요.',
-        )
-      } else {
-        setSignupError(
-          message ||
-            '계정을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.',
-        )
-      }
+        },
+      });
+      if (e) throw e;
+      if (!data.session)
+        setNotice(
+          "가입 확인 이메일을 보냈어요. 이메일 인증 후 로그인해 주세요.",
+        );
+    } catch (e) {
+      setError(e.message);
     } finally {
-      setSignupLoading(false)
+      setBusy(false);
     }
   }
-
-  if (session === undefined) {
+  if (recovery) return <AuthGate />;
+  if (session === undefined || loading)
     return (
-      <main style={styles.loadingPage}>
-        <div style={styles.loadingCard}>
-          <p style={styles.eyebrow}>
-            NTAC PLATFORM
-          </p>
-
-          <h2 style={styles.title}>
-            NTAC를 준비하고 있습니다.
-          </h2>
-        </div>
-      </main>
-    )
-  }
-
+      <div className="manage center-state">
+        <span className="brand-word">NOLTO</span>
+        <p role="status">회원 정보를 불러오고 있어요.</p>
+      </div>
+    );
   if (session) {
-    if (sessionProfile === undefined) {
+    if (error || !profile)
       return (
-        <main style={styles.loadingPage}>
-          <div style={styles.loadingCard}>
-            <p style={styles.eyebrow}>
-              NTAC PLATFORM
-            </p>
-
-            <h2 style={styles.title}>
-              계정을 확인하고 있습니다.
-            </h2>
-          </div>
-        </main>
-      )
-    }
-
-    if (sessionProfile && ptMode) {
-      return <PTMember profile={sessionProfile} onBack={sessionProfile.membership !== 'PT' ? () => setPTMode(false) : null} />
-    }
-
-    if (
-      sessionProfile?.signup_source ===
-        'self_trial' ||
-      sessionProfile?.membership ===
-        'TRIAL'
-    ) {
-      if (!SelfTrialApp) {
-        return (
-          <main style={styles.loadingPage}>
-            <div style={styles.loadingCard}>
-              <p style={styles.eyebrow}>
-                NTAC PLATFORM
-              </p>
-
-              <h2 style={styles.title}>
-                프로그램을 준비하고 있습니다.
-              </h2>
-            </div>
-          </main>
-        )
-      }
-
-      return (
-        <>
-          <div style={styles.accountBar}>
-            <span style={styles.userName}>
-              {sessionProfile.full_name ||
-                sessionProfile.email}
-            </span>
-
-            <button
-              type="button"
-              onClick={handleSelfTrialLogout}
-              style={styles.logoutButton}
-            >
-              로그아웃
-            </button>
-          </div>
-
-          {hasPT && <div className="pt pt-switch"><button onClick={() => setPTMode(true)}>나의 PT 수업 보기</button></div>}
-          <SelfTrialApp
-            profile={sessionProfile}
-          />
-
-          <MembershipFunnelLayer />
-        </>
-      )
-    }
-
-    return (
-      <>
-        {hasPT && <div className="pt pt-switch"><button onClick={() => setPTMode(true)}>나의 PT 수업 보기</button></div>}
-        <AuthGate />
-        <MembershipFunnelLayer />
-      </>
-    )
-  }
-
-  if (view === 'login') {
-    return (
-      <>
-        <AuthGate />
-
-        <button
-          type="button"
-          onClick={() =>
-            setView('welcome')
-          }
-          style={styles.backFloatingButton}
-        >
-          ← 처음으로
-        </button>
-      </>
-    )
-  }
-
-  if (view === 'signup') {
-    return (
-      <main style={styles.signupPage}>
-        <section style={styles.signupCard}>
-          <button
-            type="button"
-            onClick={() => {
-              setView('welcome')
-              setSignupError('')
-              setSignupMessage('')
-            }}
-            style={styles.backButton}
-          >
-            ← 돌아가기
-          </button>
-
-          <p style={styles.eyebrow}>
-            {signupTrack === 'pt' ? 'NOLTO PERSONAL TRAINING' : '7-DAY FREE TRIAL'}
-          </p>
-
-          <h1 style={styles.title}>
-            {signupTrack === 'pt' ? 'PT 회원 계정 만들기' : 'NTAC를 직접 경험해보세요.'}
-          </h1>
-
-          <p style={styles.description}>
-            {signupTrack === 'pt' ? '계정을 만든 뒤 코치가 PT 이용권을 등록하면 수업 기록과 변화를 확인할 수 있습니다.' : '계정을 만든 뒤 7일 무료체험을 시작하면 RUN과 HYROX BUILD를 이용할 수 있습니다. 자동 결제는 없습니다.'}
-          </p>
-
-          <div style={styles.trialSummary}>
-            <strong>
-              {signupTrack === 'pt' ? 'PT 수업 · 기록 · 변화' : 'NTAC BUILD · 7일 무료'}
-            </strong>
-            <span>
-              {signupTrack === 'pt' ? '기존 계정이 있다면 새 가입 없이 코치에게 PT 등록을 요청하세요.' : 'RUN + 런트레이너 + HYROX BUILD'}
-            </span>
-          </div>
-
-          <form
-            onSubmit={handleSignup}
-            style={styles.form}
-          >
-            <label style={styles.label}>
-              이름
-              <input
-                type="text"
-                value={
-                  signupForm.fullName
-                }
-                onChange={(event) =>
-                  updateSignupForm(
-                    'fullName',
-                    event.target.value,
-                  )
-                }
-                placeholder="이름 입력"
-                autoComplete="name"
-                required
-                style={styles.input}
-              />
-            </label>
-
-            <label style={styles.label}>
-              이메일
-              <input
-                type="email"
-                value={signupForm.email}
-                onChange={(event) =>
-                  updateSignupForm(
-                    'email',
-                    event.target.value,
-                  )
-                }
-                placeholder="이메일 입력"
-                autoComplete="email"
-                required
-                style={styles.input}
-              />
-            </label>
-
-            <label style={styles.label}>
-              휴대전화 번호
-              <input
-                type="tel"
-                value={signupForm.phone}
-                onChange={(event) =>
-                  updateSignupForm(
-                    'phone',
-                    event.target.value,
-                  )
-                }
-                placeholder="01012345678"
-                autoComplete="tel"
-                required
-                style={styles.input}
-              />
-            </label>
-
-            <label style={styles.label}>
-              가장 중요한 운동 목표
-              <select
-                value={
-                  signupForm.trainingGoal
-                }
-                onChange={(event) =>
-                  updateSignupForm(
-                    'trainingGoal',
-                    event.target.value,
-                  )
-                }
-                required
-                style={styles.input}
-              >
-                <option value="">
-                  선택
-                </option>
-
-                {trainingGoalOptions.map(
-                  (goal) => (
-                    <option
-                      key={goal}
-                      value={goal}
-                    >
-                      {goal}
-                    </option>
-                  ),
-                )}
-              </select>
-            </label>
-
-            <label style={styles.label}>
-              추천인
-              <input
-                type="text"
-                value={
-                  signupForm.referrerName
-                }
-                onChange={(event) =>
-                  updateSignupForm(
-                    'referrerName',
-                    event.target.value,
-                  )
-                }
-                placeholder="추천인이 있다면 이름 입력 (선택)"
-                style={styles.input}
-              />
-            </label>
-
-            <label style={styles.label}>
-              비밀번호
-              <input
-                type="password"
-                value={
-                  signupForm.password
-                }
-                onChange={(event) =>
-                  updateSignupForm(
-                    'password',
-                    event.target.value,
-                  )
-                }
-                placeholder="8자 이상 입력"
-                autoComplete="new-password"
-                minLength="8"
-                required
-                style={styles.input}
-              />
-            </label>
-
-            <label style={styles.label}>
-              비밀번호 확인
-              <input
-                type="password"
-                value={
-                  signupForm.passwordConfirm
-                }
-                onChange={(event) =>
-                  updateSignupForm(
-                    'passwordConfirm',
-                    event.target.value,
-                  )
-                }
-                placeholder="비밀번호 다시 입력"
-                autoComplete="new-password"
-                minLength="8"
-                required
-                style={styles.input}
-              />
-            </label>
-
-            <label style={styles.consentField}>
-              <input
-                type="checkbox"
-                checked={
-                  signupForm.privacyConsent
-                }
-                onChange={(event) =>
-                  updateSignupForm(
-                    'privacyConsent',
-                    event.target.checked,
-                  )
-                }
-                required
-              />
-
-              <span>
-                개인정보 수집 및 이용에 동의합니다.
-                <small>
-                  입력 정보는 회원 식별, 체험 운영 및 훈련 서비스 제공을 위해 사용됩니다.
-                </small>
-              </span>
-            </label>
-
-            {signupError && (
-              <p style={styles.errorBox}>
-                {signupError}
-              </p>
-            )}
-
-            {signupMessage && (
-              <p style={styles.successBox}>
-                {signupMessage}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={signupLoading}
-              style={{
-                ...styles.primaryButton,
-                opacity: signupLoading
-                  ? 0.6
-                  : 1,
-              }}
-            >
-              {signupLoading
-                ? '계정 만드는 중...'
-                : '계정 만들기'}
-            </button>
-
-            {signupMessage && (
-              <button
-                type="button"
-                onClick={() =>
-                  setView('login')
-                }
-                style={styles.secondaryButton}
-              >
-                로그인으로 이동
-              </button>
-            )}
-          </form>
-        </section>
-      </main>
-    )
-  }
-
-  return (
-    <main style={styles.welcomePage}>
-      <section style={styles.heroCard}>
-        <p style={styles.eyebrowLight}>
-          NOLTO TRAINING ATHLETE CLUB
-        </p>
-
-        <h1 style={styles.heroTitle}>
-          HYROX를 위한 훈련을
-          {' '}
-          더 체계적으로.
-        </h1>
-
-        <p style={styles.heroDescription}>
-          개인 페이스 기반 RUN, 런트레이너, HYROX BUILD 프로그램을 7일 동안 무료로 경험해보세요.
-        </p>
-
-        <div style={styles.featureGrid}>
-          <div style={styles.featureCard}>
-            <span>RUN</span>
-            <strong>개인 페이스 기반</strong>
-          </div>
-
-          <div style={styles.featureCard}>
-            <span>BUILD</span>
-            <strong>HYROX 보강</strong>
-          </div>
-
-          <div style={styles.featureCard}>
-            <span>7 DAYS</span>
-            <strong>무료 · 자동결제 없음</strong>
-          </div>
+        <div className="manage center-state">
+          <h1>정보를 불러오지 못했어요</h1>
+          <p role="alert">{error}</p>
+          <button onClick={() => setRefresh((v) => v + 1)}>다시 시도</button>
+          <button onClick={logout}>로그아웃</button>
         </div>
-
-        <button
-          type="button"
-          onClick={() => { setSignupTrack('ntac'); setView('signup') }}
-          style={styles.heroButton}
-        >
-          7일 무료체험 시작하기
-        </button>
-
-        <button type="button" onClick={() => { setSignupTrack('pt'); setView('signup') }} style={styles.heroSecondaryButton}>PT 회원 가입</button>
-
-        <button
-          type="button"
-          onClick={() =>
-            setView('login')
-          }
-          style={styles.heroSecondaryButton}
-        >
-          기존 계정 로그인
-        </button>
+      );
+    const views = availableViews(profile, ptMember),
+      labels = {
+        management: ["owner", "admin"].includes(profile.role)
+          ? "관리"
+          : "담당 회원",
+        ntac: "NTAC",
+        pt: "나의 PT",
+      };
+    return (
+      <div
+        className={`member-shell ${mode === "management" ? "wide-shell" : ""}`}
+      >
+        <header className="account-header">
+          <a className="brand-word" href={import.meta.env.BASE_URL}>
+            NOLTO<span>TRAINING</span>
+          </a>
+          <div className="account-actions">
+            <span>{profile.full_name || "회원"}</span>
+            <button onClick={logout}>로그아웃</button>
+          </div>
+        </header>
+        {views.length > 1 && (
+          <nav className="service-switch" aria-label="이용 프로그램">
+            {views.map((v) => (
+              <button
+                key={v}
+                className={mode === v ? "selected" : ""}
+                aria-pressed={mode === v}
+                onClick={() => {
+                  setMode(v);
+                  window.scrollTo(0, 0);
+                }}
+              >
+                {labels[v]}
+              </button>
+            ))}
+          </nav>
+        )}
+        {!views.length ? (
+          <section className="manage empty-state">
+            <h1>가입이 완료됐어요</h1>
+            <p>
+              관리자가 이용 프로그램과 담당 코치를 지정하면 시작할 수 있어요.
+            </p>
+            <button onClick={() => setRefresh((v) => v + 1)}>
+              등록 상태 확인
+            </button>
+          </section>
+        ) : (
+          <Suspense
+            fallback={<p className="center-state">화면을 불러오는 중...</p>}
+          >
+            {mode === "management" && <Management profile={profile} />}
+            {mode === "ntac" && <App profile={profile} />}
+            {mode === "pt" && <PTMember profile={profile} embedded />}
+          </Suspense>
+        )}
+      </div>
+    );
+  }
+  if (view === "login")
+    return (
+      <>
+        <AuthGate />
+        <div className="login-footer">
+          <button onClick={() => setView("welcome")}>처음으로</button>
+          <button
+            onClick={() => {
+              setError("");
+              setView("signup");
+            }}
+          >
+            회원 가입
+          </button>
+        </div>
+      </>
+    );
+  return (
+    <main className="manage auth-page">
+      <section className="auth-card">
+        <span className="brand-word">
+          NOLTO<span>TRAINING</span>
+        </span>
+        {view === "welcome" ? (
+          <>
+            <p className="eyebrow">YOUR TRAINING, IN ONE PLACE</p>
+            <h1>
+              꾸준함을
+              <br />
+              함께 기록해요.
+            </h1>
+            <p>
+              수업, 훈련 기록, 코치 피드백을
+              <br />
+              한곳에서 확인하세요.
+            </p>
+            <button className="primary full" onClick={() => setView("login")}>
+              로그인
+            </button>
+            <button className="full" onClick={() => setView("signup")}>
+              회원 가입
+            </button>
+          </>
+        ) : (
+          <>
+            <button className="text-action" onClick={() => setView("welcome")}>
+              돌아가기
+            </button>
+            <h1>회원 가입</h1>
+            <p>기존 계정이 있다면 그대로 로그인해 주세요.</p>
+            <form onSubmit={signup}>
+              <fieldset disabled={busy}>
+                <label>
+                  이름
+                  <input
+                    name="name"
+                    autoComplete="name"
+                    minLength="2"
+                    required
+                  />
+                </label>
+                <label>
+                  이메일
+                  <input
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                  />
+                </label>
+                <label>
+                  연락처
+                  <input name="phone" type="tel" autoComplete="tel" required />
+                </label>
+                <label>
+                  비밀번호
+                  <input
+                    name="password"
+                    type="password"
+                    autoComplete="new-password"
+                    minLength="8"
+                    required
+                  />
+                </label>
+                <label>
+                  비밀번호 확인
+                  <input
+                    name="confirm"
+                    type="password"
+                    autoComplete="new-password"
+                    minLength="8"
+                    required
+                  />
+                </label>
+                <label className="check-line">
+                  <input type="checkbox" required />
+                  회원 식별 및 훈련 관리에 필요한 개인정보 수집·이용에
+                  동의합니다.
+                </label>
+                <button className="primary full">
+                  {busy ? "가입 중..." : "계정 만들기"}
+                </button>
+              </fieldset>
+            </form>
+            {notice && <p role="status">{notice}</p>}
+          </>
+        )}
+        {error && (
+          <p className="error-banner" role="alert">
+            {error}
+          </p>
+        )}
       </section>
     </main>
-  )
+  );
 }
-
-const styles = {
-  welcomePage: {
-    minHeight: '100dvh',
-    display: 'grid',
-    placeItems: 'center',
-    boxSizing: 'border-box',
-    padding: '24px',
-    background:
-      'linear-gradient(155deg, #061d16 0%, #0b3d2e 68%, #11563f 100%)',
-    color: '#ffffff',
-  },
-
-  heroCard: {
-    width: '100%',
-    maxWidth: '480px',
-    boxSizing: 'border-box',
-    padding: '34px 26px',
-    borderRadius: '28px',
-    background:
-      'rgba(255, 255, 255, 0.06)',
-    border:
-      '1px solid rgba(255, 255, 255, 0.12)',
-    boxShadow:
-      '0 30px 90px rgba(0, 0, 0, 0.24)',
-  },
-
-  eyebrowLight: {
-    margin: '0 0 14px',
-    color: '#99cfb7',
-    fontSize: '11px',
-    fontWeight: 900,
-    letterSpacing: '0.13em',
-  },
-
-  heroTitle: {
-    margin: 0,
-    fontSize: '36px',
-    lineHeight: 1.16,
-    letterSpacing: '-0.05em',
-  },
-
-  heroDescription: {
-    margin: '18px 0 0',
-    color: '#d5e6df',
-    fontSize: '15px',
-    lineHeight: 1.65,
-  },
-
-  featureGrid: {
-    display: 'grid',
-    gridTemplateColumns:
-      'repeat(3, minmax(0, 1fr))',
-    gap: '8px',
-    marginTop: '25px',
-  },
-
-  featureCard: {
-    display: 'grid',
-    gap: '5px',
-    padding: '12px 9px',
-    borderRadius: '14px',
-    background:
-      'rgba(255, 255, 255, 0.08)',
-    border:
-      '1px solid rgba(255, 255, 255, 0.08)',
-  },
-
-  heroButton: {
-    width: '100%',
-    minHeight: '54px',
-    marginTop: '25px',
-    border: 'none',
-    borderRadius: '15px',
-    background: '#ffffff',
-    color: '#0b3d2e',
-    fontSize: '15px',
-    fontWeight: 900,
-    cursor: 'pointer',
-  },
-
-  heroSecondaryButton: {
-    width: '100%',
-    minHeight: '48px',
-    marginTop: '9px',
-    border:
-      '1px solid rgba(255, 255, 255, 0.18)',
-    borderRadius: '14px',
-    background: 'transparent',
-    color: '#ffffff',
-    fontSize: '13px',
-    fontWeight: 800,
-    cursor: 'pointer',
-  },
-
-  signupPage: {
-    minHeight: '100dvh',
-    display: 'flex',
-    justifyContent: 'center',
-    boxSizing: 'border-box',
-    padding: '26px 18px 60px',
-    background: '#071f18',
-  },
-
-  signupCard: {
-    width: '100%',
-    maxWidth: '520px',
-    boxSizing: 'border-box',
-    padding: '28px 22px',
-    borderRadius: '26px',
-    background: '#ffffff',
-    color: '#10251e',
-  },
-
-  loadingPage: {
-    minHeight: '100dvh',
-    display: 'grid',
-    placeItems: 'center',
-    padding: '24px',
-    background: '#071f18',
-  },
-
-  loadingCard: {
-    width: '100%',
-    maxWidth: '420px',
-    padding: '28px',
-    borderRadius: '22px',
-    background: '#ffffff',
-  },
-
-  eyebrow: {
-    margin: '0 0 9px',
-    color: '#0b6b4f',
-    fontSize: '10px',
-    fontWeight: 900,
-    letterSpacing: '0.13em',
-  },
-
-  title: {
-    margin: 0,
-    color: '#10251e',
-    fontSize: '28px',
-    lineHeight: 1.25,
-    letterSpacing: '-0.04em',
-  },
-
-  description: {
-    margin: '12px 0 22px',
-    color: '#697872',
-    fontSize: '14px',
-    lineHeight: 1.65,
-  },
-
-  trialSummary: {
-    display: 'grid',
-    gap: '5px',
-    marginBottom: '20px',
-    padding: '16px',
-    borderRadius: '16px',
-    background: '#edf5f1',
-    color: '#17352c',
-  },
-
-  form: {
-    display: 'grid',
-    gap: '15px',
-  },
-
-  label: {
-    display: 'grid',
-    gap: '7px',
-    color: '#33463f',
-    fontSize: '13px',
-    fontWeight: 800,
-  },
-
-  input: {
-    width: '100%',
-    minWidth: 0,
-    minHeight: '48px',
-    boxSizing: 'border-box',
-    padding: '12px 14px',
-    border: '1px solid #d5dfdb',
-    borderRadius: '12px',
-    background: '#ffffff',
-    color: '#10251e',
-    fontSize: '15px',
-  },
-
-  consentField: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '10px',
-    padding: '14px',
-    borderRadius: '13px',
-    background: '#f1f4f2',
-    color: '#43554e',
-    fontSize: '12px',
-    fontWeight: 800,
-    lineHeight: 1.55,
-    cursor: 'pointer',
-  },
-
-  primaryButton: {
-    width: '100%',
-    minHeight: '51px',
-    border: 'none',
-    borderRadius: '13px',
-    background: '#0b3d2e',
-    color: '#ffffff',
-    fontSize: '14px',
-    fontWeight: 900,
-    cursor: 'pointer',
-  },
-
-  secondaryButton: {
-    width: '100%',
-    minHeight: '47px',
-    border: '1px solid #d7dfdc',
-    borderRadius: '13px',
-    background: '#ffffff',
-    color: '#33463f',
-    fontSize: '13px',
-    fontWeight: 900,
-    cursor: 'pointer',
-  },
-
-  backButton: {
-    margin: '0 0 20px',
-    padding: 0,
-    border: 'none',
-    background: 'transparent',
-    color: '#597069',
-    fontSize: '13px',
-    fontWeight: 800,
-    cursor: 'pointer',
-  },
-
-  backFloatingButton: {
-    position: 'fixed',
-    left: '14px',
-    top: '14px',
-    zIndex: 20000,
-    padding: '8px 11px',
-    border: '1px solid #d9e1de',
-    borderRadius: '999px',
-    background: '#ffffff',
-    color: '#17352c',
-    fontSize: '11px',
-    fontWeight: 900,
-    cursor: 'pointer',
-    boxShadow:
-      '0 5px 18px rgba(0, 0, 0, 0.12)',
-  },
-
-  accountBar: {
-    position: 'fixed',
-    top: '12px',
-    right: '12px',
-    zIndex: 9999,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '6px',
-    borderRadius: '999px',
-    background: '#ffffff',
-    boxShadow:
-      '0 4px 16px rgba(0, 0, 0, 0.12)',
-  },
-
-  userName: {
-    maxWidth: '120px',
-    overflow: 'hidden',
-    whiteSpace: 'nowrap',
-    textOverflow: 'ellipsis',
-    color: '#17352c',
-    fontSize: '11px',
-    fontWeight: 800,
-  },
-
-  logoutButton: {
-    padding: '7px 10px',
-    border: '1px solid #d6dedb',
-    borderRadius: '999px',
-    background: '#ffffff',
-    color: '#17352c',
-    fontSize: '11px',
-    fontWeight: 800,
-    cursor: 'pointer',
-  },
-
-  errorBox: {
-    margin: 0,
-    padding: '12px',
-    borderRadius: '11px',
-    background: '#fff0f0',
-    color: '#b52d2d',
-    fontSize: '12px',
-    fontWeight: 800,
-    lineHeight: 1.5,
-  },
-
-  successBox: {
-    margin: 0,
-    padding: '12px',
-    borderRadius: '11px',
-    background: '#eaf5ef',
-    color: '#0b6b4f',
-    fontSize: '12px',
-    fontWeight: 800,
-    lineHeight: 1.5,
-  },
-}
-
-export default EntryGate

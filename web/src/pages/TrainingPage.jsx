@@ -68,7 +68,6 @@ function formatMonthDay(date) {
 }
 
 function TrainingPage({
-  settings,
   access,
   openProgram,
 }) {
@@ -281,7 +280,7 @@ function TrainingPage({
         <h2>트레이닝 캘린더</h2>
 
         <span>
-          {settings.membership} 일정에 맞춰
+          훈련 일정에 맞춰
           훈련하세요.
         </span>
       </div>
