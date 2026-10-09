@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import NTACLogo from "./NTACLogo.jsx";
 import AuthGate from "./AuthGate.jsx";
 import PTMember from "./pt/PTMember.jsx";
 import { supabase } from "./lib/supabase.js";
@@ -141,7 +142,9 @@ export default function EntryGate() {
   if (session === undefined || loading)
     return (
       <div className="manage center-state">
-        <span className="brand-word">NOLTO</span>
+        <span className="brand-word">
+          <NTACLogo />
+        </span>
         <p role="status">회원 정보를 불러오고 있어요.</p>
       </div>
     );
@@ -169,7 +172,7 @@ export default function EntryGate() {
       >
         <header className="account-header">
           <a className="brand-word" href={import.meta.env.BASE_URL}>
-            NOLTO<span>TRAINING</span>
+            <NTACLogo />
           </a>
           <div className="account-actions">
             <span>{profile.full_name || "회원"}</span>
@@ -236,7 +239,7 @@ export default function EntryGate() {
     <main className="manage auth-page">
       <section className="auth-card">
         <span className="brand-word">
-          NOLTO<span>TRAINING</span>
+          <NTACLogo />
         </span>
         {view === "welcome" ? (
           <>

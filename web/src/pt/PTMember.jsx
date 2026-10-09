@@ -1,5 +1,5 @@
 import { koreaDate, koreaTime } from "./dates.js";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase.js";
 import { checked, loadPT } from "./api.js";
 import { today, statusLabels } from "./model.js";
@@ -15,9 +15,11 @@ export default function PTMember({ profile }) {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [choice, setChoice] = useState(null),
-    [tab, setTab] = useState("history"),
+    [editing, setEditing] = useState(null),
+    [tab, setTab] = useState("booking"),
     [month, setMonth] = useState(today().slice(0, 7)),
     [message, setMessage] = useState("");
+  const lock = useRef(false);
   useEffect(() => {
     let live = true;
     (async () => {
@@ -55,24 +57,73 @@ export default function PTMember({ profile }) {
     };
   }, []);
   async function book() {
-    if (busy || !choice) return;
+    if (lock.current || !choice) return;
+    lock.current = true;
     setBusy(true);
     setError("");
     try {
-      await checked(supabase.rpc("pt_book_slot", { slot: choice.id }));
+      await checked(
+        editing
+          ? supabase.rpc("pt_change_booking", {
+              sid: editing.id,
+              target_slot: choice.id,
+            })
+          : supabase.rpc("pt_book_slot", { slot: choice.id }),
+      );
       setMessage(
-        `${koreaDate(choice.starts_at)} ${koreaTime(choice.starts_at)} 예약이 완료됐어요.`,
+        `${koreaDate(choice.starts_at)} ${koreaTime(choice.starts_at)} ${editing ? "예약을 변경했어요" : "예약이 완료됐어요"}.`,
       );
       setChoice(null);
+      setEditing(null);
       setVersion((v) => v + 1);
     } catch (e) {
       setError(e.message);
       setChoice(null);
       setVersion((v) => v + 1);
     } finally {
+      lock.current = false;
       setBusy(false);
     }
   }
+  function startChange(s) {
+    setEditing(s);
+    setChoice(null);
+    setTab("booking");
+    setDay(s.session_date);
+    setMessage("");
+    setError("");
+  }
+  async function cancel(s) {
+    if (
+      lock.current ||
+      !window.confirm(
+        `${s.session_date} ${s.start_time.slice(0, 5)} 수업을 취소할까요? 횟수는 차감되지 않아요.`,
+      )
+    )
+      return;
+    lock.current = true;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      await checked(
+        supabase.rpc("pt_change_booking", { sid: s.id, target_slot: null }),
+      );
+      setMessage("예약을 취소했어요. 횟수는 그대로 유지돼요.");
+      setEditing(null);
+      setChoice(null);
+      setVersion((v) => v + 1);
+    } catch (e) {
+      setError(e.message);
+      setVersion((v) => v + 1);
+    } finally {
+      lock.current = false;
+      setBusy(false);
+    }
+  }
+  const canChange = (s) =>
+    new Date(`${s.session_date}T${s.start_time}+09:00`).getTime() >
+    Date.now() + 3600000;
   const sessions = data?.sessions || [],
     completed = sessions.filter((s) => s.status === "completed"),
     scheduled = sessions.filter((s) => s.status === "scheduled"),
@@ -129,36 +180,58 @@ export default function PTMember({ profile }) {
                 setTab("booking");
                 setDay(next?.session_date || today());
                 setChoice(null);
+                setEditing(null);
               }}
             >
               {next ? "예약 일정 보기" : "수업 예약하기"}
             </button>
           </section>
-          <ProgressSummary
-            sessions={sessions}
-            month={month}
-            onSelect={(d) => {
-              setTab("history");
-              setDay(d);
-            }}
-          />
           <nav className="sub-tabs detail-tabs" aria-label="PT 메뉴">
             <button
-              className={tab === "history" ? "selected" : ""}
-              onClick={() => {
-                setTab("history");
-                setChoice(null);
-              }}
-            >
-              운동 기록
-            </button>
-            <button
               className={tab === "booking" ? "selected" : ""}
+              aria-pressed={tab === "booking"}
               onClick={() => setTab("booking")}
             >
               수업 예약
             </button>
+            <button
+              className={tab === "history" ? "selected" : ""}
+              aria-pressed={tab === "history"}
+              onClick={() => {
+                setTab("history");
+                setChoice(null);
+                setEditing(null);
+              }}
+            >
+              운동 기록
+            </button>
           </nav>
+          {tab === "history" && (
+            <ProgressSummary
+              sessions={sessions}
+              month={month}
+              onSelect={setDay}
+            />
+          )}
+          {tab === "booking" && editing && (
+            <section className="change-booking" role="status">
+              <strong>변경할 날짜와 시간을 선택하세요</strong>
+              <span>
+                기존 예약 · {editing.session_date}{" "}
+                {editing.start_time.slice(0, 5)}
+              </span>
+              <small>새 시간을 확정할 때까지 기존 예약이 유지돼요.</small>
+              <button
+                disabled={busy}
+                onClick={() => {
+                  setEditing(null);
+                  setChoice(null);
+                }}
+              >
+                변경 그만하기
+              </button>
+            </section>
+          )}
           <Calendar
             value={day}
             onChange={(d) => {
@@ -178,13 +251,32 @@ export default function PTMember({ profile }) {
                 {scheduled
                   .filter((s) => s.session_date === day)
                   .map((s) => (
-                    <p className="booked-time" key={s.id}>
-                      ✓ {s.start_time.slice(0, 5)} 예약 완료
-                    </p>
+                    <div className="booked-time" key={s.id}>
+                      <strong>{s.start_time.slice(0, 5)} · 예약 완료</strong>
+                      <div className="pt-row">
+                        <button
+                          disabled={busy || !canChange(s)}
+                          onClick={() => startChange(s)}
+                        >
+                          예약 변경
+                        </button>
+                        <button
+                          disabled={busy || !canChange(s)}
+                          onClick={() => cancel(s)}
+                        >
+                          예약 취소
+                        </button>
+                      </div>
+                      {!canChange(s) && (
+                        <small>
+                          시작 1시간 이내 변경·취소는 코치에게 문의해 주세요.
+                        </small>
+                      )}
+                    </div>
                   ))}
                 {!data.member.coach_id ? (
                   <p>담당 코치 배정 후 예약할 수 있어요.</p>
-                ) : available <= 0 ? (
+                ) : available <= 0 && !editing ? (
                   <p>
                     남은 횟수만큼 예약되어 있어요. 추가 예약은 코치에게 문의해
                     주세요.
@@ -221,7 +313,11 @@ export default function PTMember({ profile }) {
                           disabled={busy}
                           onClick={book}
                         >
-                          {busy ? "예약 중…" : "이 시간으로 예약"}
+                          {busy
+                            ? "처리 중…"
+                            : editing
+                              ? "이 시간으로 변경"
+                              : "이 시간으로 예약"}
                         </button>
                         <small>
                           예약 시 차감되지 않아요. 코치가 운동 완료를 누르면 1회
@@ -232,7 +328,8 @@ export default function PTMember({ profile }) {
                   </>
                 )}
                 <p className="pt-muted">
-                  예약 변경·취소는 담당 코치에게 요청해 주세요.
+                  시작 1시간 전까지 직접 변경·취소할 수 있어요. 이후에는 담당
+                  코치에게 문의해 주세요.
                 </p>
               </section>
             </>

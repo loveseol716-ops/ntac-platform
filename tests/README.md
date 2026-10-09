@@ -19,3 +19,7 @@ Class notes have only Warm-up, Main and 특이사항, all visible to the member.
 Migrations are under `supabase/migrations`; the existing database schema predates this checkout.
 
 Member home defaults to 운동 기록: calendar marks distinguish completed sessions and bookings; counts include completed sessions only. The selected month drives session/day counts, a six-month chart, and the monthly history. 최근 운동 links to the latest completed session date; the next appointment stays at the top.
+
+`pt-member-booking-changes.sql`: rollback-only member rescheduling/cancellation, full-package moves, collision preservation, exact one-hour cutoff, coach override, independent optional pre/post notes and completion.
+`pt-tracking.mjs`: includes cross-year Monday–Sunday weekly counts, excluding cancelled/scheduled sessions.
+`ux-browser.cjs`: booking-first navigation, NTAC SVG wordmark, weekly/monthly switch, member change/cancel and disabled cutoff actions.

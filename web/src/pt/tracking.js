@@ -44,3 +44,22 @@ export function trackingStats(sessions, month) {
     months,
   };
 }
+
+export function weeklyStats(sessions, day) {
+  const end = new Date(`${periodFor(day, "week").first}T12:00:00Z`);
+  return Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(end);
+    d.setUTCDate(d.getUTCDate() - (5 - i) * 7);
+    const { first, last } = periodFor(dateKey(d), "week");
+    return {
+      key: first,
+      last,
+      count: sessions.filter(
+        (s) =>
+          s.status === "completed" &&
+          s.session_date >= first &&
+          s.session_date <= last,
+      ).length,
+    };
+  });
+}

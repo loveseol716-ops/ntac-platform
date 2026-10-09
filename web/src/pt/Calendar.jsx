@@ -117,7 +117,7 @@ export function SimpleLog({ session }) {
         ) : null,
       )}
       {!session.warm_up && !session.main && !session.notes && (
-        <p className="pt-muted">수업 후 운동 일지가 여기에 표시돼요.</p>
+        <p className="pt-muted">아직 작성된 운동 내용이 없어요. 코치가 수업 전·후에 추가할 수 있어요.</p>
       )}
     </div>
   );

@@ -1,7 +1,10 @@
-import { trackingStats } from "./tracking.js";
+import { useState } from "react";
+import { today } from "./model.js";
+import { trackingStats, weeklyStats } from "./tracking.js";
 import { SimpleLog } from "./Calendar.jsx";
 export function ProgressSummary({ sessions, month, onSelect }) {
-  const stats = trackingStats(sessions, month);
+  const stats = trackingStats(sessions, month),
+    week = weeklyStats(sessions, today()).at(-1);
   return (
     <>
       <section className="tracking-stats" aria-label="운동 통계">
@@ -13,10 +16,10 @@ export function ProgressSummary({ sessions, month, onSelect }) {
           </strong>
         </div>
         <div>
-          <span>{Number(month.slice(5))}월 운동한 날</span>
+          <span>이번 주 운동</span>
           <strong>
-            {stats.days}
-            <small>일</small>
+            {week.count}
+            <small>회</small>
           </strong>
         </div>
         <div>
@@ -44,37 +47,65 @@ export function ProgressSummary({ sessions, month, onSelect }) {
   );
 }
 export function TrainingProgress({ sessions, month, onSelect }) {
+  const [period, setPeriod] = useState("week");
   const stats = trackingStats(sessions, month),
-    max = Math.max(1, ...stats.months.map((m) => m.count)),
+    points = period === "week" ? weeklyStats(sessions, today()) : stats.months,
+    max = Math.max(1, ...points.map((m) => m.count)),
     rows = stats.completed.filter((s) => s.session_date.startsWith(month));
   return (
     <>
       <section className="pt-card">
-        <h2>월별 운동 횟수</h2>
+        <div className="pt-row pt-between">
+          <h2>운동 횟수</h2>
+          <div className="chart-tabs" aria-label="통계 기간">
+            {[
+              ["week", "주간"],
+              ["month", "월간"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                aria-pressed={period === value}
+                className={period === value ? "selected" : ""}
+                onClick={() => setPeriod(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
         <p className="pt-muted">
-          {stats.months[0].key} ~ {month} · 완료한 수업 기준
+          {period === "week"
+            ? `최근 6주 · 월요일–일요일`
+            : `${stats.months[0].key} ~ ${month}`}{" "}
+          · 완료한 수업 기준
         </p>
         <div
           className="workout-chart"
           role="img"
-          aria-label={stats.months
-            .map((m) => `${m.key} ${m.count}회`)
+          aria-label={points
+            .map((m) => `${m.key}${m.last ? ` ~ ${m.last}` : ""} ${m.count}회`)
             .join(", ")}
         >
-          {stats.months.map((m) => (
+          {points.map((m) => (
             <div className="chart-column" key={m.key}>
               <strong>{m.count}회</strong>
               <div className="bar-track">
                 <div
-                  className={m.key === month ? "bar current" : "bar"}
+                  className={
+                    m.key === points.at(-1).key ? "bar current" : "bar"
+                  }
                   style={{ height: `${(m.count / max) * 100}%` }}
                 />
               </div>
-              <span>{Number(m.key.slice(5))}월</span>
+              <span>
+                {period === "week"
+                  ? `${Number(m.key.slice(5, 7))}/${Number(m.key.slice(8))}`
+                  : `${Number(m.key.slice(5))}월`}
+              </span>
             </div>
           ))}
         </div>
-        {!stats.months.some((m) => m.count) && (
+        {!points.some((m) => m.count) && (
           <p className="pt-muted">수업을 완료하면 운동 기록이 쌓여요.</p>
         )}
       </section>

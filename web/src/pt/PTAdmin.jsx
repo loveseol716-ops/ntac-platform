@@ -265,7 +265,10 @@ export default function PTAdmin({
                       />
                     </label>
                   ))}
-                  <p className="pt-muted">저장한 내용은 회원에게도 보여요.</p>
+                  <p className="pt-muted">
+                    수업 전·후 언제든 작성할 수 있어요. 모든 내용은 선택사항이며
+                    회원에게도 보여요.
+                  </p>
                   <div className="pt-row">
                     <button className="pt-primary" disabled={busy}>
                       저장
@@ -302,6 +305,11 @@ export default function PTAdmin({
                           </span>
                         </div>
                         <SimpleLog session={s} />
+                        {s.status === "scheduled" && (
+                          <p className="pt-muted">
+                            일지 없이도 운동 완료를 누를 수 있어요.
+                          </p>
+                        )}
                         <div className="pt-row session-actions">
                           <button disabled={busy} onClick={() => edit(s)}>
                             일지 작성

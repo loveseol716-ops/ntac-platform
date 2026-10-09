@@ -196,6 +196,15 @@ const fixtures = {
               ),
           ),
         });
+      if (table === "pt_change_booking") {
+        const p = req.postDataJSON(),
+          session = sessions.find((x) => x.id === p.sid);
+        if (p.target_slot) {
+          const sl = slots.find((x) => x.id === p.target_slot);
+          Object.assign(session, { slot_id: sl.id, start_time: "12:00:00" });
+        } else session.status = "cancelled";
+        return route.fulfill({ json: p.sid });
+      }
       if (table === "pt_book_slot") {
         const sl = slots.find((s) => s.id === req.postDataJSON().slot);
         const member = members.find((m) => m.profile_id === user.id);
@@ -369,7 +378,18 @@ const fixtures = {
   await context.close();
   ({ page, context } = await open("pt", 390));
   await page.getByRole("heading", { name: "김민수님의 PT" }).waitFor();
+  assert.equal(
+    await page
+      .getByRole("button", { name: "수업 예약", exact: true })
+      .getAttribute("aria-pressed"),
+    "true",
+  );
+  await page.getByRole("img", { name: "NTAC", exact: true }).waitFor();
+  await page.getByRole("button", { name: "운동 기록", exact: true }).click();
   await page.getByRole("region", { name: "운동 통계" }).waitFor();
+  await page.getByText("이번 주 운동", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "월간", exact: true }).click();
+  await page.getByRole("button", { name: "주간", exact: true }).click();
   assert.match(
     await page
       .getByRole("button", { name: date, exact: true })
@@ -396,6 +416,44 @@ const fixtures = {
     .locator(".next-session")
     .getByText(`${tomorrow} · 10:00`, { exact: true })
     .waitFor();
+  slots.push({
+    id: "slot2",
+    coach_id: "coach",
+    starts_at: `${tomorrow}T12:00:00+09:00`,
+    ends_at: `${tomorrow}T13:00:00+09:00`,
+    is_open: true,
+  });
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await page.getByRole("button", { name: "예약 변경", exact: true }).click();
+  await page.getByRole("button", { name: "12:00", exact: true }).click();
+  await page
+    .getByRole("button", { name: "이 시간으로 변경", exact: true })
+    .click();
+  await page
+    .getByText(`${tomorrow} 12:00 예약을 변경했어요.`, { exact: true })
+    .waitFor();
+  assert.equal(sessions.find((s) => s.id === "booked").slot_id, "slot2");
+  page.on("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "예약 취소", exact: true }).click();
+  await page
+    .getByText("예약을 취소했어요. 횟수는 그대로 유지돼요.", { exact: true })
+    .waitFor();
+  assert.equal(sessions.find((s) => s.id === "booked").status, "cancelled");
+  await page.getByRole("button", { name: date, exact: true }).click();
+  assert(
+    await page
+      .getByRole("button", { name: "예약 취소", exact: true })
+      .isDisabled(),
+  );
+  await page.screenshot({
+    path: "/tmp/ntac-booking-refined-mobile.png",
+    fullPage: true,
+  });
+  assert(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  );
   await page.getByRole("button", { name: "운동 기록", exact: true }).click();
   await page.getByRole("button", { name: date, exact: true }).click();
   await page
