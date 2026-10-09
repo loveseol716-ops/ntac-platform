@@ -11,10 +11,12 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
 
-      injectRegister: 'auto',
+      injectRegister: false,
 
       workbox: {
         cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
       },
 
       manifest: {

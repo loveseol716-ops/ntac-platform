@@ -18,3 +18,4 @@ button {
   font: inherit;
   cursor: pointer;
 }
+.app-update-notice{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10000;box-sizing:border-box;width:min(560px,calc(100% - 32px));display:flex;gap:16px;align-items:center;padding:18px 20px;border-radius:14px;background:#0b3d2e;color:white;box-shadow:0 8px 36px #0003}.app-update-notice div{display:grid;gap:5px;flex:1}.app-update-notice span{font-size:12px;line-height:1.5;opacity:.85}.app-update-notice button{border:0;border-radius:8px;background:white;color:#0b3d2e;padding:12px;font-weight:700;cursor:pointer;white-space:nowrap}@media(max-width:480px){.app-update-notice{bottom:16px;flex-wrap:wrap}.app-update-notice button{width:100%}}
