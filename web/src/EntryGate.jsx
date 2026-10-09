@@ -1,3 +1,4 @@
+import PTMember from './pt/PTMember.jsx'
 import {
   useEffect,
   useState,
@@ -28,6 +29,9 @@ function getAppUrl() {
 }
 
 function EntryGate() {
+  const [signupTrack, setSignupTrack] = useState('ntac')
+  const [ptMode, setPTMode] = useState(false)
+  const [hasPT, setHasPT] = useState(false)
   const [session, setSession] =
     useState(undefined)
 
@@ -148,7 +152,8 @@ function EntryGate() {
             return
           }
 
-          setSessionProfile(data)
+          const { data: ptMember } = await supabase.from('pt_members').select('id').eq('profile_id', data.id).maybeSingle()
+          if (mounted) { setHasPT(Boolean(ptMember)); setPTMode(data.membership === 'PT'); setSessionProfile(data) }
 
           if (
             data.signup_source ===
@@ -316,7 +321,7 @@ function EntryGate() {
               referrer_name:
                 referrerName,
               signup_source:
-                'self_trial',
+                signupTrack === 'pt' ? 'pt' : 'self_trial',
               privacy_consent: true,
             },
           },
@@ -328,7 +333,7 @@ function EntryGate() {
 
       if (data.session) {
         setSignupMessage(
-          '계정이 생성되었습니다. NTAC를 준비하고 있습니다.',
+          '계정이 생성되었습니다. 회원 화면을 준비하고 있습니다.',
         )
         return
       }
@@ -397,6 +402,10 @@ function EntryGate() {
       )
     }
 
+    if (sessionProfile && ptMode) {
+      return <PTMember profile={sessionProfile} onBack={sessionProfile.membership !== 'PT' ? () => setPTMode(false) : null} />
+    }
+
     if (
       sessionProfile?.signup_source ===
         'self_trial' ||
@@ -436,6 +445,7 @@ function EntryGate() {
             </button>
           </div>
 
+          {hasPT && <div className="pt pt-switch"><button onClick={() => setPTMode(true)}>나의 PT 수업 보기</button></div>}
           <SelfTrialApp
             profile={sessionProfile}
           />
@@ -447,6 +457,7 @@ function EntryGate() {
 
     return (
       <>
+        {hasPT && <div className="pt pt-switch"><button onClick={() => setPTMode(true)}>나의 PT 수업 보기</button></div>}
         <AuthGate />
         <MembershipFunnelLayer />
       </>
@@ -488,23 +499,23 @@ function EntryGate() {
           </button>
 
           <p style={styles.eyebrow}>
-            7-DAY FREE TRIAL
+            {signupTrack === 'pt' ? 'NOLTO PERSONAL TRAINING' : '7-DAY FREE TRIAL'}
           </p>
 
           <h1 style={styles.title}>
-            NTAC를 직접 경험해보세요.
+            {signupTrack === 'pt' ? 'PT 회원 계정 만들기' : 'NTAC를 직접 경험해보세요.'}
           </h1>
 
           <p style={styles.description}>
-            계정을 만든 뒤 7일 무료체험을 시작하면 RUN과 HYROX BUILD를 이용할 수 있습니다. 자동 결제는 없습니다.
+            {signupTrack === 'pt' ? '계정을 만든 뒤 코치가 PT 이용권을 등록하면 수업 기록과 변화를 확인할 수 있습니다.' : '계정을 만든 뒤 7일 무료체험을 시작하면 RUN과 HYROX BUILD를 이용할 수 있습니다. 자동 결제는 없습니다.'}
           </p>
 
           <div style={styles.trialSummary}>
             <strong>
-              NTAC BUILD · 7일 무료
+              {signupTrack === 'pt' ? 'PT 수업 · 기록 · 변화' : 'NTAC BUILD · 7일 무료'}
             </strong>
             <span>
-              RUN + 런트레이너 + HYROX BUILD
+              {signupTrack === 'pt' ? '기존 계정이 있다면 새 가입 없이 코치에게 PT 등록을 요청하세요.' : 'RUN + 런트레이너 + HYROX BUILD'}
             </span>
           </div>
 
@@ -763,13 +774,13 @@ function EntryGate() {
 
         <button
           type="button"
-          onClick={() =>
-            setView('signup')
-          }
+          onClick={() => { setSignupTrack('ntac'); setView('signup') }}
           style={styles.heroButton}
         >
           7일 무료체험 시작하기
         </button>
+
+        <button type="button" onClick={() => { setSignupTrack('pt'); setView('signup') }} style={styles.heroSecondaryButton}>PT 회원 가입</button>
 
         <button
           type="button"

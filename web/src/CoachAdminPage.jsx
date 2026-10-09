@@ -1,3 +1,4 @@
+import PTAdmin from './pt/PTAdmin.jsx'
 import {
   useEffect,
   useMemo,
@@ -18,6 +19,7 @@ import {
 import { supabase } from './lib/supabase.js'
 
 const adminTabs = [
+  { id: 'pt', label: 'PT 관리' },
   {
     id: 'dashboard',
     label: '운영 콘솔',
@@ -53,6 +55,7 @@ const adminTabs = [
 ]
 
 const membershipOptions = [
+  'PT',
   'NTAC RUN',
   'NTAC BUILD',
   'NTAC COMPLETE',
@@ -1917,6 +1920,8 @@ function CoachAdminPage({
           )
         })}
       </nav>
+
+      {activeAdminTab === 'pt' && <PTAdmin />}
 
       {activeAdminTab ===
         'dashboard' && (
