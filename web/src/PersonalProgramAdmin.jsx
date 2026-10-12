@@ -284,7 +284,6 @@ function PersonalProgramAdmin() {
                 membership_status
               `,
             )
-            .eq('role', 'member')
             .eq('ntac_enabled', true)
             .order('full_name', {
               ascending: true,

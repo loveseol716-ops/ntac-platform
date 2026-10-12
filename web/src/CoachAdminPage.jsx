@@ -157,7 +157,6 @@ export default function CoachAdminPage({
     [profiles, members, packages, sessions],
   );
   const filtered = rows.filter(({ p, m }) => {
-    if (isStaff(p)) return false;
     if (tab === "pt" && !m?.active) return false;
     if (tab === "ntac" && !p.ntac_enabled) return false;
     if (
@@ -410,7 +409,9 @@ export default function CoachAdminPage({
                     {[p.ntac_enabled ? "NTAC" : null, m?.active ? "PT" : null]
                       .filter(Boolean)
                       .join(" · ") || "등록 대기"}
-                    {isStaff(p) ? " · 코치" : ""}
+                    {isStaff(p)
+                      ? ` · ${{ owner: "대표", admin: "관리자", coach: "코치" }[p.role]}`
+                      : ""}
                   </span>
                 </div>
                 <div data-label="담당 코치">
@@ -582,7 +583,6 @@ export default function CoachAdminPage({
             {rows
               .filter(
                 ({ p, m }) =>
-                  !isStaff(p) &&
                   (tab === "pt" ? !m?.active : !p.ntac_enabled) &&
                   `${p.full_name} ${p.email} ${p.phone || ""}`
                     .toLowerCase()

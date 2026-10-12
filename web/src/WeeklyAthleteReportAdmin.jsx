@@ -333,10 +333,6 @@ function WeeklyAthleteReportAdmin() {
                 `,
               )
               .eq('ntac_enabled', true)
-              .eq(
-                'role',
-                'member',
-              )
               .order(
                 'full_name',
                 {

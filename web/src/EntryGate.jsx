@@ -11,7 +11,7 @@ const Management = lazy(() => import("./CoachAdminPage.jsx"));
 function availableViews(profile, ptMember) {
   const views = [];
   if (["owner", "admin", "coach"].includes(profile?.role))
-    return ["management"];
+    views.push("management");
   if (profile?.ntac_enabled) views.push("ntac");
   if (ptMember?.active) views.push("pt");
   return views;
@@ -164,7 +164,7 @@ export default function EntryGate() {
         management: ["owner", "admin"].includes(profile.role)
           ? "관리"
           : "담당 회원",
-        ntac: "NTAC",
+        ntac: views.includes("management") ? "나의 NTAC" : "NTAC",
         pt: "나의 PT",
       };
     return (

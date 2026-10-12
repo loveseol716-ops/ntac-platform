@@ -344,7 +344,7 @@ const fixtures = {
   await page.getByRole("heading", { name: "NTAC 관리", exact: true }).waitFor();
   assert.deepEqual(
     await page.locator(".roster-row .member-identity strong").allTextContents(),
-    ["이지윤", "박서연"],
+    ["설재현", "이지윤", "박서연"],
   );
   assert.equal(await page.locator(".coach-calendar").count(), 0);
   assert.equal(
@@ -360,6 +360,8 @@ const fixtures = {
     .getByRole("button", { name: "NTAC 회원 등록", exact: true })
     .click();
   const registration = page.getByRole("dialog");
+  await registration.getByLabel("가입 회원 검색").fill("김코치");
+  assert.equal(await registration.getByRole("button", { name: /김코치/ }).count(), 1);
   await registration.getByLabel("가입 회원 검색").fill("정하늘");
   await registration.getByRole("button", { name: /정하늘/ }).click();
   assert.equal(
@@ -380,9 +382,12 @@ const fixtures = {
   );
   assert.equal(
     await page.locator(".service-switch").count(),
-    0,
-    "Staff should only see management",
+    1,
+    "Enrolled staff can access their own training",
   );
+  await page.getByRole("button", { name: "나의 NTAC", exact: true }).click();
+  await page.getByText("오늘도 훈련을 이어가세요.").waitFor();
+  await page.locator(".service-switch").getByRole("button", { name: "관리", exact: true }).click();
   await page
     .getByRole("navigation", { name: "관리 메뉴", exact: true })
     .getByRole("button", { name: "NTAC 관리", exact: true })
