@@ -1,4 +1,4 @@
-const { chromium } = require(
+const { chromium, webkit } = require(
   process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES + "/playwright",
 );
 const assert = require("node:assert/strict");
@@ -65,8 +65,11 @@ let saveFail = false,
   displayTokenAuth = null;
 const requests = [];
 (async () => {
-  const browser = await chromium.launch({
-    executablePath: process.env.CHROMIUM_PATH,
+  const browser = await (
+    process.env.BROWSER === "webkit" ? webkit : chromium
+  ).launch({
+    executablePath:
+      process.env.BROWSER === "webkit" ? undefined : process.env.CHROMIUM_PATH,
     headless: true,
   });
   let errors = [];
@@ -360,7 +363,17 @@ const requests = [];
       if (table === "pt_members")
         return reply(req.headers().accept?.includes("object") ? null : []);
       if (table === "group_classes")
-        return reply(classes.filter((c) => !c.archived_at));
+        return reply(
+          classes.filter(
+            (c) =>
+              !c.archived_at &&
+              new Date(c.starts_at) >=
+                new Date(url.searchParams.get("starts_at")?.slice(4) || 0) &&
+              (!url.searchParams.getAll("starts_at")[1] ||
+                new Date(c.starts_at) <
+                  new Date(url.searchParams.getAll("starts_at")[1].slice(3))),
+          ),
+        );
       if (table === "group_participants")
         return reply(
           participants
@@ -527,6 +540,35 @@ const requests = [];
   await page
     .getByRole("button", { name: "주간 프로그램", exact: true })
     .click();
+  for (const width of [320, 390, 768]) {
+    await page.setViewportSize({ width, height: 900 });
+    const controls = await page
+      .locator(".g-week-nav button, .g-week-nav input")
+      .evaluateAll((els) =>
+        els.map((el) => {
+          const r = el.getBoundingClientRect();
+          return { x: r.x, y: r.y, right: r.right, bottom: r.bottom };
+        }),
+      );
+    assert(
+      controls.every((r) => r.x >= 0 && r.right <= width),
+      `admin date navigation fits ${width}`,
+    );
+    assert(
+      controls.every((r, i) =>
+        controls.every(
+          (q, j) =>
+            i === j ||
+            r.right <= q.x + 1 ||
+            q.right <= r.x + 1 ||
+            r.bottom <= q.y + 1 ||
+            q.bottom <= r.y + 1,
+        ),
+      ),
+      `admin date field and buttons do not overlap ${width}`,
+    );
+  }
+  await page.setViewportSize({ width: 1024, height: 1366 });
   await page.getByRole("button", { name: /^다음 주/ }).click();
   await page.getByRole("button", { name: "반복 시간표 설정" }).click();
   dialog = page.getByRole("dialog");
@@ -650,8 +692,77 @@ const requests = [];
   await context.close();
   ({ page, context } = await open("second", 390, 900));
   await page.getByRole("heading", { name: "이지윤님의 오늘 운동" }).waitFor();
-  await page.getByRole("button", { name: /^다음 주/ }).click();
-  await page.getByText(/주간 프로그램 펼치기/).waitFor();
+  await page
+    .getByRole("button", { name: "주간 프로그램", exact: true })
+    .click();
+  // Plans without class occurrences must still appear, including past weekdays.
+  weeks[0].programs.forEach((p) => {
+    if (!p.description && !p.movements.length) p.description = "주간 운동 계획";
+  });
+  await page.getByRole("button", { name: "다음 주", exact: true }).click();
+  await page.locator(".g-program-choices button").first().waitFor();
+  assert.equal(await page.locator(".g-program-day").count(), 7);
+  assert.equal(await page.locator(".g-program-choices button").count(), 11);
+  for (const width of [1920, 1024, 768, 390, 320]) {
+    await page.setViewportSize({ width, height: 1080 });
+    assert(
+      await page
+        .locator(".g-program-week")
+        .evaluate((el) => el.scrollWidth <= el.clientWidth),
+      `whole program week fits ${width}`,
+    );
+    assert(
+      await page
+        .locator(".g-program-choices button")
+        .evaluateAll((els) =>
+          els.every((el) => el.scrollWidth <= el.clientWidth),
+        ),
+      `program names fit ${width}`,
+    );
+    const rects = await page.locator(".g-program-day").evaluateAll((els) =>
+      els.map((el) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.x, y: r.y, width: r.width, height: r.height };
+      }),
+    );
+    assert(
+      rects.every((r, i) =>
+        rects.every(
+          (q, j) =>
+            i === j ||
+            r.x + r.width <= q.x + 1 ||
+            q.x + q.width <= r.x + 1 ||
+            r.y + r.height <= q.y + 1 ||
+            q.y + q.height <= r.y + 1,
+        ),
+      ),
+      `weekday panels do not overlap ${width}`,
+    );
+    if (width === 390 || width === 1920)
+      await page.screenshot({
+        path: `/tmp/ntac-program-week-${width}.png`,
+        fullPage: true,
+      });
+  }
+  await page
+    .locator(".g-program-day")
+    .first()
+    .getByRole("button", { name: /GENTLE STRENGTH/ })
+    .click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByText(/10–10–8–8–8회/).waitFor();
+  assert(
+    await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth),
+    "program detail fits phone",
+  );
+  await dialog.getByRole("button", { name: "이 날짜 수업 보기" }).click();
+  await page.locator(".g-selected-classes .g-class-card").first().waitFor();
+  assert.equal(
+    await page
+      .locator(".g-month-day[aria-pressed=true]")
+      .getAttribute("data-date"),
+    weeks[0].week_start,
+  );
   for (const width of [1920, 1440, 1024, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 1080 });
     assert(
@@ -660,39 +771,84 @@ const requests = [];
       ),
       `member body fits ${width}`,
     );
-    const clocks = await page
-      .locator(".g-clock")
-      .evaluateAll((els) =>
-        els.map((el) => ({
-          text: el.textContent,
-          nowrap: getComputedStyle(el).whiteSpace,
-          height: el.getBoundingClientRect().height,
-          line: parseFloat(getComputedStyle(el).lineHeight),
-          width: el.getBoundingClientRect().width,
-        })),
-      );
-    assert(
-      clocks.some((c) => c.text === "18:20"),
-      "test includes original failing time",
+    const cells = await page.locator(".g-month-day").evaluateAll((els) =>
+      els.map((el) => {
+        const r = el.getBoundingClientRect();
+        return {
+          x: r.x,
+          y: r.y,
+          right: r.right,
+          bottom: r.bottom,
+          width: r.width,
+        };
+      }),
     );
     assert(
-      clocks.every(
-        (c) => c.nowrap === "nowrap" && c.height < c.line * 1.2 && c.width > 40,
+      cells.length >= 28 && cells.length <= 42 && cells.length % 7 === 0,
+      "complete month grid",
+    );
+    assert(
+      cells.slice(0, 7).every((c) => Math.abs(c.y - cells[0].y) < 1),
+      `seven weekdays on one row ${width}`,
+    );
+    assert(
+      cells.every((r, i) =>
+        cells.every(
+          (q, j) =>
+            i === j ||
+            r.right <= q.x + 1 ||
+            q.right <= r.x + 1 ||
+            r.bottom <= q.y + 1 ||
+            q.bottom <= r.y + 1,
+        ),
       ),
-      `clock remains one line ${width}`,
+      `calendar cells do not overlap ${width}`,
     );
+    if (width <= 390)
+      assert(
+        cells.at(-1).bottom - cells[0].y <= 400,
+        `month is compact ${width}`,
+      );
     assert(
       await page
         .locator(".g-class-card")
         .evaluateAll((els) =>
+          els.every((el) => el.scrollWidth <= el.clientWidth),
+        ),
+      `class cards fit ${width}`,
+    );
+    assert(
+      await page
+        .locator(".g-clock")
+        .evaluateAll((els) =>
           els.every(
             (el) =>
-              el.scrollWidth <= el.clientWidth &&
-              el.getBoundingClientRect().right <=
-                el.closest(".g-calendar-day").getBoundingClientRect().right - 5,
+              el.getBoundingClientRect().height <
+              parseFloat(getComputedStyle(el).lineHeight) * 1.2,
           ),
         ),
-      `cards fit ${width}`,
+      `time stays on one line ${width}`,
+    );
+    const nav = await page
+      .locator(".g-calendar-toolbar button")
+      .evaluateAll((els) =>
+        els.map((el) => {
+          const r = el.getBoundingClientRect();
+          return { x: r.x, y: r.y, right: r.right, bottom: r.bottom };
+        }),
+      );
+    assert(
+      nav.every((r, i) =>
+        nav.every(
+          (q, j) =>
+            i === j ||
+            r.right <= q.x + 1 ||
+            q.right <= r.x + 1 ||
+            r.bottom <= q.y + 1 ||
+            q.bottom <= r.y + 1,
+        ),
+      ),
+      `calendar controls do not overlap ${width}`,
     );
     if (width === 1920 || width === 390)
       await page.screenshot({
@@ -701,7 +857,22 @@ const requests = [];
       });
   }
   await page.setViewportSize({ width: 390, height: 900 });
+  await page.getByRole("button", { name: "주간", exact: true }).click();
+  assert.equal(await page.locator(".g-month-day").count(), 7);
+  await page.getByRole("button", { name: "월간", exact: true }).click();
+  await page.getByRole("button", { name: "다음 달", exact: true }).click();
+  await page.locator(".g-month-calendar[aria-busy=false]").waitFor();
+  assert.equal(
+    await page.locator(".g-selected-classes .g-class-card").count(),
+    0,
+    "no stale class cards after month change",
+  );
+  await page.getByRole("button", { name: "이전 달", exact: true }).click();
   await page
+    .locator(`.g-month-day[data-date="${weeks[0].week_start}"]`)
+    .click();
+  await page
+    .locator(".g-selected-classes")
     .getByRole("button", { name: /GENTLE STRENGTH/ })
     .first()
     .click();
@@ -713,8 +884,21 @@ const requests = [];
   // Advance mocked class lifecycle; production timing/eligibility is covered by PostgreSQL tests.
   wc.status = "open";
   await page.reload();
-  await page.getByRole("button", { name: /^다음 주/ }).click();
   await page
+    .getByRole("button", { name: "주간 프로그램", exact: true })
+    .click();
+  await page.getByRole("button", { name: "다음 주", exact: true }).click();
+  await page
+    .locator(".g-program-day")
+    .first()
+    .getByRole("button", { name: /GENTLE STRENGTH/ })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "이 날짜 수업 보기" })
+    .click();
+  await page
+    .locator(".g-selected-classes")
     .getByRole("button", { name: /GENTLE STRENGTH/ })
     .first()
     .click();

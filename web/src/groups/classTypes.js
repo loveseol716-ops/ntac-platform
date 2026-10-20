@@ -44,6 +44,19 @@ export const typeDays = (id) =>
     .join(" · ");
 export const programReady = (p) =>
   !!(p?.description?.trim() || p?.movements?.length);
+// Weekly plans exist even when publication was too late to create a past class.
+export const programsForDay = (week, dow) => {
+  if (!week || week.status !== "published") return [];
+  if (week.program_mode !== "class_type")
+    return (week.days || []).filter(
+      (p) => Number(p.dow) === dow && programReady(p),
+    );
+  return (week.programs || []).filter(
+    (p) =>
+      programReady(p) &&
+      CLASS_TYPES.find((t) => t.id === p.class_type_id)?.days.includes(dow),
+  );
+};
 export const blankPrograms = () =>
   CLASS_TYPES.map((t) => ({
     class_type_id: t.id,

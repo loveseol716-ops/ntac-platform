@@ -1,14 +1,15 @@
 import { supabase } from "../lib/supabase.js";
-import { dateRange, weekStart, addDays } from "./model.js";
+import { dateRange, weekStart, calendarRange } from "./model.js";
 export async function checked(request) {
   const { data, error } = await request;
   if (error) throw error;
   return data;
 }
 export const rpc = (name, args = {}) => checked(supabase.rpc(name, args));
-export async function listClasses(day) {
-  const start = dateRange(weekStart(day))[0],
-    end = dateRange(addDays(weekStart(day), 7))[0];
+export async function listClasses(day, view = "week") {
+  const [first, last] = calendarRange(day, view);
+  const start = dateRange(first)[0],
+    end = dateRange(last)[0];
   return checked(
     supabase
       .from("group_classes")

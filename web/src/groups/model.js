@@ -159,6 +159,24 @@ export const addDays = (day, n) =>
 export const weekStart = (day) =>
   addDays(day, -((new Date(`${day}T12:00:00Z`).getUTCDay() + 6) % 7));
 export const weekdays = ["월", "화", "수", "목", "금", "토", "일"];
+export const shiftMonth = (day, amount) => {
+  const d = new Date(`${day.slice(0, 7)}-01T12:00:00Z`);
+  d.setUTCMonth(d.getUTCMonth() + amount);
+  return d.toISOString().slice(0, 10);
+};
+// Monday-first calendar; end is exclusive and includes the final visible week.
+export function calendarRange(day, view = "month") {
+  if (view === "week") return [weekStart(day), addDays(weekStart(day), 7)];
+  const first = `${day.slice(0, 7)}-01`;
+  const last = addDays(shiftMonth(first, 1), -1);
+  return [weekStart(first), addDays(weekStart(last), 7)];
+}
+export function calendarDates(day, view = "month") {
+  const [start, end] = calendarRange(day, view);
+  const dates = [];
+  for (let date = start; date < end; date = addDays(date, 1)) dates.push(date);
+  return dates;
+}
 export const prescriptionText = (m) =>
   m.training_type === "strength"
     ? `${m.sets.map((s) => s.reps).join("–")}회 · RIR ${m.sets.map((s) => s.rir).every((v) => v === m.sets[0].rir) ? m.sets[0].rir : m.sets.map((s) => s.rir).join(" / ")}`

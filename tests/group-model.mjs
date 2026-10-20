@@ -5,7 +5,59 @@ import {
   groupStats,
   nullableNumber,
   seoulDate,
+  calendarRange,
+  calendarDates,
+  shiftMonth,
 } from "../web/src/groups/model.js";
+import { blankPrograms, programsForDay } from "../web/src/groups/classTypes.js";
+
+assert.deepEqual(calendarRange("2026-10-20"), ["2026-09-28", "2026-11-02"]);
+assert.deepEqual(calendarRange("2026-10-20", "week"), [
+  "2026-10-19",
+  "2026-10-26",
+]);
+assert.deepEqual(calendarRange("2026-03-01"), ["2026-02-23", "2026-04-06"]);
+assert.deepEqual(calendarRange("2027-02-01"), ["2027-02-01", "2027-03-01"]);
+assert.equal(
+  calendarDates("2024-02-10").filter((d) => d === "2024-02-29").length,
+  1,
+);
+assert.equal(shiftMonth("2026-12-31", 1), "2027-01-01");
+assert.equal(shiftMonth("2026-03-31", -1), "2026-02-01");
+const programWeek = {
+  status: "published",
+  program_mode: "class_type",
+  programs: blankPrograms().map((p) => ({ ...p, description: "운동 계획" })),
+};
+assert.deepEqual(
+  Array.from({ length: 7 }, (_, i) =>
+    programsForDay(programWeek, i + 1).map((p) => p.class_type_id),
+  ),
+  [
+    ["gentle_strength", "bomb_sweat"],
+    ["gentle_sweat", "bomb_strength"],
+    ["gentle_sweat", "bomb_strength"],
+    ["you_in"],
+    ["gentle_strength", "bomb_sweat"],
+    ["nolto_team"],
+    ["no_more_weak"],
+  ],
+);
+assert.deepEqual(programsForDay({ ...programWeek, status: "draft" }, 1), []);
+assert.deepEqual(
+  programsForDay({ ...programWeek, programs: blankPrograms() }, 1),
+  [],
+);
+assert.deepEqual(
+  programsForDay(
+    { status: "published", days: [{ dow: 2, description: "기존 프로그램" }] },
+    2,
+  ),
+  [{ dow: 2, description: "기존 프로그램" }],
+);
+console.log(
+  "PASS: month/week bounds, leap day, year navigation and all seven weekday programs independent of class occurrences",
+);
 const m = { id: "x", kind: "weight", target_reps: 8, unit: "kg" };
 const row = (id, weight, reps, extra = {}) => ({
   id,

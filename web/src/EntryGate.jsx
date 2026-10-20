@@ -189,7 +189,7 @@ export default function EntryGate() {
       };
     return (
       <div
-        className={`member-shell ${mode === "management" ? "wide-shell" : ""}`}
+        className={`member-shell ${mode === "management" ? "wide-shell" : mode === "group" ? "group-shell" : ""}`}
       >
         <header className="account-header">
           <a className="brand-word" href={import.meta.env.BASE_URL}>

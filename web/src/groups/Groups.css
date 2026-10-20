@@ -1026,3 +1026,401 @@
     padding: 18px;
   }
 }
+
+/* A complete calendar stays visible; only the selected day's classes expand. */
+.member-shell.group-shell {
+  max-width: 1200px;
+}
+.g-member {
+  max-width: 1200px;
+}
+.groups.g-member {
+  container-type: inline-size;
+}
+.groups .g-member-hero {
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+.groups .g-member-hero h1 {
+  font-size: clamp(1.3rem, 3vw, 1.9rem);
+  margin: 0;
+}
+.groups .g-member-hero .g-kicker {
+  margin-bottom: 7px;
+}
+.groups .g-member-hero .g-summary {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 20px;
+  flex-shrink: 0;
+}
+.groups .g-member-hero .g-summary span {
+  display: grid;
+  gap: 0;
+}
+.groups .g-member-hero .g-summary b {
+  font-size: 1.3rem;
+}
+.groups .g-member-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  overflow: visible;
+}
+.groups .g-member-tabs button {
+  padding: 10px 5px;
+  min-width: 0;
+  font-size: 0.88rem;
+}
+.groups .g-calendar-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.groups .g-calendar-period {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.groups .g-calendar-period h2 {
+  margin: 0;
+  text-align: center;
+  font-size: 1.2rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.groups .g-calendar-period button {
+  padding: 0;
+  font-size: 1.6rem;
+}
+.groups .g-calendar-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.groups .g-view-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--g-border);
+  border-radius: 12px;
+}
+.groups .g-view-toggle button {
+  border: 0;
+  padding: 8px 14px;
+  background: none;
+}
+.groups .g-view-toggle button[aria-pressed="true"] {
+  background: #314137;
+  color: var(--g-accent);
+}
+.g-month-calendar {
+  border: 1px solid var(--g-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.g-calendar-weekdays,
+.g-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.g-calendar-weekdays {
+  background: #202b2b;
+  text-align: center;
+  font-size: 0.78rem;
+  padding: 10px 0;
+  color: var(--g-muted);
+}
+.g-calendar-weekdays > :last-child {
+  color: #e8aba5;
+}
+.groups .g-month-day {
+  border: 0;
+  border-top: 1px solid var(--g-border);
+  border-right: 1px solid var(--g-border);
+  border-radius: 0;
+  min-width: 0;
+  min-height: 112px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  text-align: left;
+  background: #192125;
+  gap: 3px;
+  position: relative;
+}
+.groups .g-month-day:nth-child(7n) {
+  border-right: 0;
+}
+.groups .g-month-day.outside {
+  background: #141b1e;
+  color: #7f9293;
+}
+.groups .g-month-day[aria-pressed="true"] {
+  background: #30432d;
+  box-shadow: inset 0 0 0 2px #d8f589;
+}
+.groups .g-month-day:focus-visible {
+  outline-offset: -3px;
+  z-index: 1;
+}
+.groups .g-month-day:hover {
+  background: #2a3838;
+}
+.g-date-number {
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 26px;
+  min-width: 26px;
+  text-align: center;
+}
+.is-today .g-date-number {
+  background: var(--g-accent);
+  color: #152015;
+  border-radius: 50%;
+}
+.g-day-events {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.g-day-events > span {
+  display: block;
+  padding: 2px 4px;
+  border-left: 2px solid #b7d397;
+  background: #aec99013;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.65rem;
+}
+.g-day-events > span.cancelled {
+  border-color: #c9948c;
+  text-decoration: line-through;
+}
+.g-day-events small {
+  font-size: 0.65rem;
+}
+.groups .g-day-count {
+  display: none;
+  font-size: 0.65rem;
+  color: #c5d9b8;
+  white-space: nowrap;
+}
+.g-day-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 18px 0 10px;
+}
+.groups .g-day-heading h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.g-selected-classes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 10px;
+}
+.groups .g-selected-classes .g-class-card {
+  margin: 0;
+}
+.groups .g-booking-note {
+  margin: 18px 0 0;
+  font-size: 0.75rem;
+}
+.g-week-caption {
+  overflow-wrap: anywhere;
+  font-weight: 650;
+  margin-bottom: 6px;
+}
+.g-program-week {
+  display: grid;
+  gap: 8px;
+}
+.g-program-day {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--g-border);
+  border-radius: 12px;
+  background: #192125;
+  min-width: 0;
+}
+.g-program-day.is-today {
+  border-color: #b6d69c;
+}
+.groups .g-program-day h3 {
+  text-align: center;
+  margin: 0;
+  font-size: 1rem;
+}
+.groups .g-program-day h3 small {
+  font-weight: 400;
+  font-size: 0.68rem;
+}
+.g-program-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+.groups .g-program-choices button {
+  text-align: left;
+  padding: 10px;
+  min-width: 0;
+  background: #25352c;
+  border-color: #465b44;
+}
+.groups .g-program-choices strong {
+  display: block;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.groups .g-program-choices small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.7rem;
+  margin-top: 4px;
+}
+.g-program-pending {
+  grid-column: 1/-1;
+  color: var(--g-muted);
+  font-size: 0.78rem;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+@container (min-width: 850px) {
+  .g-program-week {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    align-items: stretch;
+  }
+  .g-program-day {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 8px;
+  }
+  .groups .g-program-day h3 {
+    padding-bottom: 8px;
+  }
+  .g-program-choices {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@container (max-width: 600px) {
+  .groups .g-member-hero {
+    padding: 16px;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .groups .g-member-hero .g-summary {
+    width: 100%;
+    gap: 24px;
+  }
+  .groups .g-member-hero .g-summary span {
+    display: flex;
+    gap: 6px;
+  }
+  .groups .g-calendar-period {
+    flex: 1 1 100%;
+  }
+  .groups .g-calendar-options {
+    flex: 1 1 100%;
+  }
+  .groups .g-month-day {
+    min-height: 66px;
+    padding: 5px 2px;
+    align-items: center;
+    gap: 0;
+  }
+  .groups .g-day-events {
+    display: none;
+  }
+  .groups .g-day-count {
+    display: block;
+  }
+  .groups .g-program-choices button {
+    padding: 8px;
+  }
+  .groups .g-program-choices strong {
+    font-size: 0.7rem;
+  }
+  .groups .g-program-day {
+    gap: 6px;
+    padding: 8px;
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+}
+@container (max-width: 380px) {
+  .groups .g-member-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* Native iOS date fields must not contribute their intrinsic width to flex rows. */
+.groups input[type="date"],
+.groups input[type="datetime-local"],
+.groups input[type="time"] {
+  display: block;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 46px;
+}
+.groups input::-webkit-date-and-time-value {
+  text-align: left;
+  min-width: 0;
+}
+.groups .g-movements article > div,
+.groups .g-recommendation > *,
+.groups .g-person-result > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .groups .g-week-nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+    gap: 8px;
+  }
+  .groups .g-week-nav label {
+    grid-column: 1/-1;
+    grid-row: 1;
+    width: 100%;
+  }
+  .groups .g-week-nav button {
+    padding: 10px 5px;
+    font-size: 0.8rem;
+    min-width: 0;
+  }
+  .groups .g-class-card {
+    grid-template-columns: 58px minmax(0, 1fr) 12px;
+    gap: 10px;
+  }
+  .groups .g-recommendation {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}

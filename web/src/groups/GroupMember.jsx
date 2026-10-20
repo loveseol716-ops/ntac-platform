@@ -1,4 +1,5 @@
-import WeekCalendar from "./WeekCalendar.jsx";
+import MemberCalendar from "./MemberCalendar.jsx";
+import WeeklyOverview from "./WeeklyOverview.jsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   rpc,
@@ -27,6 +28,7 @@ import {
 import "./Groups.css";
 export default function GroupMember({ profile }) {
   const [tab, setTab] = useState("today"),
+    [view, setView] = useState("month"),
     [day, setDay] = useState(seoulDate()),
     [classes, setClasses] = useState([]),
     [exercises, setExercises] = useState([]),
@@ -51,7 +53,7 @@ export default function GroupMember({ profile }) {
     setLoading(true);
     setError("");
     Promise.all([
-      listClasses(day),
+      listClasses(day, "month"),
       listExercises(),
       history(profile.id),
       rpc("group_bootstrap"),
@@ -77,7 +79,11 @@ export default function GroupMember({ profile }) {
   useEffect(() => {
     let live = true;
     const refresh = () =>
-      Promise.all([listClasses(day), history(profile.id), listWeeks(day)])
+      Promise.all([
+        listClasses(day, "month"),
+        history(profile.id),
+        listWeeks(day),
+      ])
         .then(([cs, rs, ws]) => {
           if (live) {
             setClasses(cs);
@@ -143,10 +149,11 @@ export default function GroupMember({ profile }) {
     ["active", "completed"].includes(p.status);
   return (
     <main className="groups g-member">
-      <header className="g-hero">
-        <p className="g-kicker">GROUP TRAINING</p>
-        <h1>{profile.full_name?.split(" ")[0] || "회원"}님의 오늘 운동</h1>
-        <p>함께 운동하고, 나의 성장을 기록하세요.</p>
+      <header className="g-hero g-member-hero">
+        <div>
+          <p className="g-kicker">GROUP TRAINING</p>
+          <h1>{profile.full_name?.split(" ")[0] || "회원"}님의 오늘 운동</h1>
+        </div>
         <div className="g-summary">
           <span>
             <b>{stats.sessions}</b> 완료한 수업
@@ -156,15 +163,17 @@ export default function GroupMember({ profile }) {
           </span>
         </div>
       </header>
-      <nav className="g-tabs" aria-label="그룹수업 메뉴">
+      <nav className="g-tabs g-member-tabs" aria-label="그룹수업 메뉴">
         {[
-          ["today", "오늘 · 일정"],
+          ["today", "수업 캘린더"],
+          ["programs", "주간 프로그램"],
           ["history", "나의 기록"],
           ["settings", "TV 표시"],
         ].map(([k, v]) => (
           <button
             key={k}
             className={tab === k ? "selected" : ""}
+            aria-current={tab === k ? "page" : undefined}
             onClick={() => {
               setTab(k);
               setSelected(null);
@@ -189,7 +198,7 @@ export default function GroupMember({ profile }) {
           {message}
         </p>
       )}
-      {loading && (
+      {loading && selected && (
         <p className="g-muted" role="status">
           수업을 불러오고 있어요.
         </p>
@@ -337,21 +346,28 @@ export default function GroupMember({ profile }) {
         </>
       ) : tab === "today" ? (
         <>
-          <h2>이번 주 프로그램 · 수업</h2>
-          <p className="g-muted">
-            예약과 공식 출석은 운톡에서, 운동 프로그램과 기록은 여기에서
-            확인해요.
-          </p>
-          <WeekCalendar
+          <MemberCalendar
             day={day}
             onDay={setDay}
+            view={view}
+            onView={setView}
             classes={classes}
             records={records}
             onSelect={setSelected}
-            weeks={weeks}
-            exercises={exercises}
+            onPrograms={() => setTab("programs")}
+            loading={loading}
           />
         </>
+      ) : tab === "programs" ? (
+        <WeeklyOverview
+          key={day}
+          day={day}
+          onDay={setDay}
+          weeks={weeks}
+          exercises={exercises}
+          onSchedule={() => setTab("today")}
+          loading={loading}
+        />
       ) : tab === "history" ? (
         <>
           <h2>나의 운동 기록</h2>
