@@ -5,6 +5,7 @@ import { today, statusLabels } from "./model.js";
 import { Calendar, SimpleLog } from "./Calendar.jsx";
 import PassLedger from "./PassLedger.jsx";
 import { currentBalance, passLabel } from "./passes.js";
+import { sessionStartsAt, useSessionClock } from "./useSessionClock.js";
 import "./PT.css";
 import "./Calendar.css";
 export default function PTAdmin({
@@ -34,6 +35,7 @@ export default function PTAdmin({
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
   const lock = useRef(false);
+  const now = useSessionClock(data?.sessions);
   useEffect(() => {
     let live = true;
     (async () => {
@@ -63,7 +65,7 @@ export default function PTAdmin({
       live = false;
     };
   }, [initialMemberId, version]);
-  async function act(fn, msg = "저장했어요.") {
+  async function act(fn, msg = "저장했어요.", reload = true) {
     if (lock.current) return;
     lock.current = true;
     setBusy(true);
@@ -71,7 +73,7 @@ export default function PTAdmin({
     setMessage("");
     try {
       await fn();
-      setVersion((v) => v + 1);
+      if (reload) setVersion((v) => v + 1);
       setMessage(msg);
       return true;
     } catch (e) {
@@ -116,18 +118,35 @@ export default function PTAdmin({
     )
       return;
     await act(
-      () =>
-        checked(
+      async () => {
+        await checked(
           supabase.rpc("pt_set_session_status", {
             sid: s.id,
             new_status: value,
           }),
-        ),
+        );
+        // Show the saved status and balance together, before announcing success.
+        let fresh;
+        try {
+          fresh = await loadPT(initialMemberId);
+        } catch {
+          throw new Error(
+            "변경은 저장됐지만 최신 횟수를 불러오지 못했어요. 화면을 다시 열어 확인해 주세요.",
+          );
+        }
+        setData(fresh);
+        if (fresh.sessions.find((row) => row.id === s.id)?.status !== value) {
+          throw new Error(
+            "수업 상태가 변경됐어요. 최신 상태를 확인한 뒤 다시 시도해 주세요.",
+          );
+        }
+      },
       value === "completed"
         ? "운동 완료! 1회 차감했어요."
         : value === "scheduled"
           ? "완료를 취소하고 1회를 복구했어요."
           : "수업을 취소했어요.",
+      false,
     );
   }
   const next = data?.sessions
@@ -309,7 +328,9 @@ export default function PTAdmin({
                         <SimpleLog session={s} />
                         {s.status === "scheduled" && (
                           <p className="pt-muted">
-                            일지 없이도 운동 완료를 누를 수 있어요.
+                            {sessionStartsAt(s) > now
+                              ? `수업 시작(${s.session_date} ${s.start_time.slice(0, 5)}) 후 완료할 수 있어요. 완료하면 1회 차감돼요.`
+                              : "일지 없이도 운동 완료를 누를 수 있어요. 완료하면 1회 차감돼요."}
                           </p>
                         )}
                         <div className="pt-row session-actions">
@@ -320,12 +341,7 @@ export default function PTAdmin({
                             <>
                               <button
                                 className="pt-primary"
-                                disabled={
-                                  busy ||
-                                  new Date(
-                                    `${s.session_date}T${s.start_time}+09:00`,
-                                  ) > new Date()
-                                }
+                                disabled={busy || sessionStartsAt(s) > now}
                                 onClick={() => status(s, "completed")}
                               >
                                 운동 완료

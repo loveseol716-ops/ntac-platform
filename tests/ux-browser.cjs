@@ -111,6 +111,8 @@ const sessions = [
 ];
 const applied = [];
 const savedDefaults = [];
+const statusRequests = [];
+let failCompletion = false;
 const fixtures = {
   pt_availability_defaults: savedDefaults,
   pt_slots: slots,
@@ -168,7 +170,7 @@ const fixtures = {
     headless: true,
   });
   let errors = [];
-  async function open(id, width = 1200) {
+  async function open(id, width = 1200, clockTime) {
     const context = await browser.newContext({
       viewport: { width, height: 1000 },
     });
@@ -300,6 +302,10 @@ const fixtures = {
       }
       if (table === "pt_set_session_status") {
         const p = req.postDataJSON();
+        statusRequests.push(p);
+        if (failCompletion) {
+          return route.fulfill({ status: 400, json: { message: "완료 처리 테스트 오류" } });
+        }
         sessions.find((s) => s.id === p.sid).status = p.new_status;
         return route.fulfill({ json: null });
       }
@@ -320,12 +326,57 @@ const fixtures = {
       return route.fulfill({ json: rows });
     });
     const page = await context.newPage();
+    if (clockTime) {
+      await page.clock.install({ time: clockTime });
+    }
     page.on("pageerror", (e) => {
       errors.push(e.message);
       console.error("BROWSER ERROR", e.message);
     });
     await page.goto("http://127.0.0.1:5175/ntac-platform/");
     return { page, context };
+  }
+  if (process.env.PT_COMPLETION_ONLY === "1") {
+    sessions.push({
+      id: "completion-boundary", member_id: "m1", package_id: "pk1",
+      coach_id: "coach", session_date: date, start_time: "14:00:00",
+      status: "scheduled", title: "PT", workout: [], warm_up: "", main: "", notes: "",
+      duration_minutes: 60, created_at: date,
+    });
+    const { page, context } = await open("admin", 390, new Date(`${date}T13:59:00+09:00`));
+    await page.getByRole("heading", { name: "PT 관리", exact: true }).waitFor();
+    await page.getByRole("button", { name: "수업 관리", exact: true }).first().click();
+    await page.getByRole("heading", { name: "김민수님의 PT" }).waitFor();
+    const card = page.locator("article.pt-card").filter({ has: page.getByRole("heading", { name: "14:00 · 김민수" }) });
+    const complete = card.getByRole("button", { name: "운동 완료", exact: true });
+    await complete.waitFor();
+    await page.clock.pauseAt(new Date(`${date}T13:59:59+09:00`));
+    assert(await complete.isDisabled(), "future class cannot be deducted");
+    assert.match(await card.innerText(), /수업 시작.*14:00.*후 완료/);
+    assert.equal(await page.locator(".balance-pill").innerText(), "9회 남음");
+    await page.clock.runFor(1100);
+    assert(await complete.isEnabled(), "button unlocks at start without navigation or reload");
+    await page.screenshot({ path: "/tmp/ntac-pt-completion-mobile.png", fullPage: true });
+    failCompletion = true;
+    await complete.click();
+    await page.getByRole("alert").filter({ hasText: "완료 처리 테스트 오류" }).waitFor();
+    assert.equal(await page.locator(".balance-pill").innerText(), "9회 남음");
+    assert.equal(await page.getByText("운동 완료! 1회 차감했어요.").count(), 0);
+    failCompletion = false;
+    await complete.click();
+    await page.getByText("운동 완료! 1회 차감했어요.").waitFor();
+    assert.equal(await page.locator(".balance-pill").innerText(), "8회 남음");
+    assert.match(await card.innerText(), /1회 사용/);
+    assert.equal(statusRequests.filter((p) => p.new_status === "completed").length, 2);
+    page.on("dialog", (d) => d.accept());
+    await card.getByRole("button", { name: "완료 취소", exact: true }).click();
+    await page.getByText("완료를 취소하고 1회를 복구했어요.").waitFor();
+    assert.equal(await page.locator(".balance-pill").innerText(), "9회 남음");
+    assert.deepEqual(errors, []);
+    await context.close();
+    await browser.close();
+    console.log("PASS: start-time unlock, visible explanation, failed completion, immediate balance and undo");
+    return;
   }
   let { page, context } = await open("admin");
   await page.getByRole("heading", { name: "PT 관리", exact: true }).waitFor();

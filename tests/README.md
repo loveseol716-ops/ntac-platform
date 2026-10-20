@@ -28,5 +28,6 @@ Pass ledger and profile release:
 - `node tests/pt-pass-model.mjs`: renewed-pass balances, reservation capacity, expiry and inclusive end date.
 - `node tests/admin-password.mjs`: invalid token/member/coach denial, staff-target denial, input validation and admin update; synthetic credentials only.
 - `pt-pass-ledger.sql`: rollback-only purchase retry, repeated completion, completion reversal, renewal allocation, expiry, package edits with reservations, event visibility, profile field allowlist and member isolation.
+- `PT_COMPLETION_ONLY=1 node tests/ux-browser.cjs`: focused mobile check with a controlled clock: a 14:00 reservation stays disabled at 13:59:59, explains why, then enables automatically. Verifies a failed save preserves the balance, successful completion shows the updated balance before its success message, and undo restores it. Uses the same Vite and browser setup above.
 - Browser fixtures cover own/admin profile editing, pass creation/history and 900px member-card boundaries.
 - Existing passes retain unlimited terms until an administrator explicitly sets an end date. Stored sessions remain tied to their original package.
