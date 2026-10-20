@@ -31,3 +31,12 @@ Pass ledger and profile release:
 - `PT_COMPLETION_ONLY=1 node tests/ux-browser.cjs`: focused mobile check with a controlled clock: a 14:00 reservation stays disabled at 13:59:59, explains why, then enables automatically. Verifies a failed save preserves the balance, successful completion shows the updated balance before its success message, and undo restores it. Uses the same Vite and browser setup above.
 - Browser fixtures cover own/admin profile editing, pass creation/history and 900px member-card boundaries.
 - Existing passes retain unlimited terms until an administrator explicitly sets an end date. Stored sessions remain tied to their original package.
+
+## Group classes
+
+- `node tests/group-model.mjs`: comparable ranking, ties, null/zero, AMRAP ordering, Seoul dates and completed-only counts.
+- `NTAC_TEST_MODULES=/path/to/node_modules node tests/group-database.mjs`: isolated PostgreSQL via `@electric-sql/pglite` (install in a separate test-tools directory). Tests service isolation, roles, direct-write denial, lifecycle, duplicate join, recommendation snapshots, actual-only records, stale writes, finalization and TV token privacy/revocation.
+- `group-production-smoke.sql`: rollback-only test against the existing production schema. Uses an existing administrator and two member IDs internally without returning personal data. Does not leave any membership, participant, program or TV changes behind.
+- `CHROMIUM_PATH=/path/to/chromium node tests/run-browser.cjs tests/group-browser.cjs`: starts local Vite with synthetic API configuration and checks member/admin/TV flows, saved errors, mobile and 1080p layouts. Requires Playwright via `CODEX_PRIMARY_RUNTIME_NODE_MODULES`.
+- `CHROMIUM_PATH=/path/to/chromium node tests/run-browser.cjs`: existing PT/NTAC browser regression suite using the same server runner. Add `PT_COMPLETION_ONLY=1` for the existing PT timing/deduction regression.
+- Operations and limits: `docs/group-classes.md`.

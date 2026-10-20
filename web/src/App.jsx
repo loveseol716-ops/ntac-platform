@@ -902,13 +902,13 @@ function CheckinPage({
       onClose()
     } catch (error) {
       console.error(
-        '체크인 저장 실패:',
+        '컨디션 기록 저장 실패:',
         error,
       )
 
       setSubmitError(
         error.message ||
-          '체크인을 저장하지 못했습니다.',
+          '컨디션 기록을 저장하지 못했습니다.',
       )
     } finally {
       setSubmitting(false)
@@ -1105,7 +1105,7 @@ function CheckinPage({
         >
           {submitting
             ? '저장 중...'
-            : '체크인 완료'}
+            : '컨디션 기록 완료'}
         </button>
       </form>
     </div>
@@ -1150,7 +1150,7 @@ function HomePage({
           </h3>
 
           <p>
-            체크인과 운동 기록을
+            컨디션 기록과 운동 기록을
             확인하고 있어요.
           </p>
         </article>
@@ -1181,7 +1181,7 @@ function HomePage({
           {todayCheckin ? (
             <>
               <h3>
-                오늘 체크인이
+                오늘 컨디션 기록이
                 완료됐어요.
               </h3>
 
@@ -1216,7 +1216,7 @@ function HomePage({
         >
           {todayCheckin
             ? '다시 기록'
-            : '체크인하기'}
+            : '컨디션 기록하기'}
         </button>
       </section>
       )}

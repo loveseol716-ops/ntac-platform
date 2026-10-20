@@ -6,20 +6,25 @@ import PTMember from "./pt/PTMember.jsx";
 import { supabase } from "./lib/supabase.js";
 import { loadWeeklyProgramsFromSupabase } from "./data/weeklyPrograms.js";
 import "./management/Management.css";
+const GroupMember = lazy(() => import("./groups/GroupMember.jsx"));
 const App = lazy(() => import("./App.jsx"));
 const Management = lazy(() => import("./CoachAdminPage.jsx"));
-function availableViews(profile, ptMember) {
+function availableViews(profile, ptMember, groupContext) {
   const views = [];
   if (["owner", "admin", "coach"].includes(profile?.role))
     views.push("management");
   if (profile?.ntac_enabled) views.push("ntac");
   if (ptMember?.active) views.push("pt");
+  if (groupContext?.member?.active || groupContext?.has_history)
+    views.push("group");
   return views;
 }
 export default function EntryGate() {
   const [session, setSession] = useState(undefined),
     [profile, setProfile] = useState(null),
-    [ptMember, setPTMember] = useState(null);
+    [ptMember, setPTMember] = useState(null),
+    [groupContext, setGroupContext] = useState(null),
+    [groupError, setGroupError] = useState("");
   const [view, setView] = useState("welcome"),
     [mode, setMode] = useState(""),
     [loading, setLoading] = useState(false),
@@ -55,6 +60,8 @@ export default function EntryGate() {
     if (!session?.user?.id) {
       setProfile(null);
       setPTMember(null);
+      setGroupContext(null);
+      setGroupError("");
       setMode("");
       return;
     }
@@ -73,14 +80,26 @@ export default function EntryGate() {
         .eq("profile_id", session.user.id)
         .maybeSingle();
       if (me) throw me;
+      const { data: group, error: ge } = await supabase.rpc("group_bootstrap");
       if (p.ntac_enabled || ["owner", "admin"].includes(p.role))
         await loadWeeklyProgramsFromSupabase();
       if (live) {
         setProfile(p);
         setPTMember(m);
-        const views = availableViews(p, m);
+        setGroupContext(group);
+        setGroupError(
+          ge ? "그룹수업 정보를 불러오지 못했어요. 새로고침해 주세요." : "",
+        );
+        const views = availableViews(p, m, group);
+        const preferred = new URLSearchParams(location.search).has("class")
+          ? "group"
+          : localStorage.getItem(`ntac-service:${p.id}`);
         setMode((current) =>
-          views.includes(current) ? current : views[0] || "",
+          views.includes(current)
+            ? current
+            : views.includes(preferred)
+              ? preferred
+              : views[0] || "",
         );
       }
     })()
@@ -159,13 +178,14 @@ export default function EntryGate() {
           <button onClick={logout}>로그아웃</button>
         </div>
       );
-    const views = availableViews(profile, ptMember),
+    const views = availableViews(profile, ptMember, groupContext),
       labels = {
         management: ["owner", "admin"].includes(profile.role)
           ? "관리"
           : "담당 회원",
         ntac: views.includes("management") ? "나의 NTAC" : "NTAC",
         pt: "나의 PT",
+        group: "그룹수업",
       };
     return (
       <div
@@ -207,6 +227,7 @@ export default function EntryGate() {
                 aria-pressed={mode === v}
                 onClick={() => {
                   setMode(v);
+                  localStorage.setItem(`ntac-service:${profile.id}`, v);
                   window.scrollTo(0, 0);
                 }}
               >
@@ -214,6 +235,12 @@ export default function EntryGate() {
               </button>
             ))}
           </nav>
+        )}
+        {groupError && (
+          <p role="alert" className="error-banner">
+            {groupError}{" "}
+            <button onClick={() => setRefresh((v) => v + 1)}>다시 시도</button>
+          </p>
         )}
         {!views.length ? (
           <section className="manage empty-state">
@@ -232,6 +259,7 @@ export default function EntryGate() {
             {mode === "management" && <Management profile={profile} />}
             {mode === "ntac" && <App profile={profile} />}
             {mode === "pt" && <PTMember profile={profile} embedded />}
+            {mode === "group" && <GroupMember profile={profile} />}
           </Suspense>
         )}
       </div>

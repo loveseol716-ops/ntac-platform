@@ -206,6 +206,7 @@ const fixtures = {
       if (url.pathname.startsWith("/auth/"))
         return route.fulfill({ json: { id: user?.id, email: user?.email } });
       const table = url.pathname.split("/").pop();
+      if (table === "group_bootstrap") return route.fulfill({ json: { member: null, has_history: false } });
       if (table === "weekly_programs" && req.method() === "POST") {
         const row = req.postDataJSON();
         const index = fixtures.weekly_programs.findIndex(
@@ -215,15 +216,15 @@ const fixtures = {
         else fixtures.weekly_programs[index] = row;
         return route.fulfill({ json: row });
       }
-      if (table === "set_member_services") {
+      if (table === "set_member_services_v2") {
         const p = req.postDataJSON();
         const u = profiles.find((x) => x.id === p.target_id);
         u.ntac_enabled = p.enable_ntac;
-        u.assigned_coach_id = p.coach_id;
+        u.assigned_coach_id = p.ntac_coach_id;
         u.coach_name =
-          profiles.find((x) => x.id === p.coach_id)?.full_name || "미배정";
+          profiles.find((x) => x.id === p.ntac_coach_id)?.full_name || "미배정";
         let m = members.find((x) => x.profile_id === u.id);
-        if (m) m.active = p.enable_pt;
+        if (m) { m.active = p.enable_pt; m.coach_id = p.pt_coach_id; }
         return route.fulfill({ json: null });
       }
       if (table === "pt_apply_availability") {

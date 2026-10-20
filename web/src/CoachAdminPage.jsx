@@ -7,6 +7,7 @@ import { currentBalance } from "./pt/passes.js";
 import PTAdmin from "./pt/PTAdmin.jsx";
 import CoachCalendar from "./pt/CoachCalendar.jsx";
 import "./management/Management.css";
+const GroupAdmin = lazy(() => import("./groups/GroupAdmin.jsx"));
 const WeeklyProgramAdmin = lazy(() => import("./WeeklyProgramAdmin.jsx"));
 const PersonalProgramAdmin = lazy(() => import("./PersonalProgramAdmin.jsx"));
 const WeeklyAthleteReportAdmin = lazy(
@@ -79,7 +80,8 @@ export default function CoachAdminPage({
   const [editing, setEditing] = useState(null),
     [profileEditing, setProfileEditing] = useState(null),
     [service, setService] = useState(""),
-    [coach, setCoach] = useState("");
+    [coach, setCoach] = useState(""),
+    [ptCoach, setPTCoach] = useState("");
   const [error, setError] = useState(""),
     [message, setMessage] = useState(""),
     [loading, setLoading] = useState(true),
@@ -185,11 +187,8 @@ export default function CoachAdminPage({
           ? "ntac"
           : "none",
     );
-    setCoach(
-      (tab === "pt" ? m?.coach_id : p.assigned_coach_id) ||
-        p.assigned_coach_id ||
-        "",
-    );
+    setCoach(p.assigned_coach_id || "");
+    setPTCoach(m?.coach_id || "");
     setError("");
   }
   async function save(e) {
@@ -200,11 +199,12 @@ export default function CoachAdminPage({
     setError("");
     try {
       await checked(
-        supabase.rpc("set_member_services", {
+        supabase.rpc("set_member_services_v2", {
           target_id: editing.id,
           enable_ntac: ["ntac", "both"].includes(service),
           enable_pt: ["pt", "both"].includes(service),
-          coach_id: coach || null,
+          ntac_coach_id: coach || null,
+          pt_coach_id: ptCoach || null,
         }),
       );
       setEditing(null);
@@ -255,14 +255,18 @@ export default function CoachAdminPage({
               ? "PT 관리"
               : tab === "ntac"
                 ? "NTAC 관리"
-                : "운영 설정"}
+                : tab === "group"
+                  ? "그룹수업 관리"
+                  : "운영 설정"}
           </h1>
           <p className="workspace-description">
             {tab === "pt"
               ? "개인 수업 일정과 회원별 횟수권을 관리하세요."
               : tab === "ntac"
                 ? "NTAC 회원의 프로그램과 훈련 리포트를 관리하세요."
-                : "코치 계정과 관리자 권한을 설정하세요."}
+                : tab === "group"
+                  ? "오늘의 프로그램과 참가자·운동 기록·TV를 관리하세요."
+                  : "코치 계정과 관리자 권한을 설정하세요."}
           </p>
         </div>
         <div className="button-row">
@@ -275,6 +279,7 @@ export default function CoachAdminPage({
       <nav className="workspace-tabs" aria-label="관리 메뉴">
         {[
           ["pt", "PT 관리"],
+          ["group", "그룹수업"],
           ...(admin
             ? [
                 ["ntac", "NTAC 관리"],
@@ -309,6 +314,11 @@ export default function CoachAdminPage({
         </p>
       )}
       {loading && <p role="status">최신 기록을 확인하고 있어요.</p>}
+      {tab === "group" && profile && (
+        <Suspense fallback={<p>그룹수업을 불러오고 있어요.</p>}>
+          <GroupAdmin profile={profile} />
+        </Suspense>
+      )}
       {tab === "pt" && profile && (
         <CoachCalendar
           profile={profile}
@@ -473,7 +483,9 @@ export default function CoachAdminPage({
         </section>
       )}
       {tab === "ntac" && ntacTab !== "members" && admin && (
-        <section className={ntacTab === "programs" ? "program-workspace" : "surface"}>
+        <section
+          className={ntacTab === "programs" ? "program-workspace" : "surface"}
+        >
           <div className={ntacTab === "programs" ? "" : "legacy-panel"}>
             <Suspense fallback={<p>불러오는 중...</p>}>
               {ntacTab === "programs" && <WeeklyProgramAdmin />}
@@ -637,10 +649,24 @@ export default function CoachAdminPage({
                 </select>
               </label>
               <label>
-                담당 코치
+                NTAC 담당 코치
                 <select
                   value={coach}
                   onChange={(e) => setCoach(e.target.value)}
+                >
+                  <option value="">미배정</option>
+                  {coaches.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.full_name || c.email}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                PT 담당 코치
+                <select
+                  value={ptCoach}
+                  onChange={(e) => setPTCoach(e.target.value)}
                 >
                   <option value="">미배정</option>
                   {coaches.map((c) => (
