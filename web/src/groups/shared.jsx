@@ -40,10 +40,12 @@ export function ClassCard({ c, onClick, joined }) {
   return (
     <button className="g-class-card" onClick={onClick}>
       <span className="g-time">
-        {classTime(c.starts_at)}
+        <time className="g-clock" dateTime={c.starts_at}>
+          {classTime(c.starts_at)}
+        </time>
         <small>{c.duration_minutes}분</small>
       </span>
-      <span>
+      <span className="g-class-content">
         <span className={`g-badge ${c.status}`}>{stateLabels[c.status]}</span>
         <strong>{c.title}</strong>
         <small>

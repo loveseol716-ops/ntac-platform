@@ -107,3 +107,29 @@ Verification includes isolated PostgreSQL tests for publication idempotency, ros
 Post-upgrade advisors found no new missing group-table policies or missing group foreign-key indexes. Intentional guarded-definer warnings are reviewed above ([Supabase guidance](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable)); the anonymous display function remains token-gated and private display tokens intentionally have no direct-read policy.
 
 Hosted migration versions: `20261020084237_group_weekly_strength.sql` and `20261020084533_group_recording_compatibility.sql`. Local filenames match hosted migration history.
+
+## 7개 수업별 주간 묶음과 화면 개선 (2026-10-20)
+
+새 주간 프로그램은 아래 일곱 수업을 한 묶음으로 저장합니다. 각 수업의 프로그램은 한 번 작성하고, 해당 주의 같은 종류 수업에 함께 적용합니다. 설명 또는 핵심 운동이 있는 수업만 공개되므로 일부 작성 후 공개하고 나머지를 이어서 작성할 수 있습니다. 기존 요일별 프로그램은 원래 형식으로 열리고 기록도 유지됩니다.
+
+| 수업 | 요일 |
+|---|---|
+| GENTLE SWEAT | 화·수 |
+| GENTLE STRENGTH | 월·금 |
+| BOMB SWEAT | 월·금 |
+| BOMB STRENGTH | 화·수 |
+| YOU IN | 목 |
+| NOLTO & TEAM | 토 |
+| NO MORE WEAK | 일 |
+
+첨부 시간표의 정규 수업 26개를 기본값으로 제공합니다. 목요일 YOU IN은 19:30, 토·일 수업은 10:00 시작입니다. 주말의 합쳐진 칸은 12:10 별도 수업으로 중복 생성하지 않습니다. OPEN GYM과 TRACK RUN은 이 묶음에서 제외합니다. 기본 수업 길이는 50분, NO MORE WEAK은 90분이며 실제 운영에 맞게 수정할 수 있습니다.
+
+**관리 → 그룹수업 → 주간 프로그램**에서 주차 선택 → **이번 주 프로그램 만들기** → 수업별 작성 → **저장 · 멤버 공개 · 캘린더 반영** 순서로 사용합니다. 반복 시간표가 비어 있다면 첫 공개 시 기본 시간표를 저장하고 공개한 관리자를 담당 코치로 지정합니다. 다른 담당 코치/시간/길이가 필요하면 먼저 **반복 시간표 설정**에서 조정합니다. 기존 시간표는 자동으로 덮어쓰지 않으며, 예전 시간표에 수업 종류가 없다면 각 시간에 연결해야 합니다.
+
+공개는 미래 수업만 생성합니다. 이미 참가자가 있거나 시작한 수업은 보존하며, 같은 코치의 같은 시작 시간에 기존 수업이 있으면 중복 생성하지 않고 건수를 알려줍니다. 시간표를 다시 불러와도 가능한 기존 슬롯 ID를 유지합니다. 슬롯 ID가 달라진 경우에도 참가자 없는 미래 수업만 교체하고 기존 참가 기록은 보존합니다. 지난 일정과 기존 NTAC/PT 기록은 변경하지 않습니다.
+
+캘린더 열 수는 브라우저 전체가 아닌 실제 내용 영역의 너비에 따라 바뀝니다. 시간 표시는 한 줄로 유지하고 긴 수업명은 카드 안에서 줄바꿈합니다. 주간 편집창과 시간표는 작은 화면에서도 입력칸이 영역을 벗어나지 않도록 조정했습니다.
+
+검증: 7개 수업/26개 시간표 정합성, 일부 공개, 반복 공개, 슬롯 교체, 권한, 이전 버전 호환, 참가 기록 보존은 독립 PostgreSQL 테스트로 확인합니다. 브라우저 테스트는 320·390·768·1024·1440·1920px에서 캘린더/편집창과 시간 한 줄 표시를 확인합니다. 실제 기기 테스트와 구분하며, 운영 DB 호환성은 롤백 전용 SQL로 확인합니다.
+
+운영 적용 migration: `20261020091613_group_class_type_weeks.sql`. 운영 롤백 검사 통과 후 기존 수업 2개/참가 기록 1개의 내용 해시가 동일함을 확인했습니다. 보안 검사는 새 수업 종류 테이블의 RLS/읽기 권한, 쓰기 RPC의 관리자 검사, 비공개 보조 함수 실행 권한 차단을 확인했습니다.

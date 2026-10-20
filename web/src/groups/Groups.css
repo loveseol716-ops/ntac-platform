@@ -743,7 +743,7 @@
 }
 .groups .g-week-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 8px;
   align-items: start;
 }
@@ -854,22 +854,9 @@
 .group-display .tv-set-values small {
   font-size: 12px;
 }
-@media (max-width: 1100px) {
-  .groups .g-week-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
 @media (max-width: 600px) {
-  .groups .g-week-grid {
-    grid-template-columns: 1fr;
-  }
   .groups .g-calendar-day {
     min-height: 0;
-  }
-  .groups .g-calendar-day .g-class-card {
-    flex-direction: row;
-    align-items: center;
-    gap: 14px;
   }
   .groups .g-set-prescription {
     grid-template-columns: 50px 1fr 1fr;
@@ -887,4 +874,155 @@
 .group-display.results .tv-value.tv-strength {
   font-size: clamp(22px, 1.75vw, 36px);
   line-height: 1.4;
+}
+
+/* Size from the available content column, including narrow member views on wide monitors. */
+.groups {
+  min-width: 0;
+}
+.groups form,
+.groups label,
+.groups input,
+.groups select,
+.groups textarea,
+.groups .g-heading > *,
+.groups .g-fields > *,
+.groups .g-set-prescription > *,
+.groups .g-class-content {
+  min-width: 0;
+  max-width: 100%;
+}
+.groups .g-heading {
+  flex-wrap: wrap;
+}
+.groups .g-heading h2,
+.groups .g-heading h3,
+.groups .g-panel p,
+.groups .g-program-text,
+.groups .g-person-result {
+  overflow-wrap: anywhere;
+}
+.groups .g-calendar-day .g-class-card {
+  overflow-wrap: normal;
+}
+.groups .g-calendar-day .g-time {
+  flex: none;
+  flex-wrap: wrap;
+  border-right: 0;
+  padding-right: 0;
+  max-width: 100%;
+}
+.groups .g-clock {
+  display: inline-block;
+  flex: none;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+  font-variant-numeric: tabular-nums;
+}
+.groups .g-time small {
+  flex: none;
+  white-space: nowrap;
+}
+.groups .g-class-content {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+.groups .g-class-content strong {
+  word-break: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.groups .g-badge {
+  max-width: 100%;
+  white-space: normal;
+  word-break: keep-all;
+}
+.groups .g-week-nav label {
+  min-width: 0;
+  flex: 1 1 160px;
+  max-width: 100%;
+}
+.groups .g-week-nav button {
+  flex: 0 1 auto;
+}
+.groups .g-actions {
+  max-width: 100%;
+}
+.groups .g-actions button {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.group-dialog.groups {
+  max-width: calc(100vw - 24px);
+  width: min(720px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  overscroll-behavior: contain;
+}
+.groups .g-type-picker,
+.groups .g-program-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 10px;
+  margin: 18px 0 24px;
+}
+.groups .g-type-picker button {
+  min-width: 0;
+  text-align: left;
+  padding: 14px;
+}
+.groups .g-type-picker strong,
+.groups .g-program-status-grid strong {
+  display: block;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.groups .g-type-picker small,
+.groups .g-program-status-grid small {
+  margin-top: 6px;
+}
+.groups .g-type-picker .selected,
+.groups .g-schedule-days .selected {
+  background: #0b3d2e;
+  border-color: #72a78a;
+  color: #eff5ec;
+}
+.groups .g-program-status-grid > div {
+  min-width: 0;
+  border: 1px solid var(--g-border);
+  border-radius: 10px;
+  padding: 14px;
+}
+.groups .g-type-edit {
+  border-top: 1px solid var(--g-border);
+  padding-top: 24px;
+}
+.groups .g-schedule-days {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+  gap: 8px;
+  margin: 16px 0;
+}
+.groups .g-schedule-days button {
+  padding: 10px 6px;
+  min-width: 0;
+}
+.groups .g-schedule-slot {
+  border: 1px solid var(--g-border);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+@media (max-width: 400px) {
+  .groups .g-fields {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));
+  }
+  .groups .g-panel {
+    padding: 18px;
+  }
 }

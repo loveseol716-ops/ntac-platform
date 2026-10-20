@@ -1,3 +1,4 @@
+import { programReady, typeDays } from "./classTypes.js";
 import { addDays, weekStart, weekdays, seoulDate } from "./model.js";
 import { ClassCard, Program } from "./shared.jsx";
 export default function WeekCalendar({
@@ -41,9 +42,17 @@ export default function WeekCalendar({
               변경 전에 참가 등록된 수업은 기존 프로그램을 유지해요. 실제 수업
               내용은 캘린더의 수업을 눌러 확인하세요.
             </p>
-            {w.days.map((d) => (
-              <div key={d.dow}>
-                <h3>{weekdays[d.dow - 1]}요일</h3>
+            {(w.program_mode === "class_type"
+              ? w.programs.filter(programReady)
+              : w.days
+            ).map((d) => (
+              <div key={d.class_type_id || d.dow}>
+                <h3>
+                  {d.class_type_id
+                    ? typeDays(d.class_type_id)
+                    : weekdays[d.dow - 1]}
+                  요일
+                </h3>
                 <Program c={d} exercises={exercises} />
               </div>
             ))}

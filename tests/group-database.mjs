@@ -41,7 +41,8 @@ for (const file of fs
   .filter(
     (f) =>
       f.endsWith("_group_weekly_strength.sql") ||
-      f.endsWith("_group_recording_compatibility.sql"),
+      f.endsWith("_group_recording_compatibility.sql") ||
+      f.endsWith("_group_class_type_weeks.sql"),
   ))
   await db.exec(fs.readFileSync("supabase/migrations/" + file, "utf8"));
 const ids = {
@@ -327,6 +328,9 @@ ok(
 await (
   await import("./group-weekly-database.mjs")
 ).weeklyChecks({ db, as, rpc, ids, ok, denied, date, payload });
+await (
+  await import("./group-class-types-database.mjs")
+).classTypeChecks({ db, as, rpc, ids, ok, denied, date, payload });
 await db.exec("reset role");
 for (const table of ["pt_sessions", "pt_pass_events", "workout_records"])
   ok(

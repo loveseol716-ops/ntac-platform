@@ -1,3 +1,6 @@
+import ClassTypeWeekEditor from "./ClassTypeWeekEditor.jsx";
+import TimetableEditor from "./TimetableEditor.jsx";
+import { blankPrograms, programReady, typeDays } from "./classTypes.js";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "../lib/supabase.js";
 import { checked, rpc, listWeeks } from "./api.js";
@@ -65,7 +68,7 @@ export default function WeeklyPrograms({
         <div>
           <h2>주간 프로그램</h2>
           <p className="g-muted">
-            반복 시간표를 한 번 등록하고, 매주 요일별 프로그램을 공개하세요.
+            7가지 수업을 한 주의 묶음으로 작성하고, 시간표에 맞춰 공개하세요.
           </p>
         </div>
         <button
@@ -101,8 +104,16 @@ export default function WeeklyPrograms({
         </p>
       )}
       <p>
-        {start} 시작 주 · 반복 수업 {timetable?.slots.length || 0}개
+        {start} 시작 주 · 반복 수업 {timetable?.slots.length || 26}개
+        {!timetable?.slots.length ? " (첨부 시간표 기본값)" : ""}
       </p>
+      {timetable && !timetable.slots.length && (
+        <p className="g-muted">
+          첫 공개 때 첨부 시간표를 적용하고 공개한 관리자를 담당 코치로
+          지정해요. 다른 코치나 수업 길이를 지정하려면 먼저 반복 시간표를
+          설정하세요.
+        </p>
+      )}
       {!weeks.length && (
         <button
           className="g-primary"
@@ -112,7 +123,9 @@ export default function WeeklyPrograms({
               week_start: start,
               title: `${start} 주간 프로그램`,
               status: "draft",
-              days: [{ dow: 1, title: "", description: "", movements: [] }],
+              program_mode: "class_type",
+              programs: blankPrograms(),
+              days: [],
             });
           }}
         >
@@ -127,11 +140,25 @@ export default function WeeklyPrograms({
               {w.status === "published" ? "멤버 공개 중" : "작성 중"}
             </span>
           </div>
-          <p>
-            {w.days
-              .map((d) => `${weekdays[d.dow - 1]}: ${d.title}`)
-              .join(" · ")}
-          </p>
+          {w.program_mode === "class_type" ? (
+            <div className="g-program-status-grid">
+              {w.programs.map((p) => (
+                <div key={p.class_type_id}>
+                  <strong>{p.title}</strong>
+                  <small>
+                    {typeDays(p.class_type_id)} ·{" "}
+                    {programReady(p) ? "작성됨" : "작성 전"}
+                  </small>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>
+              {w.days
+                .map((d) => `${weekdays[d.dow - 1]}: ${d.title}`)
+                .join(" · ")}
+            </p>
+          )}
           <div className="g-actions">
             <button
               onClick={() => {
@@ -150,7 +177,7 @@ export default function WeeklyPrograms({
                       payload: { ...w, status: "published" },
                     }),
                   (r) =>
-                    `공개 완료 · 수업 ${r.created}개 생성, ${r.updated}개 반영, 기존 수업 ${r.kept}개 유지`,
+                    `공개 완료 · 수업 ${r.created}개 생성, ${r.updated}개 반영, 기존 수업 ${r.kept}개 유지${r.conflicts ? ` · 시간 겹침 ${r.conflicts}개 유지` : ""}`,
                 )
               }
             >
@@ -216,155 +243,30 @@ export default function WeeklyPrograms({
         ))}
       </section>
       {schedule && (
-        <Dialog title="반복 시간표" onClose={() => !busy && setSchedule(null)}>
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              if (
-                await act(
-                  () =>
-                    rpc("group_save_timetable", {
-                      payload: schedule.slots,
-                      expected_revision: schedule.revision,
-                    }),
-                  "시간표를 저장했어요. 공개된 주에는 ‘공개 · 시간표 반영’을 눌러 적용하세요.",
-                )
+        <TimetableEditor
+          current={schedule}
+          coaches={coaches}
+          profile={profile}
+          busy={busy}
+          error={error}
+          onClose={() => !busy && setSchedule(null)}
+          onSave={async (value) => {
+            if (
+              await act(
+                () =>
+                  rpc("group_save_timetable", {
+                    payload: value.slots,
+                    expected_revision: value.revision,
+                  }),
+                "시간표를 저장했어요. 공개된 주에는 ‘공개 · 시간표 반영’을 눌러 적용하세요.",
               )
-                setSchedule(null);
-            }}
-          >
-            <fieldset disabled={busy}>
-              <p className="g-muted">
-                매주 반복되는 수업 시간이에요. 요일별 프로그램이 있는 시간에만
-                수업이 자동 생성돼요.
-              </p>
-              {schedule.slots.map((s, i) => (
-                <div className="g-schedule-row" key={s.id}>
-                  <label>
-                    요일
-                    <select
-                      value={s.dow}
-                      onChange={(e) =>
-                        setSchedule({
-                          ...schedule,
-                          slots: schedule.slots.map((x, j) =>
-                            j === i ? { ...x, dow: Number(e.target.value) } : x,
-                          ),
-                        })
-                      }
-                    >
-                      {weekdays.map((d, j) => (
-                        <option value={j + 1} key={d}>
-                          {d}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    시작 시간
-                    <input
-                      type="time"
-                      required
-                      value={s.time}
-                      onChange={(e) =>
-                        setSchedule({
-                          ...schedule,
-                          slots: schedule.slots.map((x, j) =>
-                            j === i ? { ...x, time: e.target.value } : x,
-                          ),
-                        })
-                      }
-                    />
-                  </label>
-                  <label>
-                    수업 시간(분)
-                    <input
-                      type="number"
-                      required
-                      min={10}
-                      max={240}
-                      value={s.duration_minutes}
-                      onChange={(e) =>
-                        setSchedule({
-                          ...schedule,
-                          slots: schedule.slots.map((x, j) =>
-                            j === i
-                              ? {
-                                  ...x,
-                                  duration_minutes: Number(e.target.value),
-                                }
-                              : x,
-                          ),
-                        })
-                      }
-                    />
-                  </label>
-                  <label>
-                    담당 코치
-                    <select
-                      value={s.coach_id}
-                      onChange={(e) =>
-                        setSchedule({
-                          ...schedule,
-                          slots: schedule.slots.map((x, j) =>
-                            j === i ? { ...x, coach_id: e.target.value } : x,
-                          ),
-                        })
-                      }
-                    >
-                      {coaches.map((c) => (
-                        <option value={c.id} key={c.id}>
-                          {c.name || c.full_name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setSchedule({
-                        ...schedule,
-                        slots: schedule.slots.filter((_, j) => j !== i),
-                      })
-                    }
-                  >
-                    시간 삭제
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                disabled={schedule.slots.length >= 100}
-                onClick={() =>
-                  setSchedule({
-                    ...schedule,
-                    slots: [
-                      ...schedule.slots,
-                      {
-                        id: crypto.randomUUID(),
-                        dow: 1,
-                        time: "18:00",
-                        duration_minutes: 50,
-                        coach_id: profile.id,
-                      },
-                    ],
-                  })
-                }
-              >
-                + 수업 시간 추가
-              </button>
-              {error && (
-                <p className="g-error" role="alert">
-                  {error}
-                </p>
-              )}
-              <button className="g-primary g-full">시간표 저장</button>
-            </fieldset>
-          </form>
-        </Dialog>
+            )
+              setSchedule(null);
+          }}
+        />
       )}
       {edit && (
-        <WeekEditor
+        <WeekEditorSwitch
           key={edit.id || edit.week_start}
           current={edit}
           exercises={exercises}
@@ -378,7 +280,7 @@ export default function WeeklyPrograms({
                 () => rpc("group_save_week", { payload }),
                 (r) =>
                   payload.status === "published"
-                    ? `멤버에게 공개했어요. 수업 ${r.created}개 생성 · ${r.updated}개 수정 · 등록/시작한 수업 ${r.kept}개 유지`
+                    ? `멤버에게 공개했어요. 수업 ${r.created}개 생성 · ${r.updated}개 수정 · 등록/시작한 수업 ${r.kept}개 유지${r.conflicts ? ` · 시간 겹침 ${r.conflicts}개 유지` : ""}${r.default_timetable_loaded ? " · 기본 시간표 자동 적용" : ""}`
                     : "주간 프로그램을 임시 저장했어요.",
               )
             )
@@ -389,7 +291,7 @@ export default function WeeklyPrograms({
     </>
   );
 }
-function WeekEditor({
+function LegacyWeekEditor({
   current,
   exercises,
   templates,
@@ -534,5 +436,13 @@ function WeekEditor({
         </fieldset>
       </form>
     </Dialog>
+  );
+}
+
+function WeekEditorSwitch(props) {
+  return props.current.program_mode === "class_type" ? (
+    <ClassTypeWeekEditor {...props} />
+  ) : (
+    <LegacyWeekEditor {...props} />
   );
 }

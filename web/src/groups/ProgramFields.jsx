@@ -18,7 +18,12 @@ const newMovement = () => ({
   load_step: 2.5,
   min_load: 20,
 });
-export default function ProgramFields({ form, set, exercises }) {
+export default function ProgramFields({
+  form,
+  set,
+  exercises,
+  hideTitle = false,
+}) {
   const movement = (id, patch) =>
     set(
       "movements",
@@ -43,16 +48,20 @@ export default function ProgramFields({ form, set, exercises }) {
   };
   return (
     <>
-      <label>
-        수업명
-        <input
-          required
-          maxLength={120}
-          value={form.title}
-          onChange={(e) => set("title", e.target.value)}
-          placeholder="예: 하체 스트렝스 & 컨디셔닝"
-        />
-      </label>
+      {!hideTitle && (
+        <>
+          <label>
+            수업명
+            <input
+              required
+              maxLength={120}
+              value={form.title}
+              onChange={(e) => set("title", e.target.value)}
+              placeholder="예: 하체 스트렝스 & 컨디셔닝"
+            />
+          </label>
+        </>
+      )}
       <label>
         오늘의 프로그램
         <textarea

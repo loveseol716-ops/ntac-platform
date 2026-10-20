@@ -137,7 +137,14 @@ const requests = [];
         else weeks[index] = w;
         if (w.status === "published")
           for (const slot of timetable.slots) {
-            const d = w.days.find((d) => d.dow === slot.dow);
+            const d =
+              w.program_mode === "class_type"
+                ? w.programs.find(
+                    (p) =>
+                      p.class_type_id === slot.class_type_id &&
+                      (p.description?.trim() || p.movements?.length),
+                  )
+                : w.days.find((d) => d.dow === slot.dow);
             if (!d) continue;
             const at = new Date(`${w.week_start}T${slot.time}:00+09:00`);
             at.setUTCDate(at.getUTCDate() + slot.dow - 1);
@@ -523,15 +530,48 @@ const requests = [];
   await page.getByRole("button", { name: /^다음 주/ }).click();
   await page.getByRole("button", { name: "반복 시간표 설정" }).click();
   dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: "+ 수업 시간 추가" }).click();
+  assert.equal(await dialog.locator(".g-schedule-slot").count(), 6);
+  for (const width of [1024, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    assert(
+      await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth),
+      `timetable fits ${width}`,
+    );
+    assert(
+      await dialog
+        .locator("input,select")
+        .evaluateAll((els) =>
+          els.every(
+            (el) =>
+              el.getBoundingClientRect().right <=
+              document.querySelector("dialog[open]").getBoundingClientRect()
+                .right -
+                8,
+          ),
+        ),
+      `timetable fields fit ${width}`,
+    );
+  }
+  await page.setViewportSize({ width: 1024, height: 1366 });
   await dialog
     .getByRole("button", { name: "시간표 저장", exact: true })
     .click();
   await dialog.waitFor({ state: "hidden" });
-  assert.equal(timetable.slots.length, 1);
+  assert.equal(timetable.slots.length, 26);
+  assert.deepEqual(
+    timetable.slots
+      .filter((s) => s.dow >= 4 && s.dow !== 5)
+      .map((s) => [s.dow, s.time, s.class_type_id]),
+    [
+      [4, "19:30", "you_in"],
+      [6, "10:00", "nolto_team"],
+      [7, "10:00", "no_more_weak"],
+    ],
+  );
   await page.getByRole("button", { name: "+ 이번 주 프로그램 만들기" }).click();
   dialog = page.getByRole("dialog");
-  await dialog.getByLabel("수업명", { exact: true }).fill("주간 스트렝스");
+  assert.equal(await dialog.locator(".g-type-picker button").count(), 7);
+  await dialog.getByRole("button", { name: /^GENTLE STRENGTH/ }).click();
   await dialog.getByRole("button", { name: "+ 핵심 운동 추가" }).click();
   await dialog.getByLabel("표준 종목").selectOption("back_squat");
   assert.equal(
@@ -539,21 +579,52 @@ const requests = [];
     "10",
   );
   assert.equal(await dialog.getByLabel("운동 1 5세트 RIR").inputValue(), "3");
+  await dialog.getByRole("button", { name: /^GENTLE SWEAT/ }).click();
+  await dialog.getByLabel("오늘의 프로그램").fill("컨디셔닝 테스트 프로그램");
+  await dialog.getByRole("button", { name: /^GENTLE STRENGTH/ }).click();
+  assert.equal(await dialog.getByLabel("운동 1 5세트 RIR").inputValue(), "3");
+  for (const width of [1024, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    assert(
+      await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth),
+      `weekly editor fits ${width}`,
+    );
+    assert(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      `weekly body fits ${width}`,
+    );
+  }
+  await page.setViewportSize({ width: 1024, height: 1366 });
+  await page.screenshot({
+    path: "/tmp/ntac-seven-programs.png",
+    fullPage: true,
+  });
   await dialog
     .getByRole("button", { name: "저장 · 멤버 공개 · 캘린더 반영" })
     .click();
   await dialog.waitFor({ state: "hidden" });
   assert.deepEqual(
-    weeks[0].days[0].movements[0].sets.map((s) => s.reps),
+    weeks[0].programs
+      .find((p) => p.class_type_id === "gentle_strength")
+      .movements[0].sets.map((s) => s.reps),
     [10, 10, 8, 8, 8],
   );
+  assert.equal(classes.filter((c) => c.week_id).length, 12);
   await page.getByRole("button", { name: "수업 운영", exact: true }).click();
-  await page.getByRole("button", { name: /주간 스트렝스/ }).waitFor();
+  await page
+    .getByRole("button", { name: /GENTLE STRENGTH/ })
+    .first()
+    .waitFor();
   await page.screenshot({
     path: "/tmp/ntac-week-calendar.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: /주간 스트렝스/ }).click();
+  await page
+    .getByRole("button", { name: /GENTLE STRENGTH/ })
+    .first()
+    .click();
   await page.getByRole("button", { name: "참가자 추가", exact: true }).click();
   dialog = page.getByRole("dialog");
   await dialog.getByLabel(/이지윤/).check();
@@ -581,7 +652,59 @@ const requests = [];
   await page.getByRole("heading", { name: "이지윤님의 오늘 운동" }).waitFor();
   await page.getByRole("button", { name: /^다음 주/ }).click();
   await page.getByText(/주간 프로그램 펼치기/).waitFor();
-  await page.getByRole("button", { name: /주간 스트렝스/ }).click();
+  for (const width of [1920, 1440, 1024, 768, 390, 320]) {
+    await page.setViewportSize({ width, height: 1080 });
+    assert(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      `member body fits ${width}`,
+    );
+    const clocks = await page
+      .locator(".g-clock")
+      .evaluateAll((els) =>
+        els.map((el) => ({
+          text: el.textContent,
+          nowrap: getComputedStyle(el).whiteSpace,
+          height: el.getBoundingClientRect().height,
+          line: parseFloat(getComputedStyle(el).lineHeight),
+          width: el.getBoundingClientRect().width,
+        })),
+      );
+    assert(
+      clocks.some((c) => c.text === "18:20"),
+      "test includes original failing time",
+    );
+    assert(
+      clocks.every(
+        (c) => c.nowrap === "nowrap" && c.height < c.line * 1.2 && c.width > 40,
+      ),
+      `clock remains one line ${width}`,
+    );
+    assert(
+      await page
+        .locator(".g-class-card")
+        .evaluateAll((els) =>
+          els.every(
+            (el) =>
+              el.scrollWidth <= el.clientWidth &&
+              el.getBoundingClientRect().right <=
+                el.closest(".g-calendar-day").getBoundingClientRect().right - 5,
+          ),
+        ),
+      `cards fit ${width}`,
+    );
+    if (width === 1920 || width === 390)
+      await page.screenshot({
+        path: `/tmp/ntac-calendar-${width}.png`,
+        fullPage: true,
+      });
+  }
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page
+    .getByRole("button", { name: /GENTLE STRENGTH/ })
+    .first()
+    .click();
   await page.getByText("참가 예정이에요.", { exact: false }).waitFor();
   assert.equal(
     await page.getByRole("button", { name: "기록 입력", exact: true }).count(),
@@ -591,7 +714,10 @@ const requests = [];
   wc.status = "open";
   await page.reload();
   await page.getByRole("button", { name: /^다음 주/ }).click();
-  await page.getByRole("button", { name: /주간 스트렝스/ }).click();
+  await page
+    .getByRole("button", { name: /GENTLE STRENGTH/ })
+    .first()
+    .click();
   await page
     .getByRole("button", { name: "오늘 운동 시작", exact: true })
     .click();
@@ -645,7 +771,10 @@ const requests = [];
     .getByRole("button", { name: "그룹수업", exact: true })
     .click();
   await page.getByRole("button", { name: /^다음 주/ }).click();
-  await page.getByRole("button", { name: /주간 스트렝스/ }).click();
+  await page
+    .getByRole("button", { name: /GENTLE STRENGTH/ })
+    .first()
+    .click();
   page.once("dialog", (d) => d.accept());
   await page
     .getByRole("button", { name: "프로그램 삭제", exact: true })
