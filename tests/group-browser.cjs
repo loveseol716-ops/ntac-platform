@@ -56,6 +56,9 @@ const members = {
     show_on_tv: false,
   },
 };
+const weeks = [],
+  timetable = { id: true, revision: 1, slots: [] },
+  maxes = [];
 const participants = [],
   walls = [];
 let saveFail = false,
@@ -104,6 +107,68 @@ const requests = [];
       if (url.pathname.includes("/auth/"))
         return route.fulfill({ json: user || {} });
       const reply = (data) => route.fulfill({ json: data });
+      if (table === "group_timetable") return reply(timetable);
+      if (table === "group_weeks")
+        return reply(
+          weeks.filter(
+            (w) =>
+              w.status !== "archived" &&
+              w.week_start === url.searchParams.get("week_start")?.slice(3),
+          ),
+        );
+      if (table === "group_save_timetable") {
+        timetable.slots = body.payload;
+        timetable.revision++;
+        return reply(null);
+      }
+      if (table === "group_strength_maxes") return reply(maxes);
+      if (table === "group_set_strength_max") {
+        maxes.push(body.payload);
+        return reply(null);
+      }
+      if (table === "group_save_week") {
+        const w = {
+          ...body.payload,
+          id: body.payload.id || "week1",
+          revision: (body.payload.revision || 0) + 1,
+        };
+        const index = weeks.findIndex((x) => x.id === w.id);
+        if (index < 0) weeks.push(w);
+        else weeks[index] = w;
+        if (w.status === "published")
+          for (const slot of timetable.slots) {
+            const d = w.days.find((d) => d.dow === slot.dow);
+            if (!d) continue;
+            const at = new Date(`${w.week_start}T${slot.time}:00+09:00`);
+            at.setUTCDate(at.getUTCDate() + slot.dow - 1);
+            if (
+              !classes.some((c) => c.week_id === w.id && c.slot_id === slot.id)
+            )
+              classes.push({
+                ...d,
+                id: "wc" + classes.length,
+                week_id: w.id,
+                slot_id: slot.id,
+                starts_at: at.toISOString(),
+                duration_minutes: slot.duration_minutes,
+                coach_id: slot.coach_id,
+                status: "published",
+                recording_version: 2,
+                revision: 1,
+              });
+          }
+        return reply({ id: w.id, created: 1, updated: 0, kept: 0 });
+      }
+      if (table === "group_remove_program") {
+        if (body.kind === "week")
+          weeks.find((w) => w.id === body.target_id).status = "archived";
+        if (body.kind === "class") {
+          const c = classes.find((c) => c.id === body.target_id);
+          c.archived_at = new Date().toISOString();
+          c.status = c.status === "ended" ? "ended" : "cancelled";
+        }
+        return reply(null);
+      }
       if (table === "group_bootstrap")
         return reply({
           member: members[id] || null,
@@ -136,6 +201,12 @@ const requests = [];
           ),
         });
       if (table === "group_join") {
+        const c = classes.find((c) => c.id === body.cid),
+          prev = participants.find(
+            (p) => p.class_id === body.cid && p.user_id === id,
+          );
+        if (prev?.status === "planned" && !body.user_ids)
+          prev.status = "active";
         for (const uid of body.user_ids || [id])
           if (
             !participants.some(
@@ -143,18 +214,31 @@ const requests = [];
             )
           )
             participants.push({
-              id: "p-" + uid,
+              id: "p-" + uid + "-" + body.cid,
               class_id: body.cid,
               user_id: uid,
               name: users.find((u) => u.id === uid).full_name,
-              status: "active",
+              status: c.status === "published" ? "planned" : "active",
               difficulty: "standard",
               revision: 1,
               finalized: false,
               results: {},
-              recommendations: {
-                squat: { weight: 40, source: "coach_baseline" },
-              },
+              recommendations: Object.fromEntries(
+                c.movements.map((m) => [
+                  m.id,
+                  m.training_type === "strength"
+                    ? {
+                        weight: 67.5,
+                        source: "one_rm",
+                        sets: m.sets.map((s, i) => ({
+                          ...s,
+                          weight: i < 2 ? 67.5 : 72.5,
+                          source: "one_rm",
+                        })),
+                      }
+                    : { weight: 40, source: "coach_baseline" },
+                ]),
+              ),
               ...{
                 nickname: members[uid]?.nickname,
                 show_on_tv: members[uid]?.show_on_tv,
@@ -237,9 +321,27 @@ const requests = [];
             status: "completed",
             finalized: true,
             recommendations: {
-              squat: { weight: 30 + i * 2.5, source: "coach_baseline" },
+              squat: {
+                weight: 30 + i * 2.5,
+                source: "coach_baseline",
+                sets: classes[0].movements[0].sets?.map((s) => ({
+                  ...s,
+                  weight: 67.5,
+                  source: "one_rm",
+                })),
+              },
             },
-            results: { squat: { weight: 30 + i * 2.5, reps: 8 } },
+            results: {
+              squat: {
+                weight: 30 + i * 2.5,
+                reps: 8,
+                sets: classes[0].movements[0].sets?.map((s) => ({
+                  weight: 67.5,
+                  reps: s.reps,
+                  rir: 3,
+                })),
+              },
+            },
           })),
         });
       }
@@ -250,7 +352,8 @@ const requests = [];
       }
       if (table === "pt_members")
         return reply(req.headers().accept?.includes("object") ? null : []);
-      if (table === "group_classes") return reply(classes);
+      if (table === "group_classes")
+        return reply(classes.filter((c) => !c.archived_at));
       if (table === "group_participants")
         return reply(
           participants
@@ -408,6 +511,187 @@ const requests = [];
     fullPage: true,
   });
   await context.close();
+  ({ page, context } = await open("admin", 1024, 1366));
+  await page.getByRole("heading", { name: "PT 관리", exact: true }).waitFor();
+  await page
+    .getByRole("navigation", { name: "관리 메뉴", exact: true })
+    .getByRole("button", { name: "그룹수업", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "주간 프로그램", exact: true })
+    .click();
+  await page.getByRole("button", { name: /^다음 주/ }).click();
+  await page.getByRole("button", { name: "반복 시간표 설정" }).click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "+ 수업 시간 추가" }).click();
+  await dialog
+    .getByRole("button", { name: "시간표 저장", exact: true })
+    .click();
+  await dialog.waitFor({ state: "hidden" });
+  assert.equal(timetable.slots.length, 1);
+  await page.getByRole("button", { name: "+ 이번 주 프로그램 만들기" }).click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByLabel("수업명", { exact: true }).fill("주간 스트렝스");
+  await dialog.getByRole("button", { name: "+ 핵심 운동 추가" }).click();
+  await dialog.getByLabel("표준 종목").selectOption("back_squat");
+  assert.equal(
+    await dialog.getByLabel("운동 1 1세트 반복 수").inputValue(),
+    "10",
+  );
+  assert.equal(await dialog.getByLabel("운동 1 5세트 RIR").inputValue(), "3");
+  await dialog
+    .getByRole("button", { name: "저장 · 멤버 공개 · 캘린더 반영" })
+    .click();
+  await dialog.waitFor({ state: "hidden" });
+  assert.deepEqual(
+    weeks[0].days[0].movements[0].sets.map((s) => s.reps),
+    [10, 10, 8, 8, 8],
+  );
+  await page.getByRole("button", { name: "수업 운영", exact: true }).click();
+  await page.getByRole("button", { name: /주간 스트렝스/ }).waitFor();
+  await page.screenshot({
+    path: "/tmp/ntac-week-calendar.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: /주간 스트렝스/ }).click();
+  await page.getByRole("button", { name: "참가자 추가", exact: true }).click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByLabel(/이지윤/).check();
+  await dialog.getByRole("button", { name: "1명 참가 등록" }).click();
+  await dialog.waitFor({ state: "hidden" });
+  const wc = classes.find((c) => c.week_id),
+    wp = participants.find((p) => p.class_id === wc.id);
+  assert.equal(wp.status, "planned");
+  await page
+    .getByRole("button", { name: "회원 · 기준 중량", exact: true })
+    .click();
+  await page
+    .locator(".g-member-row")
+    .filter({ hasText: "이지윤" })
+    .getByRole("button", { name: "1RM 설정" })
+    .click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByLabel("1RM 중량").fill("100");
+  await dialog.getByLabel("확인 근거").fill("테스트 측정");
+  await dialog.getByRole("button", { name: "1RM 저장" }).click();
+  await dialog.waitFor({ state: "hidden" });
+  assert.equal(maxes.length, 1);
+  await context.close();
+  ({ page, context } = await open("second", 390, 900));
+  await page.getByRole("heading", { name: "이지윤님의 오늘 운동" }).waitFor();
+  await page.getByRole("button", { name: /^다음 주/ }).click();
+  await page.getByText(/주간 프로그램 펼치기/).waitFor();
+  await page.getByRole("button", { name: /주간 스트렝스/ }).click();
+  await page.getByText("참가 예정이에요.", { exact: false }).waitFor();
+  assert.equal(
+    await page.getByRole("button", { name: "기록 입력", exact: true }).count(),
+    0,
+  );
+  // Advance mocked class lifecycle; production timing/eligibility is covered by PostgreSQL tests.
+  wc.status = "open";
+  await page.reload();
+  await page.getByRole("button", { name: /^다음 주/ }).click();
+  await page.getByRole("button", { name: /주간 스트렝스/ }).click();
+  await page
+    .getByRole("button", { name: "오늘 운동 시작", exact: true })
+    .click();
+  await page.getByRole("button", { name: "기록 입력", exact: true }).click();
+  dialog = page.getByRole("dialog");
+  assert.equal(
+    await dialog
+      .getByLabel("백 스쿼트 1세트 실제 중량 (kg)", { exact: true })
+      .inputValue(),
+    "",
+  );
+  await dialog
+    .getByRole("button", { name: "1세트 추천대로 수행", exact: true })
+    .click();
+  await dialog.getByLabel("백 스쿼트 1세트 실제 RIR (선택)").fill("3");
+  await dialog.getByRole("button", { name: "운동 완료", exact: true }).click();
+  await dialog.getByRole("alert").filter({ hasText: "RPE" }).waitFor();
+  await dialog.getByLabel("수업 전체 RPE", { exact: true }).selectOption("7");
+  saveFail = true;
+  await dialog.getByRole("button", { name: "운동 완료", exact: true }).click();
+  await dialog
+    .getByRole("alert")
+    .filter({ hasText: "저장 테스트 오류" })
+    .waitFor();
+  assert.equal(
+    await dialog
+      .getByLabel("백 스쿼트 1세트 실제 중량 (kg)", { exact: true })
+      .inputValue(),
+    "67.5",
+  );
+  assert(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  );
+  await page.screenshot({
+    path: "/tmp/ntac-strength-record.png",
+    fullPage: true,
+  });
+  saveFail = false;
+  await dialog.getByRole("button", { name: "운동 완료", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  assert.equal(wp.session_rpe, 7);
+  assert.equal(wp.results[wc.movements[0].id].sets[0].rir, 3);
+  assert.equal(wp.results[wc.movements[0].id].sets[1].weight, undefined);
+  await context.close();
+  ({ page, context } = await open("admin", 1024, 1366));
+  await page.getByRole("heading", { name: "PT 관리", exact: true }).waitFor();
+  await page
+    .getByRole("navigation", { name: "관리 메뉴", exact: true })
+    .getByRole("button", { name: "그룹수업", exact: true })
+    .click();
+  await page.getByRole("button", { name: /^다음 주/ }).click();
+  await page.getByRole("button", { name: /주간 스트렝스/ }).click();
+  page.once("dialog", (d) => d.accept());
+  await page
+    .getByRole("button", { name: "프로그램 삭제", exact: true })
+    .click();
+  await page
+    .getByText("수업 프로그램을 삭제했어요.", { exact: true })
+    .waitFor();
+  assert(wc.archived_at);
+  assert.equal(wp.session_rpe, 7);
+  await context.close();
+  console.log(
+    "PASS: weekly program publication/calendar, planned roster, 1RM entry, 5-set actual inputs, final RPE, failure retention and deletion UI",
+  );
+  classes[0].movements = [{ ...wc.movements[0], id: "squat" }];
+  for (const kind of ["r", "s"]) {
+    ({ page, context } = await open(
+      null,
+      1920,
+      1080,
+      "#display=" + kind.repeat(72),
+    ));
+    await page.locator(".tv-grid article").first().waitFor();
+    if (kind === "r")
+      assert.equal(await page.locator(".tv-set-values > span").count(), 45);
+    assert(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <= innerWidth &&
+          document.documentElement.scrollHeight <= innerHeight,
+      ),
+      "set TV fits 1080p",
+    );
+    assert(
+      await page
+        .locator(".tv-value")
+        .evaluateAll((els) =>
+          els.every((el) => el.scrollWidth <= el.clientWidth),
+        ),
+      "strength text fits each TV card",
+    );
+    await page.screenshot({
+      path: `/tmp/ntac-strength-tv-${kind}.png`,
+      fullPage: true,
+    });
+    await context.close();
+  }
   assert.deepEqual(errors, []);
   await browser.close();
   console.log(

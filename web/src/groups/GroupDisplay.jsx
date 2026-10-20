@@ -8,6 +8,7 @@ import {
   resultText,
   resultRows,
   sourceLabels,
+  prescriptionText,
 } from "./model.js";
 import "./Groups.css";
 // A TV does not reuse an administrator's authentication session.
@@ -124,7 +125,7 @@ export default function GroupDisplay({ token }) {
               <h2>{m ? movementLabel(m) : "함께하는 오늘 운동"}</h2>
               <p>
                 {m?.kind === "weight"
-                  ? `${m.target_reps}회 · ${loadLabel(m)} (${m.unit})`
+                  ? `${prescriptionText(m)} · ${loadLabel(m)} (${m.unit})`
                   : results
                     ? "확정된 동일 조건 기록만 난이도별 순위를 표시해요."
                     : "코치의 안내를 확인하세요."}
@@ -140,9 +141,21 @@ export default function GroupDisplay({ token }) {
                 </div>
                 {results ? (
                   <>
-                    <strong className="tv-value">
+                    <strong
+                      className={`tv-value ${m?.training_type === "strength" ? "tv-strength" : ""}`}
+                    >
                       {m
-                        ? resultText(m, p.results?.[m.id])
+                        ? m.training_type === "strength"
+                          ? `${(p.results?.[m.id]?.sets || []).filter((s) => !s.dnf && s.weight != null && s.reps != null).length}/${m.sets.length}세트 · ${(
+                              p.results?.[m.id]?.sets || []
+                            )
+                              .filter(
+                                (s) =>
+                                  !s.dnf && s.weight != null && s.reps != null,
+                              )
+                              .reduce((sum, s) => sum + s.weight * s.reps, 0)
+                              .toLocaleString()} ${m.unit}·회`
+                          : resultText(m, p.results?.[m.id])
                         : p.status === "completed"
                           ? "운동 완료"
                           : "운동 중"}
@@ -159,8 +172,21 @@ export default function GroupDisplay({ token }) {
                   </>
                 ) : (
                   <>
-                    <strong className="tv-value">
-                      {m?.kind === "weight" ? (
+                    <strong
+                      className={`tv-value ${m?.training_type === "strength" ? "tv-strength" : ""}`}
+                    >
+                      {m?.training_type === "strength" ? (
+                        <span className="tv-set-values">
+                          {m.sets.map((s, i) => (
+                            <span key={i}>
+                              <small>{i + 1}세트</small>
+                              {p.recommendations?.[m.id]?.sets?.[i]?.weight ??
+                                "확인"}
+                              <small>{m.unit}</small>
+                            </span>
+                          ))}
+                        </span>
+                      ) : m?.kind === "weight" ? (
                         p.recommendations?.[m.id]?.weight != null ? (
                           <>
                             {p.recommendations[m.id].weight}
@@ -207,7 +233,9 @@ export default function GroupDisplay({ token }) {
       <footer>
         <span>
           {results
-            ? "나의 어제보다 한 걸음 더."
+            ? m?.training_type === "strength"
+              ? "모든 세트의 반복 수를 완료한 확정 기록 · 총 수행량 기준"
+              : "나의 어제보다 한 걸음 더."
             : "추천 중량은 코치와 확인하고 시작하세요."}
         </span>
         <span>

@@ -1,3 +1,4 @@
+import WeekCalendar from "./WeekCalendar.jsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   rpc,
@@ -6,6 +7,7 @@ import {
   loadDetail,
   saveParticipant,
   history,
+  listWeeks,
 } from "./api.js";
 import {
   seoulDate,
@@ -29,7 +31,8 @@ export default function GroupMember({ profile }) {
     [classes, setClasses] = useState([]),
     [exercises, setExercises] = useState([]),
     [records, setRecords] = useState([]),
-    [membership, setMembership] = useState(null);
+    [membership, setMembership] = useState(null),
+    [weeks, setWeeks] = useState([]);
   const [selected, setSelected] = useState(
       new URLSearchParams(location.search).get("class"),
     ),
@@ -52,10 +55,12 @@ export default function GroupMember({ profile }) {
       listExercises(),
       history(profile.id),
       rpc("group_bootstrap"),
+      listWeeks(day),
     ])
-      .then(([cs, es, rs, ctx]) => {
+      .then(([cs, es, rs, ctx, ws]) => {
         if (live) {
           setClasses(cs);
+          setWeeks(ws);
           setExercises(es);
           setRecords(rs);
           setMembership(ctx.member);
@@ -72,10 +77,11 @@ export default function GroupMember({ profile }) {
   useEffect(() => {
     let live = true;
     const refresh = () =>
-      Promise.all([listClasses(day), history(profile.id)])
-        .then(([cs, rs]) => {
+      Promise.all([listClasses(day), history(profile.id), listWeeks(day)])
+        .then(([cs, rs, ws]) => {
           if (live) {
             setClasses(cs);
+            setWeeks(ws);
             setRecords(rs);
           }
         })
@@ -132,7 +138,7 @@ export default function GroupMember({ profile }) {
   const canEdit =
     p &&
     !p.finalized &&
-    c?.status !== "cancelled" &&
+    ["open", "live", "ended"].includes(c?.status) &&
     (!c?.ended_at || Date.now() < new Date(c.ended_at).getTime() + 86400000) &&
     ["active", "completed"].includes(p.status);
   return (
@@ -230,6 +236,17 @@ export default function GroupMember({ profile }) {
                         <strong>{resultText(m, p.results?.[m.id])}</strong>
                       </div>
                     ))}
+                    {p.session_rpe != null && (
+                      <p>
+                        수업 전체 RPE <strong>{p.session_rpe}/10</strong>
+                      </p>
+                    )}
+                    {p.status === "planned" && (
+                      <p className="g-muted">
+                        참가 예정이에요. 당일 접수가 열리면 오늘 운동 시작을
+                        눌러 주세요.
+                      </p>
+                    )}
                     {p.finalized && (
                       <p className="g-muted">코치가 확정한 기록이에요.</p>
                     )}
@@ -242,17 +259,8 @@ export default function GroupMember({ profile }) {
                           기록 입력
                         </button>
                         {p.status === "active" && (
-                          <button
-                            disabled={busy}
-                            onClick={() =>
-                              act(
-                                () =>
-                                  saveParticipant(p, { status: "completed" }),
-                                "운동 완료! 오늘의 운동이 기록됐어요.",
-                              )
-                            }
-                          >
-                            기록 없이 운동 완료
+                          <button disabled={busy} onClick={() => setEditing(p)}>
+                            운동 마무리 · RPE
                           </button>
                         )}
                       </div>
@@ -279,9 +287,10 @@ export default function GroupMember({ profile }) {
                   </section>
                 </>
               )}
-              {(!p || ["left", "cancelled"].includes(p.status)) &&
+              {(!p || ["planned", "left", "cancelled"].includes(p.status)) &&
                 ["open", "live"].includes(c.status) &&
-                membership?.active && (
+                (membership?.active ||
+                  (p?.status === "planned" && p.exception_access)) && (
                   <button
                     className="g-primary g-full"
                     disabled={busy}
@@ -328,33 +337,20 @@ export default function GroupMember({ profile }) {
         </>
       ) : tab === "today" ? (
         <>
-          <div className="g-heading">
-            <h2>수업 선택</h2>
-            <label>
-              <span className="sr-only">수업 날짜</span>
-              <input
-                type="date"
-                value={day}
-                onChange={(e) => setDay(e.target.value)}
-              />
-            </label>
-          </div>
+          <h2>이번 주 프로그램 · 수업</h2>
           <p className="g-muted">
-            예약과 공식 출석은 운톡에서, 운동 기록은 여기에서 확인해요.
+            예약과 공식 출석은 운톡에서, 운동 프로그램과 기록은 여기에서
+            확인해요.
           </p>
-          {!loading && !classes.length && (
-            <div className="g-empty">이 날짜에는 공개된 그룹수업이 없어요.</div>
-          )}
-          <div className="g-class-list">
-            {classes.map((c) => (
-              <ClassCard
-                key={c.id}
-                c={c}
-                joined={records.find((r) => r.class_id === c.id)}
-                onClick={() => setSelected(c.id)}
-              />
-            ))}
-          </div>
+          <WeekCalendar
+            day={day}
+            onDay={setDay}
+            classes={classes}
+            records={records}
+            onSelect={setSelected}
+            weeks={weeks}
+            exercises={exercises}
+          />
         </>
       ) : tab === "history" ? (
         <>

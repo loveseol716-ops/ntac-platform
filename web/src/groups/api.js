@@ -1,5 +1,5 @@
 import { supabase } from "../lib/supabase.js";
-import { dateRange } from "./model.js";
+import { dateRange, weekStart, addDays } from "./model.js";
 export async function checked(request) {
   const { data, error } = await request;
   if (error) throw error;
@@ -7,11 +7,13 @@ export async function checked(request) {
 }
 export const rpc = (name, args = {}) => checked(supabase.rpc(name, args));
 export async function listClasses(day) {
-  const [start, end] = dateRange(day);
+  const start = dateRange(weekStart(day))[0],
+    end = dateRange(addDays(weekStart(day), 7))[0];
   return checked(
     supabase
       .from("group_classes")
       .select("*")
+      .is("archived_at", null)
       .gte("starts_at", start)
       .lt("starts_at", end)
       .order("starts_at"),
@@ -34,4 +36,13 @@ export const history = (uid) =>
       .eq("user_id", uid)
       .order("joined_at", { ascending: false })
       .limit(200),
+  );
+
+export const listWeeks = (day) =>
+  checked(
+    supabase
+      .from("group_weeks")
+      .select("*")
+      .eq("week_start", weekStart(day))
+      .neq("status", "archived"),
   );

@@ -12,6 +12,7 @@ export const levels = {
   advanced: "도전",
 };
 export const participantLabels = {
+  planned: "참가 예정",
   active: "참여 중",
   completed: "운동 완료",
   left: "중도 종료",
@@ -26,6 +27,9 @@ export const kinds = {
   participation: "참여",
 };
 export const sourceLabels = {
+  one_rm: "등록된 1RM 기반 추정",
+  recent_set: "최근 동일 세트 기록",
+  estimated_history: "최근 수행·RIR 기반 추정",
   recent_result: "최근 동일 조건 기록",
   coach_baseline: "코치 기준 중량",
   coach_override: "코치 조정",
@@ -63,6 +67,15 @@ export const loadLabel = (m) =>
 export function resultText(m, r) {
   if (!r) return "기록 대기";
   if (r.dnf) return "미완주";
+  if (m.training_type === "strength") {
+    const sets = r.sets || [];
+    const done = sets.filter(
+      (s) => !s.dnf && s.weight != null && s.reps != null,
+    );
+    return done.length
+      ? `${done.length}/${m.sets.length}세트 · ${done.map((s) => `${s.weight}×${s.reps}`).join(" / ")} ${m.unit}`
+      : "기록 대기";
+  }
   if (m.kind === "weight")
     return r.weight != null && r.reps != null
       ? `${r.weight} ${m.unit} × ${r.reps}회`
@@ -87,10 +100,19 @@ export function resultRows(participants, m) {
     if (p.status === "completed" && p.finalized && r && !r.dnf) {
       if (
         m.kind === "weight" &&
+        m.training_type !== "strength" &&
         r.weight != null &&
         r.reps === Number(m.target_reps)
       )
         score = r.weight;
+      if (
+        m.training_type === "strength" &&
+        r.sets?.length === m.sets.length &&
+        r.sets.every(
+          (s, i) => !s.dnf && s.weight != null && s.reps === m.sets[i].reps,
+        )
+      )
+        score = r.sets.reduce((total, s) => total + s.weight * s.reps, 0);
       if (m.kind === "time" && r.seconds != null && r.seconds > 0)
         score = -r.seconds;
       if (m.kind === "distance" && r.distance != null) score = r.distance;
@@ -129,3 +151,15 @@ export function groupStats(rows) {
       .size,
   };
 }
+
+export const addDays = (day, n) =>
+  new Date(new Date(`${day}T12:00:00Z`).getTime() + n * 86400000)
+    .toISOString()
+    .slice(0, 10);
+export const weekStart = (day) =>
+  addDays(day, -((new Date(`${day}T12:00:00Z`).getUTCDay() + 6) % 7));
+export const weekdays = ["월", "화", "수", "목", "금", "토", "일"];
+export const prescriptionText = (m) =>
+  m.training_type === "strength"
+    ? `${m.sets.map((s) => s.reps).join("–")}회 · RIR ${m.sets.map((s) => s.rir).every((v) => v === m.sets[0].rir) ? m.sets[0].rir : m.sets.map((s) => s.rir).join(" / ")}`
+    : `${m.target_reps}회`;

@@ -21,8 +21,8 @@ begin
  detail:=public.group_detail(cid);pid:=(detail->'participants'->0->>'id')::uuid;
  if jsonb_array_length(detail->'participants')<>1 then raise exception 'Duplicate join';end if;
  perform public.group_set_privacy('ROLLBACK NICKNAME',true);
- begin perform public.group_save_participant(pid,null,jsonb_build_object('status','completed'));raise exception 'Null record revision bypass';exception when raise_exception then if SQLERRM not like '다른 기기에서%' then raise;end if;end;
- perform public.group_save_participant(pid,1,jsonb_build_object('status','completed'));
+ begin perform public.group_save_participant(pid,null,jsonb_build_object('status','completed','session_rpe',7));raise exception 'Null record revision bypass';exception when raise_exception then if SQLERRM not like '다른 기기에서%' then raise;end if;end;
+ perform public.group_save_participant(pid,1,jsonb_build_object('status','completed','session_rpe',7));
  if (select results from public.group_participants where id=pid)<>'{}'::jsonb then raise exception 'Completion fabricated a result';end if;
  perform set_config('request.jwt.claim.sub',oid::text,true);
  begin perform public.group_join(cid,null,null);raise exception 'Null exception bypass';exception when raise_exception then if SQLERRM not like '그룹 이용 권한%' then raise;end if;end;

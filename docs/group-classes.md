@@ -60,3 +60,50 @@ Supabase advisor의 새 `SECURITY DEFINER` 항목은 명시적으로 검토했�
 - [함수 실행 권한 점검 기준](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable)
 - [익명 함수 실행 권한 점검 기준](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable)
 - [정책 없는 RLS 점검 기준](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy)
+
+## Weekly programs and strength upgrade (2026-10-20)
+
+The group service remains independent of NTAC and PT. Official reservations and attendance stay in 운톡. No group action changes PT passes, sessions or NTAC workout records.
+
+### Operating flow
+
+1. In **그룹수업 → 주간 프로그램 → 반복 시간표 설정**, register recurring weekday/time/duration/coach slots. Slot IDs stay stable when editing.
+2. Choose a week (Monday–Sunday, Asia/Seoul), add each training day, then **저장 · 멤버 공개 · 캘린더 반영**. Publication creates matching *future* class occurrences immediately. Members with group access can read both the published weekly overview and each scheduled class. Draft weeks remain staff-only.
+3. Open a calendar class and **참가자 추가**. Published future classes create `planned` participants, never completed attendance. On the day, open registration and let the member or coach start the workout. Starting a planned entry refreshes its recommendation snapshot from the latest eligible history.
+4. Members or coaches record actual sets, optionally actual set RIR, and finish with **수업 전체 RPE** (0–10). New classes require final session RPE to complete. Saving unfinished records does not require RPE. The coach can confirm the record; only completed, confirmed sets inform later recommendations.
+5. Templates, individual class programs and weekly programs have deletion controls. Deletion archives rather than erases. Completed classes retain ended status and historical results. Removing a week cancels its future draft/published occurrences and planned rosters, preserving started/ended classes. Archived weeks can be replaced by a new program for the same dates.
+
+Publishing again uses unique `(week_id, slot_id)` occurrences. It updates only unrostered, unstarted, nonarchived draft/published classes. Existing participants or started classes freeze the program, with a count of preserved classes returned to the UI. Deleted occurrences do not reappear when publishing again. Timetable changes affect subsequent publication; click **공개 · 시간표 반영** for a previously published week. There is no unbounded recurring cron, and past slots are never backfilled. A weekly overview can differ from a frozen occurrence; both views explain that the individual class is authoritative.
+
+### Strength prescriptions and recommendation policy
+
+An explicit `training_type: strength` movement stores 1–12 sets of `{reps, rir}`, load increment and minimum available load. For example `Back SQ 10–10–8–8–8, RIR 3`, total kg, 2.5 kg increment, 20 kg bar. Conditioning/other movements do not get automatic weights. Legacy movements and records retain their original single-result behavior.
+
+The rule is a **starting-load estimate**, not a measured capacity, injury assessment or a guarantee that the target RIR will be achieved. The coach can override each set with a recorded reason. Recommendation snapshots carry rule version, source and date; the display endpoint strips private provenance and reasons.
+
+For each set, in matching exercise/unit/load basis/difficulty:
+
+- Look for completed and coach-confirmed, non-DNF group sets in the preceding 90 days. Prefer the corresponding set position in the most recent session. If actual RIR is known, estimate `e1RM = actual weight × (1 + (actual reps + actual RIR) / 30)` and invert for the new reps plus target RIR. Automatic increases are capped at 5% over that source set.
+- A matching rep/target-RIR prescription without actual RIR may reuse the previous actual load; it is not used to infer an e1RM for a different prescription.
+- Otherwise use the coach-registered measured/estimated 1RM (confirmed within 180 days), with `starting load = 1RM / (1 + (target reps + target RIR) / 30)`.
+- Otherwise use an exact-condition coach baseline. With no usable basis, display **코치 확인**, never invent a load.
+- Effective repetitions above 15 are outside this product rule's extrapolation range and require coach confirmation. Round weights **down** to the configured increment. Below-minimum, nonpositive and out-of-range loads require coach confirmation.
+- A source session RPE of 9–10 reduces a history-based suggestion by 5% before rounding. Session RPE does not become a set RIR or change the recorded/measured 1RM. These 90/180-day windows, 15-rep boundary, 5% caps and session-RPE adjustment are conservative, configurable-in-code **product rules**, not validated physiological cutoffs.
+
+A registered 100 kg 1RM with the above example gives **67.5 / 67.5 / 72.5 / 72.5 / 72.5 kg**. Actual input fields remain empty until the member explicitly confirms a set or types a result. Partial/missing sets never receive invented results. Strength leaderboard ranking uses total `weight × reps` only when every prescribed set's repetitions match, the participant completed the class, and the coach confirmed the record; difficulty groups remain separate. This ranks performance in the same prescription, not general fitness.
+
+The set-RIR extension of Epley's formula is an implementation heuristic. Supporting primary reading: [Macarilla et al., 2022, prediction accuracy and Epley equation](https://pmc.ncbi.nlm.nih.gov/articles/PMC9465738/), [Lovegrove et al., RIR load prescription](https://pubmed.ncbi.nlm.nih.gov/36135029/), [Hughes et al., estimating RIR across exercises](https://pubmed.ncbi.nlm.nih.gov/33337690/). These sources do not validate this entire combined product algorithm.
+
+1RM values are explicitly coach-entered in **회원 · 기준 중량 → 1RM 설정**. Existing NTAC/PT free-text records are not automatically reinterpreted as a group exercise, 1RM, unit or RIR. Group history is used once it has a standardized exercise, appropriate set data and coach confirmation.
+
+### Security and verification
+
+New tables have RLS and authenticated SELECT only; all mutations use guarded RPCs. Weekly/timetable publishing, archiving weeks and registering 1RM require admin privileges. Assigned coaches can manage only their classes/rosters. Members read only their own results and their eligible published programs. No anonymous table grants. TV remains token-scoped, read-only and opted-in; it receives set weights/reps/target RIR but never session RPE, source IDs or coach reasons.
+
+Migration is additive and leaves previously stored recommendations/results untouched. Existing classes retain `recording_version=1` so their old completion flow remains compatible; classes created by the updated app or containing strength prescriptions use version 2 with final RPE. Cached legacy clients can still create version-1 classes during rollout. Optimistic revision checks reject stale/null revisions. Publication is serialized with timetable edits and class/participant operations.
+
+Verification includes isolated PostgreSQL tests for publication idempotency, roster permission boundaries, frozen programs, archive/history, 1RM/history estimates, malformed sets, final RPE, TV sanitization and existing PT/NTAC isolation; browser tests cover weekly publishing/calendar, future roster, 1RM form, actual-only five-set inputs, RPE validation, save-error retention, removal and existing PT/NTAC flows. Hosted rollback-only smoke tests verify actual schema compatibility without keeping test records.
+
+Post-upgrade advisors found no new missing group-table policies or missing group foreign-key indexes. Intentional guarded-definer warnings are reviewed above ([Supabase guidance](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable)); the anonymous display function remains token-gated and private display tokens intentionally have no direct-read policy.
+
+Hosted migration versions: `20261020084237_group_weekly_strength.sql` and `20261020084533_group_recording_compatibility.sql`. Local filenames match hosted migration history.

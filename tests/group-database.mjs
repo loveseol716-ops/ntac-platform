@@ -1,3 +1,7 @@
+process.on("uncaughtException", (e) => {
+  console.error(e.message, e.where || "", e.position || "");
+  process.exit(1);
+});
 // Isolated PostgreSQL (PGlite). No live member data or network requests.
 // Run: NTAC_TEST_MODULES=/tmp/ntac-test-tools/node_modules node tests/group-database.mjs
 import fs from "node:fs";
@@ -28,7 +32,18 @@ await db.exec(
     "utf8",
   ),
 );
-for (const file of fs.readdirSync('supabase/migrations').filter(f => f.endsWith('_group_input_guards.sql'))) await db.exec(fs.readFileSync('supabase/migrations/' + file, 'utf8'));
+for (const file of fs
+  .readdirSync("supabase/migrations")
+  .filter((f) => f.endsWith("_group_input_guards.sql")))
+  await db.exec(fs.readFileSync("supabase/migrations/" + file, "utf8"));
+for (const file of fs
+  .readdirSync("supabase/migrations")
+  .filter(
+    (f) =>
+      f.endsWith("_group_weekly_strength.sql") ||
+      f.endsWith("_group_recording_compatibility.sql"),
+  ))
+  await db.exec(fs.readFileSync("supabase/migrations/" + file, "utf8"));
 const ids = {
   admin: "10000000-0000-4000-8000-000000000001",
   coach: "10000000-0000-4000-8000-000000000002",
@@ -137,8 +152,8 @@ await as("coach");
 await rpc("group_set_class_status", [cid, "published", 1]);
 await rpc("group_set_class_status", [cid, "open", 2]);
 await denied(() => rpc("group_join", [cid, [ids.outside], true]), /관리자/);
-await as('outside');
-await denied(() => rpc('group_join',[cid,null,null]), /그룹 이용 권한/);
+await as("outside");
+await denied(() => rpc("group_join", [cid, null, null]), /그룹 이용 권한/);
 await as("member");
 await rpc("group_join", [cid]);
 await rpc("group_join", [cid]);
@@ -151,7 +166,10 @@ ok(
   "baseline snapshot",
 );
 await rpc("group_set_privacy", ["민수", true]);
-await denied(() => rpc('group_save_participant',[p.id,null,{status:'completed'}]), /다른 기기/);
+await denied(
+  () => rpc("group_save_participant", [p.id, null, { status: "completed" }]),
+  /다른 기기/,
+);
 await denied(
   () =>
     rpc("group_save_participant", [
@@ -164,11 +182,19 @@ await denied(
 await rpc("group_save_participant", [
   p.id,
   p.revision,
-  { status: "completed", results: { squat: { weight: 42.5, reps: 8 } } },
+  {
+    session_rpe: 7,
+    status: "completed",
+    results: { squat: { weight: 42.5, reps: 8 } },
+  },
 ]);
 await denied(
   () =>
-    rpc("group_save_participant", [p.id, p.revision, { status: "completed" }]),
+    rpc("group_save_participant", [
+      p.id,
+      p.revision,
+      { session_rpe: 7, status: "completed" },
+    ]),
   /다른 기기/,
 );
 p = (await rpc("group_detail", [cid])).participants[0];
@@ -191,7 +217,7 @@ await denied(
 await rpc("group_save_participant", [
   other.id,
   other.revision,
-  { status: "completed" },
+  { session_rpe: 7, status: "completed" },
 ]);
 ok(
   Object.keys((await rpc("group_detail", [cid])).participants[0].results)
@@ -298,6 +324,9 @@ ok(
   prof.assigned_coach_id === ids.other && pt.coach_id === ids.coach,
   "independent coaches",
 );
+await (
+  await import("./group-weekly-database.mjs")
+).weeklyChecks({ db, as, rpc, ids, ok, denied, date, payload });
 await db.exec("reset role");
 for (const table of ["pt_sessions", "pt_pass_events", "workout_records"])
   ok(

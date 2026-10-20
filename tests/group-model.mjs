@@ -64,3 +64,37 @@ assert.deepEqual(
 console.log(
   "PASS: comparable ranks, ties, null versus zero, AMRAP ordering, Seoul date and completed-only counts",
 );
+
+const strength = {
+  ...m,
+  training_type: "strength",
+  sets: [
+    { reps: 10, rir: 3 },
+    { reps: 8, rir: 3 },
+  ],
+};
+const setRow = (id, sets) => ({ ...row(id), results: { x: { sets } } });
+rows = resultRows(
+  [
+    setRow("full", [
+      { weight: 50, reps: 10 },
+      { weight: 60, reps: 8 },
+    ]),
+    setRow("partial", [{ weight: 80, reps: 10 }, {}]),
+    setRow("wrong", [
+      { weight: 80, reps: 9 },
+      { weight: 80, reps: 8 },
+    ]),
+  ],
+  strength,
+);
+assert.equal(rows.find((r) => r.id === "full").rank, 1);
+assert.equal(rows.find((r) => r.id === "partial").rank, null);
+assert.equal(rows.find((r) => r.id === "wrong").rank, null);
+assert.match(
+  resultText(strength, { sets: [{ weight: 50, reps: 10 }, {}] }),
+  /1\/2세트/,
+);
+console.log(
+  "PASS: strength ranks require all prescribed sets and matching repetitions",
+);

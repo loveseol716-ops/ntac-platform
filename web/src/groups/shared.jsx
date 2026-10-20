@@ -1,3 +1,4 @@
+import StrengthSets from "./StrengthSets.jsx";
 import { useEffect, useRef, useState } from "react";
 import {
   levels,
@@ -9,6 +10,7 @@ import {
   participantLabels,
   stateLabels,
   classTime,
+  prescriptionText,
 } from "./model.js";
 export function Dialog({ title, onClose, children }) {
   const ref = useRef(null);
@@ -73,7 +75,7 @@ export function Program({ c, exercises }) {
               <p>
                 {kinds[m.kind]}
                 {m.kind === "weight" &&
-                  ` · ${m.target_reps}회 · ${loadLabel(m)} (${m.unit})`}
+                  ` · ${prescriptionText(m)} · ${loadLabel(m)} (${m.unit})`}
               </p>
             </div>
           </article>
@@ -98,12 +100,30 @@ export function Recommendations({ participant: p, c, exercises }) {
               <div>
                 <strong>{movementLabel(m, exercises)}</strong>
                 <small>
-                  {m.target_reps}회 · {loadLabel(m)}
+                  {prescriptionText(m)} · {loadLabel(m)}
                 </small>
               </div>
               <div>
                 <b>
-                  {r?.weight != null ? `${r.weight} ${m.unit}` : "코치 확인"}
+                  {m.training_type === "strength" ? (
+                    <span className="g-recommended-sets">
+                      {m.sets.map((s, i) => (
+                        <span key={i}>
+                          {i + 1}세트 ·{" "}
+                          {r?.sets?.[i]?.weight != null
+                            ? `${r.sets[i].weight} ${m.unit}`
+                            : "코치 확인"}{" "}
+                          <small>
+                            {s.reps}회 · RIR {s.rir}
+                          </small>
+                        </span>
+                      ))}
+                    </span>
+                  ) : r?.weight != null ? (
+                    `${r.weight} ${m.unit}`
+                  ) : (
+                    "코치 확인"
+                  )}
                 </b>
                 <small>{sourceLabels[r?.source] || "기준 기록이 없어요"}</small>
               </div>
@@ -128,6 +148,8 @@ export function RecordEditor({
 }) {
   const [results, setResults] = useState(p.results || {}),
     [note, setNote] = useState(p.note || ""),
+    [rpe, setRpe] = useState(p.session_rpe ?? ""),
+    [validation, setValidation] = useState(""),
     [difficulty, setDifficulty] = useState(p.difficulty),
     [overrides, setOverrides] = useState({}),
     [reason, setReason] = useState("");
@@ -137,7 +159,12 @@ export function RecordEditor({
       [mid]: { ...prev[mid], [key]: nullableNumber(value) },
     }));
   const save = (status, finalized = p.finalized) => {
-    const payload = { results, note, status };
+    if (status === "completed" && c.recording_version >= 2 && rpe === "") {
+      setValidation("마지막으로 수업 전체 RPE를 선택해 주세요.");
+      return;
+    }
+    const payload = { results, note, status, session_rpe: nullableNumber(rpe) };
+    setValidation("");
     if (manager) {
       payload.difficulty = difficulty;
       payload.finalized = finalized;
@@ -157,7 +184,8 @@ export function RecordEditor({
           </p>
         )}
         <p className="g-muted">
-          실제로 수행한 값만 입력하세요. 기록 없이 운동 완료도 가능해요.
+          실제로 수행한 값만 입력하세요. 세트 기록은 비워둘 수 있고, 운동 완료
+          시 마지막 RPE를 확인해요.
         </p>
         {manager && (
           <label>
@@ -177,101 +205,121 @@ export function RecordEditor({
         {c.movements.map((m) => (
           <section className="g-record-movement" key={m.id}>
             <h3>{movementLabel(m, exercises)}</h3>
-            {m.kind === "weight" && (
+            {m.training_type === "strength" ? (
+              <StrengthSets
+                m={m}
+                result={results[m.id]}
+                recommendation={p.recommendations?.[m.id]}
+                manager={manager}
+                override={overrides[m.id]}
+                onResult={(value) =>
+                  setResults((prev) => ({ ...prev, [m.id]: value }))
+                }
+                onOverride={(value) =>
+                  setOverrides((prev) => ({ ...prev, [m.id]: value }))
+                }
+              />
+            ) : (
               <>
-                <small>
-                  {loadLabel(m)} · 목표 {m.target_reps}회
-                </small>
-                {p.recommendations?.[m.id]?.weight != null && (
-                  <button
-                    type="button"
-                    className="g-text-button"
-                    onClick={() =>
-                      setResults((prev) => ({
-                        ...prev,
-                        [m.id]: {
-                          ...prev[m.id],
-                          weight: p.recommendations[m.id].weight,
-                          reps: Number(m.target_reps),
-                        },
-                      }))
-                    }
-                  >
-                    추천대로 수행했어요 ({p.recommendations[m.id].weight}{" "}
-                    {m.unit})
-                  </button>
+                {m.kind === "weight" && (
+                  <>
+                    <small>
+                      {loadLabel(m)} · 목표 {m.target_reps}회
+                    </small>
+                    {p.recommendations?.[m.id]?.weight != null && (
+                      <button
+                        type="button"
+                        className="g-text-button"
+                        onClick={() =>
+                          setResults((prev) => ({
+                            ...prev,
+                            [m.id]: {
+                              ...prev[m.id],
+                              weight: p.recommendations[m.id].weight,
+                              reps: Number(m.target_reps),
+                            },
+                          }))
+                        }
+                      >
+                        추천대로 수행했어요 ({p.recommendations[m.id].weight}{" "}
+                        {m.unit})
+                      </button>
+                    )}
+                  </>
+                )}
+                <div className="g-fields">
+                  {(m.kind === "weight"
+                    ? [
+                        ["weight", m.unit],
+                        ["reps", "실제 반복 수"],
+                      ]
+                    : m.kind === "time"
+                      ? [["seconds", "소요 시간(초)"]]
+                      : m.kind === "rounds"
+                        ? [
+                            ["rounds", "완료 라운드"],
+                            ["reps", "추가 반복 수"],
+                          ]
+                        : m.kind === "distance"
+                          ? [["distance", "거리(m)"]]
+                          : m.kind === "calories"
+                            ? [["calories", "칼로리(cal)"]]
+                            : []
+                  ).map(([key, label]) => (
+                    <label key={key}>
+                      {label}
+                      <input
+                        aria-label={`${movementLabel(m, exercises)} ${label}`}
+                        type="number"
+                        min="0"
+                        max="1000000"
+                        step={["reps", "rounds"].includes(key) ? "1" : "any"}
+                        placeholder="미입력"
+                        value={results[m.id]?.[key] ?? ""}
+                        onChange={(e) => set(m.id, key, e.target.value)}
+                      />
+                    </label>
+                  ))}
+                </div>
+                {m.kind !== "participation" && (
+                  <label className="g-check">
+                    <input
+                      type="checkbox"
+                      checked={!!results[m.id]?.dnf}
+                      onChange={(e) =>
+                        setResults((prev) => ({
+                          ...prev,
+                          [m.id]: { ...prev[m.id], dnf: e.target.checked },
+                        }))
+                      }
+                    />
+                    미완주
+                  </label>
+                )}
+                {manager && m.kind === "weight" && (
+                  <label>
+                    코치 추천 조정 ({m.unit})
+                    <input
+                      type="number"
+                      min="0"
+                      max="2000"
+                      step="any"
+                      placeholder={
+                        p.recommendations?.[m.id]?.weight ?? "코치 확인"
+                      }
+                      value={overrides[m.id] ?? ""}
+                      onChange={(e) =>
+                        setOverrides((prev) => {
+                          const n = { ...prev };
+                          if (e.target.value === "") delete n[m.id];
+                          else n[m.id] = Number(e.target.value);
+                          return n;
+                        })
+                      }
+                    />
+                  </label>
                 )}
               </>
-            )}
-            <div className="g-fields">
-              {(m.kind === "weight"
-                ? [
-                    ["weight", m.unit],
-                    ["reps", "실제 반복 수"],
-                  ]
-                : m.kind === "time"
-                  ? [["seconds", "소요 시간(초)"]]
-                  : m.kind === "rounds"
-                    ? [
-                        ["rounds", "완료 라운드"],
-                        ["reps", "추가 반복 수"],
-                      ]
-                    : m.kind === "distance"
-                      ? [["distance", "거리(m)"]]
-                      : m.kind === "calories"
-                        ? [["calories", "칼로리(cal)"]]
-                        : []
-              ).map(([key, label]) => (
-                <label key={key}>
-                  {label}
-                  <input
-                    aria-label={`${movementLabel(m, exercises)} ${label}`}
-                    type="number"
-                    min="0"
-                    max="1000000"
-                    step={["reps", "rounds"].includes(key) ? "1" : "any"}
-                    placeholder="미입력"
-                    value={results[m.id]?.[key] ?? ""}
-                    onChange={(e) => set(m.id, key, e.target.value)}
-                  />
-                </label>
-              ))}
-            </div>
-            {m.kind !== "participation" && (
-              <label className="g-check">
-                <input
-                  type="checkbox"
-                  checked={!!results[m.id]?.dnf}
-                  onChange={(e) =>
-                    setResults((prev) => ({
-                      ...prev,
-                      [m.id]: { ...prev[m.id], dnf: e.target.checked },
-                    }))
-                  }
-                />
-                미완주
-              </label>
-            )}
-            {manager && m.kind === "weight" && (
-              <label>
-                코치 추천 조정 ({m.unit})
-                <input
-                  type="number"
-                  min="0"
-                  max="2000"
-                  step="any"
-                  placeholder={p.recommendations?.[m.id]?.weight ?? "코치 확인"}
-                  value={overrides[m.id] ?? ""}
-                  onChange={(e) =>
-                    setOverrides((prev) => {
-                      const n = { ...prev };
-                      if (e.target.value === "") delete n[m.id];
-                      else n[m.id] = Number(e.target.value);
-                      return n;
-                    })
-                  }
-                />
-              </label>
             )}
           </section>
         ))}
@@ -285,6 +333,36 @@ export function RecordEditor({
             />
           </label>
         )}
+        <section className="g-panel">
+          <h3>마지막 체크 · 수업 전체 RPE</h3>
+          <p className="g-muted">
+            오늘 수업 전체가 얼마나 힘들었나요? 0 = 휴식, 5 = 힘듦, 7 = 매우
+            힘듦, 10 = 최대 노력. 세트별 RIR과는 별도예요.
+          </p>
+          <label>
+            수업 전체 RPE
+            <select
+              aria-label="수업 전체 RPE"
+              value={rpe}
+              onChange={(e) => {
+                setRpe(e.target.value);
+                setValidation("");
+              }}
+            >
+              <option value="">선택하세요</option>
+              {Array.from({ length: 11 }, (_, i) => (
+                <option key={i} value={i}>
+                  {i} / 10
+                </option>
+              ))}
+            </select>
+          </label>
+          {validation && (
+            <p role="alert" className="g-error">
+              {validation}
+            </p>
+          )}
+        </section>
         <label>
           오늘 메모
           <textarea

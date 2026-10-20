@@ -1,3 +1,6 @@
+import WeekCalendar from "./WeekCalendar.jsx";
+import WeeklyPrograms from "./WeeklyPrograms.jsx";
+import StrengthMax from "./StrengthMax.jsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase.js";
 import {
@@ -17,7 +20,7 @@ import {
   movementLabel,
   resultText,
 } from "./model.js";
-import { Dialog, ClassCard, Program, RecordEditor } from "./shared.jsx";
+import { Dialog, Program, RecordEditor } from "./shared.jsx";
 import ClassEditor from "./ClassEditor.jsx";
 import WallControl from "./WallControl.jsx";
 import "./Groups.css";
@@ -44,7 +47,8 @@ export default function GroupAdmin({ profile }) {
     [loading, setLoading] = useState(false),
     [version, setVersion] = useState(0),
     [baseline, setBaseline] = useState(null),
-    [audit, setAudit] = useState(null);
+    [audit, setAudit] = useState(null),
+    [strengthMax, setStrengthMax] = useState(null);
   useEffect(() => {
     let live = true;
     setLoading(true);
@@ -55,6 +59,7 @@ export default function GroupAdmin({ profile }) {
         supabase
           .from("group_templates")
           .select("*")
+          .is("archived_at", null)
           .order("updated_at", { ascending: false }),
       ),
       admin ? rpc("group_directory") : Promise.resolve([]),
@@ -142,6 +147,7 @@ export default function GroupAdmin({ profile }) {
           ["classes", "수업 운영"],
           ...(admin
             ? [
+                ["programs", "주간 프로그램"],
                 ["members", "회원 · 기준 중량"],
                 ["tv", "TV 연결"],
               ]
@@ -209,6 +215,31 @@ export default function GroupAdmin({ profile }) {
                         }
                       >
                         새 수업으로 복제
+                      </button>
+                      <button
+                        disabled={busy}
+                        onClick={async () => {
+                          if (
+                            confirm(
+                              "이 수업 프로그램을 목록에서 삭제할까요? 기존 운동 기록은 보존돼요.",
+                            )
+                          ) {
+                            if (
+                              await act(
+                                () =>
+                                  rpc("group_remove_program", {
+                                    kind: "class",
+                                    target_id: c.id,
+                                    expected_revision: c.revision,
+                                  }),
+                                "수업 프로그램을 삭제했어요.",
+                              )
+                            )
+                              setSelected(null);
+                          }
+                        }}
+                      >
+                        프로그램 삭제
                       </button>
                       <button
                         disabled={busy}
@@ -280,11 +311,12 @@ export default function GroupAdmin({ profile }) {
                             }
                           </span>
                         </h3>
-                        {["open", "live"].includes(c.status) && (
-                          <button className="g-primary" onClick={openAdd}>
-                            참가자 추가
-                          </button>
-                        )}
+                        {["published", "open", "live"].includes(c.status) &&
+                          !c.archived_at && (
+                            <button className="g-primary" onClick={openAdd}>
+                              참가자 추가
+                            </button>
+                          )}
                       </div>
                       <p className="g-muted">
                         참가 등록은 운동 기록용이에요. 운톡 공식 출석과 PT
@@ -292,8 +324,8 @@ export default function GroupAdmin({ profile }) {
                       </p>
                       {!detail.participants.length && (
                         <p className="g-empty">
-                          접수를 열면 회원이 운동을 시작하거나 코치가 추가할 수
-                          있어요.
+                          캘린더에서 참가자를 미리 추가하고, 당일 접수를 열어
+                          운동을 시작하세요.
                         </p>
                       )}
                       {detail.participants.map((p) => (
@@ -321,6 +353,47 @@ export default function GroupAdmin({ profile }) {
                             </div>
                           ))}
                           <div className="g-actions">
+                            {p.status === "planned" && (
+                              <>
+                                <button
+                                  disabled={
+                                    busy || !["open", "live"].includes(c.status)
+                                  }
+                                  onClick={() =>
+                                    act(
+                                      () =>
+                                        rpc("group_join", {
+                                          cid: c.id,
+                                          user_ids: [p.user_id],
+                                        }),
+                                      "운동을 시작했어요.",
+                                    )
+                                  }
+                                >
+                                  오늘 운동 시작
+                                </button>
+                                <button
+                                  disabled={busy}
+                                  onClick={() =>
+                                    act(
+                                      () =>
+                                        rpc("group_cancel_planned", {
+                                          pid: p.id,
+                                          expected_revision: p.revision,
+                                        }),
+                                      "사전 참가를 취소했어요.",
+                                    )
+                                  }
+                                >
+                                  참가 예정 취소
+                                </button>
+                              </>
+                            )}
+                            {p.session_rpe != null && (
+                              <span className="g-badge">
+                                수업 RPE {p.session_rpe}/10
+                              </span>
+                            )}
                             {["active", "completed"].includes(p.status) &&
                               c.status !== "cancelled" && (
                                 <>
@@ -335,15 +408,10 @@ export default function GroupAdmin({ profile }) {
                                   {p.status === "active" && (
                                     <button
                                       disabled={busy}
-                                      onClick={() =>
-                                        act(
-                                          () =>
-                                            saveParticipant(p, {
-                                              status: "completed",
-                                            }),
-                                          "운동 완료로 기록했어요.",
-                                        )
-                                      }
+                                      onClick={() => {
+                                        setRecord(p);
+                                        setError("");
+                                      }}
                                     >
                                       운동 완료
                                     </button>
@@ -435,24 +503,13 @@ export default function GroupAdmin({ profile }) {
                   + 수업 만들기
                 </button>
               </div>
-              <label className="g-date-field">
-                수업 날짜
-                <input
-                  type="date"
-                  value={day}
-                  onChange={(e) => setDay(e.target.value)}
-                />
-              </label>
               {loading && <p role="status">수업을 불러오고 있어요.</p>}
-              <div className="g-class-list">
-                {classes.map((c) => (
-                  <ClassCard
-                    key={c.id}
-                    c={c}
-                    onClick={() => setSelected(c.id)}
-                  />
-                ))}
-              </div>
+              <WeekCalendar
+                day={day}
+                onDay={setDay}
+                classes={classes}
+                onSelect={setSelected}
+              />
               {!loading && !classes.length && (
                 <div className="g-empty">
                   <h3>이 날짜의 첫 수업을 준비해 보세요.</h3>
@@ -465,6 +522,17 @@ export default function GroupAdmin({ profile }) {
             </>
           )}
         </>
+      )}
+      {tab === "programs" && admin && (
+        <WeeklyPrograms
+          day={day}
+          onDay={setDay}
+          coaches={coaches}
+          exercises={exercises}
+          templates={templates}
+          profile={profile}
+          onChange={() => setVersion((v) => v + 1)}
+        />
       )}
       {tab === "members" && (
         <>
@@ -538,6 +606,14 @@ export default function GroupAdmin({ profile }) {
                   >
                     기준 중량
                   </button>
+                  <button
+                    onClick={() => {
+                      setStrengthMax(p);
+                      setError("");
+                    }}
+                  >
+                    1RM 설정
+                  </button>
                 </div>
               ))}
           </div>
@@ -595,8 +671,8 @@ export default function GroupAdmin({ profile }) {
           onClose={() => !busy && setAdding(false)}
         >
           <p className="g-muted">
-            현장에 참가한 회원을 선택하세요. 이미 등록된 회원은 중복으로
-            추가되지 않아요.
+            수업에 참여할 회원을 선택하세요. 공개된 예정 수업은 참가 예정으로
+            등록돼요. 이미 등록된 회원은 중복 추가되지 않아요.
           </p>
           <input
             aria-label="참가자 검색"
@@ -687,6 +763,24 @@ export default function GroupAdmin({ profile }) {
               )
             )
               setBaseline(null);
+          }}
+        />
+      )}
+      {strengthMax && (
+        <StrengthMax
+          member={strengthMax}
+          exercises={exercises}
+          busy={busy}
+          error={error}
+          onClose={() => !busy && setStrengthMax(null)}
+          onSave={async (payload) => {
+            if (
+              await act(
+                () => rpc("group_set_strength_max", { payload }),
+                "1RM을 저장했어요. 다음 운동 시작부터 반영돼요.",
+              )
+            )
+              setStrengthMax(null);
           }}
         />
       )}
