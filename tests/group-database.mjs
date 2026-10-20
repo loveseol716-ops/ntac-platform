@@ -28,6 +28,7 @@ await db.exec(
     "utf8",
   ),
 );
+for (const file of fs.readdirSync('supabase/migrations').filter(f => f.endsWith('_group_input_guards.sql'))) await db.exec(fs.readFileSync('supabase/migrations/' + file, 'utf8'));
 const ids = {
   admin: "10000000-0000-4000-8000-000000000001",
   coach: "10000000-0000-4000-8000-000000000002",
@@ -136,6 +137,8 @@ await as("coach");
 await rpc("group_set_class_status", [cid, "published", 1]);
 await rpc("group_set_class_status", [cid, "open", 2]);
 await denied(() => rpc("group_join", [cid, [ids.outside], true]), /관리자/);
+await as('outside');
+await denied(() => rpc('group_join',[cid,null,null]), /그룹 이용 권한/);
 await as("member");
 await rpc("group_join", [cid]);
 await rpc("group_join", [cid]);
@@ -148,6 +151,7 @@ ok(
   "baseline snapshot",
 );
 await rpc("group_set_privacy", ["민수", true]);
+await denied(() => rpc('group_save_participant',[p.id,null,{status:'completed'}]), /다른 기기/);
 await denied(
   () =>
     rpc("group_save_participant", [

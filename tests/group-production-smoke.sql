@@ -10,9 +10,10 @@ begin
  if aid is null or uid is null or oid is null then raise exception 'Test needs an admin and two existing member profiles'; end if;
  select count(*) into before_pt from public.pt_sessions; select count(*) into before_events from public.pt_pass_events;select count(*) into before_ntac from public.workout_records;
  perform set_config('request.jwt.claim.sub',aid::text,true); perform set_config('role','authenticated',true);
- perform public.group_set_member(uid,true);perform public.group_set_member(oid,true);
+ perform public.group_set_member(uid,true);perform public.group_set_member(oid,false);
  movement:=jsonb_build_array(jsonb_build_object('id','test-squat','exercise_id','back_squat','label','ROLLBACK ONLY','kind','weight','target_reps',8,'unit','kg','load_basis','total'));
  cid:=public.group_save_class(jsonb_build_object('title','ROLLBACK GROUP TEST','starts_at',((now() at time zone 'Asia/Seoul')::date + time '00:00') at time zone 'Asia/Seoul','duration_minutes',50,'coach_id',aid,'description','ROLLBACK ONLY','movements',movement));
+ begin perform public.group_set_class_status(cid,'published',null);raise exception 'Null class revision bypass';exception when raise_exception then if SQLERRM not like '수업 상태가 변경%' then raise;end if;end;
  perform public.group_set_class_status(cid,'published',1);perform public.group_set_class_status(cid,'open',2);
  perform public.group_set_baseline(jsonb_build_object('user_id',uid,'exercise_id','back_squat','target_reps',8,'unit','kg','load_basis','total','difficulty','standard','weight',20,'reason','ROLLBACK ONLY'));
  perform set_config('request.jwt.claim.sub',uid::text,true);
@@ -20,9 +21,11 @@ begin
  detail:=public.group_detail(cid);pid:=(detail->'participants'->0->>'id')::uuid;
  if jsonb_array_length(detail->'participants')<>1 then raise exception 'Duplicate join';end if;
  perform public.group_set_privacy('ROLLBACK NICKNAME',true);
+ begin perform public.group_save_participant(pid,null,jsonb_build_object('status','completed'));raise exception 'Null record revision bypass';exception when raise_exception then if SQLERRM not like '다른 기기에서%' then raise;end if;end;
  perform public.group_save_participant(pid,1,jsonb_build_object('status','completed'));
  if (select results from public.group_participants where id=pid)<>'{}'::jsonb then raise exception 'Completion fabricated a result';end if;
  perform set_config('request.jwt.claim.sub',oid::text,true);
+ begin perform public.group_join(cid,null,null);raise exception 'Null exception bypass';exception when raise_exception then if SQLERRM not like '그룹 이용 권한%' then raise;end if;end;
  if exists(select 1 from public.group_participants where id=pid) then raise exception 'Member RLS leak';end if;
  begin perform public.group_save_participant(pid,2,jsonb_build_object('status','cancelled'));raise exception 'Missing member write guard'; exception when raise_exception then if SQLERRM not like '본인 또는 담당 코치%' then raise;end if;end;
  perform set_config('request.jwt.claim.sub',aid::text,true);
