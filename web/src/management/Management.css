@@ -270,10 +270,9 @@ summary:focus-visible {
 .roster-head,
 .roster-row {
   display: grid;
-  grid-template-columns: minmax(140px, 1.2fr) minmax(90px, 0.8fr) minmax(
-      100px,
-      0.8fr
-    ) minmax(85px, 0.7fr) minmax(150px, 1fr);
+  grid-template-columns:
+    minmax(140px, 1.2fr) minmax(90px, 0.8fr) minmax(100px, 0.8fr)
+    minmax(85px, 0.7fr) minmax(150px, 1fr);
   align-items: center;
   gap: 16px;
 }
@@ -687,5 +686,119 @@ summary:focus-visible {
   }
   .pt .compact-stats strong {
     font-size: 20px;
+  }
+}
+
+/* One directory and independent service choices for every signed-up account. */
+.manage .service-filters,
+.manage .service-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.manage .service-filters button.selected,
+.manage .service-badge.enabled {
+  background: #0b3d2e;
+  border-color: #568e73;
+  color: #f1f6f2;
+}
+.manage .service-filters button span {
+  margin-left: 6px;
+  opacity: 0.75;
+}
+.manage .unified-member-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+.manage .unified-member-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  border: 1px solid var(--line, #35423d);
+  border-radius: 14px;
+  padding: 20px;
+}
+.manage .unified-member-info {
+  flex: 1 1 300px;
+  min-width: 0;
+}
+.manage .unified-member-info h3 {
+  margin: 0;
+}
+.manage .unified-member-info p {
+  overflow-wrap: anywhere;
+  margin: 8px 0;
+}
+.manage .service-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border: 1px solid var(--line, #35423d);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.manage .service-coaches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  font-size: 13px;
+}
+.manage .service-choices {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+}
+.manage label.service-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line, #35423d);
+  border-radius: 12px;
+  min-width: 0;
+  margin: 0;
+}
+.manage label.service-choice.enabled {
+  border-color: #568e73;
+  background: #0b3d2e24;
+}
+.manage .service-choice input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  accent-color: #438469;
+}
+.manage .service-choice span {
+  min-width: 0;
+}
+.manage .service-choice small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted, #aebbb4);
+  font-weight: 400;
+}
+.manage.member-dialog {
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 32px);
+}
+.manage.member-dialog input,
+.manage.member-dialog select {
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 600px) {
+  .manage .unified-member-card {
+    padding: 16px;
+    gap: 12px;
+  }
+  .manage .unified-member-card > .button-row {
+    width: 100%;
+  }
+  .manage .unified-member-card > .button-row button {
+    flex: 1;
   }
 }

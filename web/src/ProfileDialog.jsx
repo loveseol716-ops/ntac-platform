@@ -214,7 +214,7 @@ export default function ProfileDialog({
                           } catch {}
                           throw Error(
                             detail?.error ||
-                              "비밀번호를 변경하지 못했어요. 관리자 권한과 로그인 상태를 확인해 주세요.",
+                              "비밀번호 변경 요청을 완료하지 못했어요. 잠시 후 다시 시도해 주세요.",
                           );
                         }
                         if (!data?.success)

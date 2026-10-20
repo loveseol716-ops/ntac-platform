@@ -21,20 +21,30 @@ export function passwordHandler(createClient, env) {
         .get("Authorization")
         ?.match(/^Bearer (.+)$/i)?.[1];
       if (!token) return reply(401, { error: "다시 로그인해 주세요." });
-      const admin = createClient(
+      // Profile SELECT is intentionally granted to authenticated users, not to
+      // service_role. Read authorization through the verified caller's RLS context.
+      // The separate server client below is used only for the Auth Admin API.
+      const caller = createClient(
         env("SUPABASE_URL"),
-        env("SUPABASE_SERVICE_ROLE_KEY"),
-        { auth: { persistSession: false, autoRefreshToken: false } },
+        env("SUPABASE_ANON_KEY"),
+        {
+          auth: { persistSession: false, autoRefreshToken: false },
+          global: { headers: { Authorization: `Bearer ${token}` } },
+        },
       );
-      const { data: auth, error: authError } = await admin.auth.getUser(token);
+      const { data: auth, error: authError } = await caller.auth.getUser(token);
       if (authError || !auth?.user)
         return reply(401, { error: "다시 로그인해 주세요." });
-      const { data: actor, error: actorError } = await admin
+      const { data: actor, error: actorError } = await caller
         .from("profiles")
         .select("role")
         .eq("id", auth.user.id)
         .single();
-      if (actorError || !["owner", "admin"].includes(actor?.role))
+      if (actorError)
+        return reply(503, {
+          error: "관리자 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.",
+        });
+      if (!["owner", "admin"].includes(actor?.role))
         return reply(403, { error: "관리자 권한이 필요합니다." });
       const body = await req.json();
       if (
@@ -45,15 +55,24 @@ export function passwordHandler(createClient, env) {
         body.password.length > 128
       )
         return reply(400, { error: "새 비밀번호는 12~128자로 입력해 주세요." });
-      const { data: target, error: targetError } = await admin
+      const { data: target, error: targetError } = await caller
         .from("profiles")
         .select("role")
         .eq("id", body.target_id)
         .single();
-      if (targetError || target?.role !== "member")
+      if (targetError)
+        return reply(503, {
+          error: "회원 정보를 확인하지 못했어요. 목록을 새로고침해 주세요.",
+        });
+      if (target?.role !== "member")
         return reply(403, {
           error: "일반 회원의 비밀번호만 변경할 수 있습니다.",
         });
+      const admin = createClient(
+        env("SUPABASE_URL"),
+        env("SUPABASE_SERVICE_ROLE_KEY"),
+        { auth: { persistSession: false, autoRefreshToken: false } },
+      );
       const { error } = await admin.auth.admin.updateUserById(body.target_id, {
         password: body.password,
       });

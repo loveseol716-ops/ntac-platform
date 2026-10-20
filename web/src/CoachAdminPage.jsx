@@ -3,6 +3,12 @@ import { supabase } from "./lib/supabase.js";
 import { checked } from "./pt/api.js";
 import { today } from "./pt/model.js";
 import ProfileDialog from "./ProfileDialog.jsx";
+import MemberDirectory from "./management/MemberDirectory.jsx";
+import {
+  SERVICES,
+  memberServiceState,
+  serviceLabels,
+} from "./management/memberServices.js";
 import { currentBalance } from "./pt/passes.js";
 import PTAdmin from "./pt/PTAdmin.jsx";
 import CoachCalendar from "./pt/CoachCalendar.jsx";
@@ -68,6 +74,7 @@ export default function CoachAdminPage({
     [ntacTab, setNtacTab] = useState("members");
   const [profiles, setProfiles] = useState([]),
     [members, setMembers] = useState([]),
+    [groupMembers, setGroupMembers] = useState([]),
     [packages, setPackages] = useState([]),
     [sessions, setSessions] = useState([]);
   const [query, setQuery] = useState(""),
@@ -79,7 +86,7 @@ export default function CoachAdminPage({
     [startNew, setStartNew] = useState(false);
   const [editing, setEditing] = useState(null),
     [profileEditing, setProfileEditing] = useState(null),
-    [service, setService] = useState(""),
+    [service, setService] = useState({}),
     [coach, setCoach] = useState(""),
     [ptCoach, setPTCoach] = useState("");
   const [error, setError] = useState(""),
@@ -102,7 +109,7 @@ export default function CoachAdminPage({
         );
       }
       if (!isStaff(p)) throw Error("관리 권한이 없습니다.");
-      const [ps, ms, pk, ss] = await Promise.all([
+      const [ps, ms, pk, ss, gs] = await Promise.all([
         checked(
           supabase
             .from("profiles")
@@ -121,11 +128,15 @@ export default function CoachAdminPage({
             )
             .order("session_date", { ascending: false }),
         ),
+        ["owner", "admin"].includes(p.role)
+          ? checked(supabase.from("group_members").select("user_id,active"))
+          : Promise.resolve([]),
       ]);
       if (live) {
         setProfile(p);
         setProfiles(ps);
         setMembers(ms);
+        setGroupMembers(gs);
         setPackages(pk);
         setSessions(ss);
       }
@@ -154,9 +165,18 @@ export default function CoachAdminPage({
     () =>
       profiles.map((p) => {
         const m = members.find((m) => m.profile_id === p.id);
-        return { p, m, stats: m ? getPTStats(m, packages, sessions) : null };
+        return {
+          p,
+          m,
+          services: memberServiceState(
+            p,
+            m,
+            groupMembers.find((g) => g.user_id === p.id),
+          ),
+          stats: m ? getPTStats(m, packages, sessions) : null,
+        };
       }),
-    [profiles, members, packages, sessions],
+    [profiles, members, packages, sessions, groupMembers],
   );
   const filtered = rows.filter(({ p, m }) => {
     if (tab === "pt" && !m?.active) return false;
@@ -177,16 +197,13 @@ export default function CoachAdminPage({
     return true;
   });
   function edit(p, m) {
-    setEditing(p);
-    setService(
-      m?.active
-        ? p.ntac_enabled
-          ? "both"
-          : "pt"
-        : p.ntac_enabled
-          ? "ntac"
-          : "none",
+    const state = memberServiceState(
+      p,
+      m,
+      groupMembers.find((g) => g.user_id === p.id),
     );
+    setEditing({ ...p, expected_state: state });
+    setService(state);
     setCoach(p.assigned_coach_id || "");
     setPTCoach(m?.coach_id || "");
     setError("");
@@ -199,16 +216,20 @@ export default function CoachAdminPage({
     setError("");
     try {
       await checked(
-        supabase.rpc("set_member_services_v2", {
+        supabase.rpc("set_member_services_v3", {
           target_id: editing.id,
-          enable_ntac: ["ntac", "both"].includes(service),
-          enable_pt: ["pt", "both"].includes(service),
+          enable_ntac: service.ntac,
+          enable_pt: service.pt,
+          enable_group: service.group,
+          expected_state: editing.expected_state,
           ntac_coach_id: coach || null,
           pt_coach_id: ptCoach || null,
         }),
       );
       setEditing(null);
-      setMessage("이용 프로그램과 담당 코치를 저장했어요.");
+      setMessage(
+        "이용 서비스와 담당 코치를 저장했어요. 각 서비스의 회원 목록에도 반영됩니다.",
+      );
       setVersion((v) => v + 1);
     } catch (e) {
       setError(e.message);
@@ -251,22 +272,26 @@ export default function CoachAdminPage({
         <div>
           <p className="eyebrow">{admin ? "COACH WORKSPACE" : "MY MEMBERS"}</p>
           <h1>
-            {tab === "pt"
-              ? "PT 관리"
-              : tab === "ntac"
-                ? "NTAC 관리"
-                : tab === "group"
-                  ? "그룹수업 관리"
-                  : "운영 설정"}
+            {tab === "members"
+              ? "회원 통합 관리"
+              : tab === "pt"
+                ? "PT 관리"
+                : tab === "ntac"
+                  ? "NTAC 관리"
+                  : tab === "group"
+                    ? "그룹수업 관리"
+                    : "운영 설정"}
           </h1>
           <p className="workspace-description">
-            {tab === "pt"
-              ? "개인 수업 일정과 회원별 횟수권을 관리하세요."
-              : tab === "ntac"
-                ? "NTAC 회원의 프로그램과 훈련 리포트를 관리하세요."
-                : tab === "group"
-                  ? "오늘의 프로그램과 참가자·운동 기록·TV를 관리하세요."
-                  : "코치 계정과 관리자 권한을 설정하세요."}
+            {tab === "members"
+              ? "전체 회원의 이용 서비스와 계정 정보를 한곳에서 관리하세요."
+              : tab === "pt"
+                ? "개인 수업 일정과 회원별 횟수권을 관리하세요."
+                : tab === "ntac"
+                  ? "NTAC 회원의 프로그램과 훈련 리포트를 관리하세요."
+                  : tab === "group"
+                    ? "오늘의 프로그램과 참가자·운동 기록·TV를 관리하세요."
+                    : "코치 계정과 관리자 권한을 설정하세요."}
           </p>
         </div>
         <div className="button-row">
@@ -278,6 +303,7 @@ export default function CoachAdminPage({
       </header>
       <nav className="workspace-tabs" aria-label="관리 메뉴">
         {[
+          ...(admin ? [["members", "회원 통합 관리"]] : []),
           ["pt", "PT 관리"],
           ["group", "그룹수업"],
           ...(admin
@@ -314,9 +340,24 @@ export default function CoachAdminPage({
         </p>
       )}
       {loading && <p role="status">최신 기록을 확인하고 있어요.</p>}
+      {tab === "members" && admin && (
+        <MemberDirectory
+          rows={rows}
+          coaches={coaches}
+          loading={loading}
+          onAssign={edit}
+          onProfile={setProfileEditing}
+        />
+      )}
       {tab === "group" && profile && (
         <Suspense fallback={<p>그룹수업을 불러오고 있어요.</p>}>
-          <GroupAdmin profile={profile} />
+          <GroupAdmin
+            profile={profile}
+            onManageMembers={() => {
+              setTab("members");
+              setVersion((v) => v + 1);
+            }}
+          />
         </Suspense>
       )}
       {tab === "pt" && profile && (
@@ -411,14 +452,12 @@ export default function CoachAdminPage({
             <span>관리</span>
           </div>
           <div className="roster-list">
-            {filtered.map(({ p, m, stats }) => (
+            {filtered.map(({ p, m, services, stats }) => (
               <article key={p.id} className="roster-row">
                 <div className="member-identity">
                   <strong>{p.full_name || "이름 없음"}</strong>
                   <span className="muted">
-                    {[p.ntac_enabled ? "NTAC" : null, m?.active ? "PT" : null]
-                      .filter(Boolean)
-                      .join(" · ") || "등록 대기"}
+                    {serviceLabels(services).join(" · ") || "서비스 미지정"}
                     {isStaff(p)
                       ? ` · ${{ owner: "대표", admin: "관리자", coach: "코치" }[p.role]}`
                       : ""}
@@ -605,15 +644,7 @@ export default function CoachAdminPage({
                   key={p.id}
                   onClick={() => {
                     edit(p, m);
-                    setService(
-                      tab === "pt"
-                        ? p.ntac_enabled
-                          ? "both"
-                          : "pt"
-                        : m?.active
-                          ? "both"
-                          : "ntac",
-                    );
+                    setService((state) => ({ ...state, [tab]: true }));
                     setRegistering(false);
                   }}
                 >
@@ -636,18 +667,30 @@ export default function CoachAdminPage({
         >
           <form onSubmit={save}>
             <fieldset disabled={busy}>
-              <label>
-                이용 프로그램
-                <select
-                  value={service}
-                  onChange={(e) => setService(e.target.value)}
-                >
-                  <option value="none">등록 대기</option>
-                  <option value="pt">PT만</option>
-                  <option value="ntac">NTAC만</option>
-                  <option value="both">PT + NTAC</option>
-                </select>
-              </label>
+              <p className="muted">
+                이용할 서비스를 모두 선택하세요. 선택하지 않으면 서비스 미지정
+                상태로 관리돼요.
+              </p>
+              <div className="service-choices">
+                {SERVICES.map((s) => (
+                  <label
+                    className={`service-choice ${service[s.id] ? "enabled" : ""}`}
+                    key={s.id}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={service[s.id]}
+                      onChange={(e) =>
+                        setService({ ...service, [s.id]: e.target.checked })
+                      }
+                    />
+                    <span>
+                      <strong>{s.label} 이용</strong>
+                      <small>{s.description}</small>
+                    </span>
+                  </label>
+                ))}
+              </div>
               <label>
                 NTAC 담당 코치
                 <select
@@ -677,8 +720,8 @@ export default function CoachAdminPage({
                 </select>
               </label>
               <p className="muted">
-                회원에게는 지정된 프로그램만 표시됩니다. PT 횟수권의 사용 기간은
-                별도로 설정합니다.
+                그룹수업 코치는 수업별로 지정합니다. 이용 중지해도 기존 운동
+                기록과 PT 횟수권은 보존됩니다. PT 횟수권은 별도로 등록합니다.
               </p>
               {error && (
                 <p role="alert" className="error-banner">

@@ -112,8 +112,13 @@ const sessions = [
 const applied = [];
 const savedDefaults = [];
 const statusRequests = [];
-let failCompletion = false;
+let failCompletion = false,
+  failServices = false,
+  failPassword = false;
+const groupMembers = [],
+  passwordUpdates = [];
 const fixtures = {
+  group_members: groupMembers,
   pt_availability_defaults: savedDefaults,
   pt_slots: slots,
   profiles,
@@ -206,7 +211,13 @@ const fixtures = {
       if (url.pathname.startsWith("/auth/"))
         return route.fulfill({ json: { id: user?.id, email: user?.email } });
       const table = url.pathname.split("/").pop();
-      if (table === "group_bootstrap") return route.fulfill({ json: { member: null, has_history: false } });
+      if (table === "group_bootstrap")
+        return route.fulfill({
+          json: {
+            member: groupMembers.find((g) => g.user_id === user?.id) || null,
+            has_history: false,
+          },
+        });
       if (table === "weekly_programs" && req.method() === "POST") {
         const row = req.postDataJSON();
         const index = fixtures.weekly_programs.findIndex(
@@ -216,7 +227,15 @@ const fixtures = {
         else fixtures.weekly_programs[index] = row;
         return route.fulfill({ json: row });
       }
-      if (table === "set_member_services_v2") {
+      if (table === "set_member_services_v3") {
+        if (failServices)
+          return route.fulfill({
+            status: 409,
+            json: {
+              message:
+                "이용 서비스가 다른 화면에서 변경됐어요. 다시 확인해 주세요.",
+            },
+          });
         const p = req.postDataJSON();
         const u = profiles.find((x) => x.id === p.target_id);
         u.ntac_enabled = p.enable_ntac;
@@ -224,7 +243,20 @@ const fixtures = {
         u.coach_name =
           profiles.find((x) => x.id === p.ntac_coach_id)?.full_name || "미배정";
         let m = members.find((x) => x.profile_id === u.id);
-        if (m) { m.active = p.enable_pt; m.coach_id = p.pt_coach_id; }
+        if (m) {
+          m.active = p.enable_pt;
+          m.coach_id = p.pt_coach_id;
+        } else if (p.enable_pt)
+          members.push({
+            id: "m-" + u.id,
+            profile_id: u.id,
+            active: true,
+            coach_id: p.pt_coach_id,
+          });
+        let g = groupMembers.find((g) => g.user_id === u.id);
+        if (g) g.active = p.enable_group;
+        else groupMembers.push({ user_id: u.id, active: p.enable_group });
+        assert.equal(typeof p.expected_state.group, "boolean");
         return route.fulfill({ json: null });
       }
       if (table === "pt_apply_availability") {
@@ -253,8 +285,18 @@ const fixtures = {
         );
         return route.fulfill({ json: null });
       }
-      if (table === "ntac-admin-password")
+      if (table === "ntac-admin-password") {
+        if (failPassword)
+          return route.fulfill({
+            status: 503,
+            json: {
+              error:
+                "관리자 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.",
+            },
+          });
+        passwordUpdates.push(req.postDataJSON());
         return route.fulfill({ json: { success: true } });
+      }
       if (table === "pt_save_package") {
         const p = req.postDataJSON().payload;
         const old = packages.find((x) => x.id === p.id);
@@ -305,7 +347,10 @@ const fixtures = {
         const p = req.postDataJSON();
         statusRequests.push(p);
         if (failCompletion) {
-          return route.fulfill({ status: 400, json: { message: "완료 처리 테스트 오류" } });
+          return route.fulfill({
+            status: 400,
+            json: { message: "완료 처리 테스트 오류" },
+          });
         }
         sessions.find((s) => s.id === p.sid).status = p.new_status;
         return route.fulfill({ json: null });
@@ -339,28 +384,59 @@ const fixtures = {
   }
   if (process.env.PT_COMPLETION_ONLY === "1") {
     sessions.push({
-      id: "completion-boundary", member_id: "m1", package_id: "pk1",
-      coach_id: "coach", session_date: date, start_time: "14:00:00",
-      status: "scheduled", title: "PT", workout: [], warm_up: "", main: "", notes: "",
-      duration_minutes: 60, created_at: date,
+      id: "completion-boundary",
+      member_id: "m1",
+      package_id: "pk1",
+      coach_id: "coach",
+      session_date: date,
+      start_time: "14:00:00",
+      status: "scheduled",
+      title: "PT",
+      workout: [],
+      warm_up: "",
+      main: "",
+      notes: "",
+      duration_minutes: 60,
+      created_at: date,
     });
-    const { page, context } = await open("admin", 390, new Date(`${date}T13:59:00+09:00`));
+    const { page, context } = await open(
+      "admin",
+      390,
+      new Date(`${date}T13:59:00+09:00`),
+    );
     await page.getByRole("heading", { name: "PT 관리", exact: true }).waitFor();
-    await page.getByRole("button", { name: "수업 관리", exact: true }).first().click();
+    await page
+      .getByRole("button", { name: "수업 관리", exact: true })
+      .first()
+      .click();
     await page.getByRole("heading", { name: "김민수님의 PT" }).waitFor();
-    const card = page.locator("article.pt-card").filter({ has: page.getByRole("heading", { name: "14:00 · 김민수" }) });
-    const complete = card.getByRole("button", { name: "운동 완료", exact: true });
+    const card = page
+      .locator("article.pt-card")
+      .filter({ has: page.getByRole("heading", { name: "14:00 · 김민수" }) });
+    const complete = card.getByRole("button", {
+      name: "운동 완료",
+      exact: true,
+    });
     await complete.waitFor();
     await page.clock.pauseAt(new Date(`${date}T13:59:59+09:00`));
     assert(await complete.isDisabled(), "future class cannot be deducted");
     assert.match(await card.innerText(), /수업 시작.*14:00.*후 완료/);
     assert.equal(await page.locator(".balance-pill").innerText(), "9회 남음");
     await page.clock.runFor(1100);
-    assert(await complete.isEnabled(), "button unlocks at start without navigation or reload");
-    await page.screenshot({ path: "/tmp/ntac-pt-completion-mobile.png", fullPage: true });
+    assert(
+      await complete.isEnabled(),
+      "button unlocks at start without navigation or reload",
+    );
+    await page.screenshot({
+      path: "/tmp/ntac-pt-completion-mobile.png",
+      fullPage: true,
+    });
     failCompletion = true;
     await complete.click();
-    await page.getByRole("alert").filter({ hasText: "완료 처리 테스트 오류" }).waitFor();
+    await page
+      .getByRole("alert")
+      .filter({ hasText: "완료 처리 테스트 오류" })
+      .waitFor();
     assert.equal(await page.locator(".balance-pill").innerText(), "9회 남음");
     assert.equal(await page.getByText("운동 완료! 1회 차감했어요.").count(), 0);
     failCompletion = false;
@@ -368,7 +444,10 @@ const fixtures = {
     await page.getByText("운동 완료! 1회 차감했어요.").waitFor();
     assert.equal(await page.locator(".balance-pill").innerText(), "8회 남음");
     assert.match(await card.innerText(), /1회 사용/);
-    assert.equal(statusRequests.filter((p) => p.new_status === "completed").length, 2);
+    assert.equal(
+      statusRequests.filter((p) => p.new_status === "completed").length,
+      2,
+    );
     page.on("dialog", (d) => d.accept());
     await card.getByRole("button", { name: "완료 취소", exact: true }).click();
     await page.getByText("완료를 취소하고 1회를 복구했어요.").waitFor();
@@ -376,11 +455,152 @@ const fixtures = {
     assert.deepEqual(errors, []);
     await context.close();
     await browser.close();
-    console.log("PASS: start-time unlock, visible explanation, failed completion, immediate balance and undo");
+    console.log(
+      "PASS: start-time unlock, visible explanation, failed completion, immediate balance and undo",
+    );
     return;
   }
   let { page, context } = await open("admin");
   await page.getByRole("heading", { name: "PT 관리", exact: true }).waitFor();
+  await page
+    .getByRole("navigation", { name: "관리 메뉴", exact: true })
+    .getByRole("button", { name: "회원 통합 관리", exact: true })
+    .click();
+  await page.locator(".unified-member-card").first().waitFor();
+  assert.equal(
+    await page.locator(".unified-member-card").count(),
+    profiles.length,
+    "unassigned accounts are included",
+  );
+  await page
+    .getByRole("navigation", { name: "회원 서비스 필터" })
+    .getByRole("button", { name: /미지정/ })
+    .click();
+  await page.getByLabel("통합 회원 검색").fill("정하늘");
+  assert.equal(await page.locator(".unified-member-card").count(), 1);
+  await page
+    .getByRole("button", { name: "이용 서비스 설정", exact: true })
+    .click();
+  let sd = page.getByRole("dialog");
+  assert.equal(await sd.getByRole("checkbox").count(), 3);
+  assert.equal(
+    await sd.getByRole("checkbox", { name: /그룹수업 이용/ }).isChecked(),
+    false,
+  );
+  await sd.getByRole("checkbox", { name: /그룹수업 이용/ }).check();
+  for (const width of [1440, 900, 390, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    assert(
+      await sd.evaluate((el) => el.scrollWidth <= el.clientWidth),
+      `service editor fits ${width}`,
+    );
+    assert(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      `directory fits ${width}`,
+    );
+  }
+  await page.screenshot({
+    path: "/tmp/ntac-member-services-mobile.png",
+    fullPage: true,
+  });
+  failServices = true;
+  await sd.getByRole("button", { name: "배정 저장" }).click();
+  await sd.getByRole("alert").filter({ hasText: "다른 화면" }).waitFor();
+  assert(
+    await sd.getByRole("checkbox", { name: /그룹수업 이용/ }).isChecked(),
+    "failed save retains selections",
+  );
+  failServices = false;
+  await sd.getByRole("button", { name: "배정 저장" }).click();
+  await sd.waitFor({ state: "hidden" });
+  await page
+    .getByRole("navigation", { name: "회원 서비스 필터" })
+    .getByRole("button", { name: /그룹수업/ })
+    .click();
+  await page
+    .locator(".unified-member-card")
+    .filter({ hasText: "정하늘" })
+    .waitFor();
+  assert(groupMembers.find((g) => g.user_id === "pending").active);
+  assert(!profiles.find((p) => p.id === "pending").ntac_enabled);
+  await page
+    .getByRole("button", { name: "이용 서비스 설정", exact: true })
+    .click();
+  sd = page.getByRole("dialog");
+  await sd.getByRole("checkbox", { name: /PT 이용/ }).check();
+  await sd.getByRole("checkbox", { name: /NTAC 이용/ }).check();
+  await sd.getByLabel("NTAC 담당 코치").selectOption("admin");
+  await sd.getByLabel("PT 담당 코치").selectOption("coach");
+  await sd.getByRole("button", { name: "배정 저장" }).click();
+  await sd.waitFor({ state: "hidden" });
+  await page
+    .locator(".unified-member-card .service-coaches")
+    .filter({ hasText: "NTAC 코치" })
+    .waitFor();
+  assert.equal(
+    members.find((m) => m.profile_id === "pending").coach_id,
+    "coach",
+  );
+  assert.equal(
+    profiles.find((p) => p.id === "pending").assigned_coach_id,
+    "admin",
+  );
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.screenshot({
+    path: "/tmp/ntac-unified-members.png",
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "프로필 · 비밀번호", exact: true })
+    .click();
+  sd = page.getByRole("dialog");
+  await sd.getByText("비밀번호 변경", { exact: true }).click();
+  await sd
+    .getByLabel("새 비밀번호", { exact: true })
+    .fill("only-a-browser-test-password");
+  await sd
+    .getByLabel("새 비밀번호 확인", { exact: true })
+    .fill("only-a-browser-test-password");
+  failPassword = true;
+  await sd.getByRole("button", { name: "비밀번호 변경하기" }).click();
+  await sd
+    .getByRole("alert")
+    .filter({ hasText: "관리자 정보를 확인하지 못했어요" })
+    .waitFor();
+  failPassword = false;
+  await sd.getByRole("button", { name: "비밀번호 변경하기" }).click();
+  await sd.getByText("비밀번호를 변경했어요.", { exact: true }).waitFor();
+  assert.equal(passwordUpdates[0].target_id, "pending");
+  assert.equal(
+    await sd.getByLabel("새 비밀번호", { exact: true }).inputValue(),
+    "",
+  );
+  await sd.getByRole("button", { name: "닫기", exact: true }).click();
+  await page
+    .getByRole("button", { name: "이용 서비스 설정", exact: true })
+    .click();
+  sd = page.getByRole("dialog");
+  for (const box of await sd.getByRole("checkbox").all()) await box.uncheck();
+  await sd.getByRole("button", { name: "배정 저장" }).click();
+  await sd.waitFor({ state: "hidden" });
+  await page
+    .getByRole("navigation", { name: "회원 서비스 필터" })
+    .getByRole("button", { name: /미지정/ })
+    .click();
+  await page
+    .locator(".unified-member-card")
+    .filter({ hasText: "정하늘" })
+    .waitFor();
+  await page
+    .getByRole("navigation", { name: "관리 메뉴", exact: true })
+    .getByRole("button", { name: "PT 관리", exact: true })
+    .click();
+  console.log(
+    "PASS: unified directory includes unassigned accounts, independent service selection, coaches, filters, password update errors/success and responsive forms",
+  );
+
   await page.getByText("김민수", { exact: true }).first().waitFor();
   assert.equal(await page.locator("html").getAttribute("data-theme"), "dark");
   assert.equal(
@@ -413,12 +633,18 @@ const fixtures = {
     .click();
   const registration = page.getByRole("dialog");
   await registration.getByLabel("가입 회원 검색").fill("김코치");
-  assert.equal(await registration.getByRole("button", { name: /김코치/ }).count(), 1);
+  assert.equal(
+    await registration.getByRole("button", { name: /김코치/ }).count(),
+    1,
+  );
   await registration.getByLabel("가입 회원 검색").fill("정하늘");
   await registration.getByRole("button", { name: /정하늘/ }).click();
   assert.equal(
-    await page.getByRole("dialog").getByRole("combobox").first().inputValue(),
-    "ntac",
+    await page
+      .getByRole("dialog")
+      .getByRole("checkbox", { name: /NTAC 이용/ })
+      .isChecked(),
+    true,
   );
   await page
     .getByRole("dialog")
@@ -439,7 +665,10 @@ const fixtures = {
   );
   await page.getByRole("button", { name: "나의 NTAC", exact: true }).click();
   await page.getByText("오늘도 훈련을 이어가세요.").waitFor();
-  await page.locator(".service-switch").getByRole("button", { name: "관리", exact: true }).click();
+  await page
+    .locator(".service-switch")
+    .getByRole("button", { name: "관리", exact: true })
+    .click();
   await page
     .getByRole("navigation", { name: "관리 메뉴", exact: true })
     .getByRole("button", { name: "NTAC 관리", exact: true })
@@ -627,9 +856,8 @@ const fixtures = {
   await page.getByRole("button", { name: "배정", exact: true }).first().click();
   await page
     .getByRole("dialog")
-    .getByRole("combobox")
-    .first()
-    .selectOption("both");
+    .getByRole("checkbox", { name: /NTAC 이용/ })
+    .check();
   await page.getByRole("button", { name: "배정 저장" }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   assert.equal(profiles.find((p) => p.id === "pt").ntac_enabled, true);

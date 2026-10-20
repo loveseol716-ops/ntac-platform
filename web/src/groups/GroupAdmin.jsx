@@ -24,7 +24,7 @@ import { Dialog, Program, RecordEditor } from "./shared.jsx";
 import ClassEditor from "./ClassEditor.jsx";
 import WallControl from "./WallControl.jsx";
 import "./Groups.css";
-export default function GroupAdmin({ profile }) {
+export default function GroupAdmin({ profile, onManageMembers }) {
   const admin = ["owner", "admin"].includes(profile.role),
     lock = useRef(false);
   const [tab, setTab] = useState("classes"),
@@ -540,8 +540,12 @@ export default function GroupAdmin({ profile }) {
             <div>
               <h2>그룹 이용 회원</h2>
               <p className="g-muted">
-                그룹 이용 권한은 NTAC·PT와 독립적으로 적용돼요.
+                이용 서비스 배정은 회원 통합 관리에서, 기준 중량과 1RM은 여기서
+                관리해요.
               </p>
+              {onManageMembers && (
+                <button onClick={onManageMembers}>회원 통합 관리로 이동</button>
+              )}
             </div>
             <button
               onClick={() => {
@@ -567,6 +571,7 @@ export default function GroupAdmin({ profile }) {
           />
           <div className="g-member-table">
             {directory
+              .filter((p) => p.active)
               .filter((p) =>
                 `${p.name} ${p.email}`
                   .toLowerCase()
@@ -581,23 +586,6 @@ export default function GroupAdmin({ profile }) {
                   <span className={`g-badge ${p.active ? "open" : ""}`}>
                     {p.active ? "이용 중" : "미등록 · 중지"}
                   </span>
-                  <button
-                    disabled={busy}
-                    onClick={() =>
-                      act(
-                        () =>
-                          rpc("group_set_member", {
-                            target_id: p.id,
-                            enabled: !p.active,
-                          }),
-                        p.active
-                          ? "신규 그룹 참가를 중지했어요. 기존 기록은 보관돼요."
-                          : "그룹 이용 권한을 등록했어요.",
-                      )
-                    }
-                  >
-                    {p.active ? "이용 중지" : "그룹 등록"}
-                  </button>
                   <button
                     onClick={() => {
                       setBaseline(p);
