@@ -205,6 +205,7 @@ export default function EntryGate() {
         {profileOpen && (
           <ProfileDialog
             targetId={profile.id}
+            showGroupSettings={!!groupContext?.member}
             onClose={() => setProfileOpen(false)}
             onSaved={() => {
               supabase

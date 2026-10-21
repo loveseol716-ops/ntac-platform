@@ -364,12 +364,14 @@ body,
   resize: vertical;
   line-height: 1.6;
 }
-.password-settings {
+.password-settings,
+.profile-settings {
   border-top: 1px solid var(--ntac-line);
   padding-top: 22px;
   margin-top: 26px;
 }
-.password-settings summary {
+.password-settings summary,
+.profile-settings summary {
   cursor: pointer;
   font-size: 16px;
   font-weight: 600;

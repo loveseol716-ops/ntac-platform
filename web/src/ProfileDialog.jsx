@@ -4,6 +4,7 @@ import { checked } from "./pt/api.js";
 export default function ProfileDialog({
   targetId,
   isAdmin = false,
+  showGroupSettings = false,
   onClose,
   onSaved,
 }) {
@@ -14,7 +15,10 @@ export default function ProfileDialog({
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
     [password, setPassword] = useState(""),
-    [confirm, setConfirm] = useState("");
+    [confirm, setConfirm] = useState(""),
+    [tvSettings, setTvSettings] = useState(null),
+    [tvError, setTvError] = useState(""),
+    [tvVersion, setTvVersion] = useState(0);
   useEffect(() => {
     ref.current?.showModal();
     let live = true;
@@ -33,6 +37,24 @@ export default function ProfileDialog({
       live = false;
     };
   }, [targetId]);
+  useEffect(() => {
+    if (isAdmin || !showGroupSettings) return;
+    let live = true;
+    setTvSettings(null);
+    setTvError("");
+    checked(supabase.rpc("group_bootstrap"))
+      .then((ctx) => {
+        if (!live) return;
+        // Privacy belongs to the signed-in member, never an admin's target.
+        if (ctx.member?.user_id !== targetId) {
+          setTvError("그룹 참가 정보를 확인해 주세요.");
+          return;
+        }
+        setTvSettings({ nickname: ctx.member.nickname || "", visible: !!ctx.member.show_on_tv });
+      })
+      .catch(() => live && setTvError("TV 표시 설정을 불러오지 못했어요."));
+    return () => { live = false; };
+  }, [targetId, isAdmin, showGroupSettings, tvVersion]);
   async function act(fn, msg) {
     if (lock.current) return;
     lock.current = true;
@@ -185,6 +207,31 @@ export default function ProfileDialog({
               </button>
             </fieldset>
           </form>
+          {!isAdmin && showGroupSettings && (
+            <details className="profile-settings">
+              <summary>체육관 TV 표시</summary>
+              <p className="muted">동의하면 별명·추천·운동 결과가 체육관 TV에 표시돼요. 공개하지 않아도 개인 기록은 남아요.</p>
+              {tvError ? <div role="alert"><p>{tvError}</p><button type="button" onClick={() => setTvVersion((v) => v + 1)}>다시 불러오기</button></div> : !tvSettings ? <p role="status">설정을 불러오는 중…</p> : (
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (tvSettings.visible && !tvSettings.nickname.trim()) {
+                    setError("TV에 표시할 별명을 입력해 주세요.");
+                    return;
+                  }
+                  await act(
+                    () => checked(supabase.rpc("group_set_privacy", { display_name: tvSettings.nickname.trim(), visible: tvSettings.visible })),
+                    "TV 표시 설정을 저장했어요.",
+                  );
+                }}>
+                  <fieldset disabled={busy}>
+                    <label>TV에 표시할 별명<input maxLength={30} required={tvSettings.visible} value={tvSettings.nickname} onChange={(e) => setTvSettings({ ...tvSettings, nickname: e.target.value })} placeholder="운동할 때 불릴 이름" /></label>
+                    <label className="check-line"><input type="checkbox" checked={tvSettings.visible} onChange={(e) => setTvSettings({ ...tvSettings, visible: e.target.checked })} />체육관 TV에 내 별명과 운동 결과 표시</label>
+                    <button className="primary full">TV 설정 저장</button>
+                  </fieldset>
+                </form>
+              )}
+            </details>
+          )}
           {(!isAdmin || profile.role === "member") && (
             <details className="password-settings">
               <summary>비밀번호 변경</summary>

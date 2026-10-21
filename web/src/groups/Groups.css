@@ -1042,34 +1042,6 @@
 .groups.g-admin {
   container-type: inline-size;
 }
-.groups .g-member-hero {
-  padding: 20px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-}
-.groups .g-member-hero h1 {
-  font-size: clamp(1.3rem, 3vw, 1.9rem);
-  margin: 0;
-}
-.groups .g-member-hero .g-kicker {
-  margin-bottom: 7px;
-}
-.groups .g-member-hero .g-summary {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  gap: 20px;
-  flex-shrink: 0;
-}
-.groups .g-member-hero .g-summary span {
-  display: grid;
-  gap: 0;
-}
-.groups .g-member-hero .g-summary b {
-  font-size: 1.3rem;
-}
 .groups .g-member-tabs {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1333,19 +1305,6 @@
   }
 }
 @container (max-width: 600px) {
-  .groups .g-member-hero {
-    padding: 16px;
-    flex-wrap: wrap;
-    gap: 14px;
-  }
-  .groups .g-member-hero .g-summary {
-    width: 100%;
-    gap: 24px;
-  }
-  .groups .g-member-hero .g-summary span {
-    display: flex;
-    gap: 6px;
-  }
   .groups .g-calendar-period {
     flex: 1 1 100%;
   }

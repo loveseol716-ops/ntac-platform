@@ -1,7 +1,7 @@
 import MemberCalendar from "./MemberCalendar.jsx";
 import WeeklyOverview from "./WeeklyOverview.jsx";
 import HistoryRecord from "./HistoryRecord.jsx";
-import TrainingJourney, { TrainingContext } from "./TrainingJourney.jsx";
+import TrainingJourney, { TrainingContext, TrainingPositionBar } from "./TrainingJourney.jsx";
 import { trainingClass } from "./trainingCycle.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -51,9 +51,7 @@ export default function GroupMember({ profile }) {
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true),
     [version, setVersion] = useState(0);
-  const [nickname, setNickname] = useState(""),
-    [visible, setVisible] = useState(false),
-    lock = useRef(false);
+  const lock = useRef(false);
   useEffect(() => {
     if (day < minDay) setDay(minDay);
   }, [day, minDay]);
@@ -76,8 +74,6 @@ export default function GroupMember({ profile }) {
           setRecords(rs);
           setMembership(ctx.member);
           setMinDay(ctx.program_visible_from || programVisibleFrom());
-          setNickname(ctx.member?.nickname || "");
-          setVisible(!!ctx.member?.show_on_tv);
         }
       })
       .catch((e) => live && setError(e.message))
@@ -169,40 +165,28 @@ export default function GroupMember({ profile }) {
     ["open", "live", "ended"].includes(c?.status) &&
     (!c?.ended_at || Date.now() < new Date(c.ended_at).getTime() + 86400000) &&
     ["active", "completed"].includes(p.status);
+  const openTab = (next) => {
+    setTab(next);
+    setSelected(null);
+    setEditing(null);
+    setError("");
+    setMessage("");
+  };
   return (
-    <main className="groups g-member">
-      <header className="g-hero g-member-hero">
-        <div>
-          <p className="g-kicker">GROUP TRAINING</p>
-          <h1>{profile.full_name?.split(" ")[0] || "회원"}님의 오늘 운동</h1>
-        </div>
-        <div className="g-summary">
-          <span>
-            <b>{stats.sessions}</b> 완료한 수업
-          </span>
-          <span>
-            <b>{stats.days}</b> 운동한 날
-          </span>
-        </div>
-      </header>
-      {!selected && ["today", "programs"].includes(tab) && <TrainingJourney />}
+    <main className="groups g-member" aria-label="그룹수업">
+      {!selected && ["today", "programs"].includes(tab) && <TrainingPositionBar onOpen={() => openTab("journey")} />}
       <nav className="g-tabs g-member-tabs" aria-label="그룹수업 메뉴">
         {[
           ["today", "수업 캘린더"],
           ["programs", "주간 프로그램"],
           ["history", "나의 기록"],
-          ["settings", "TV 표시"],
+          ["journey", "트레이닝 여정"],
         ].map(([k, v]) => (
           <button
             key={k}
             className={tab === k ? "selected" : ""}
             aria-current={tab === k ? "page" : undefined}
-            onClick={() => {
-              setTab(k);
-              setSelected(null);
-              setEditing(null);
-              setError("");
-            }}
+            onClick={() => openTab(k)}
           >
             {v}
           </button>
@@ -403,6 +387,10 @@ export default function GroupMember({ profile }) {
       ) : tab === "history" ? (
         <>
           <h2>나의 운동 기록</h2>
+          <div className="g-summary">
+            <span><b>{stats.sessions}</b> 완료한 수업</span>
+            <span><b>{stats.days}</b> 운동한 날</span>
+          </div>
           <p className="g-muted">
             최근 200개 참가 기록 · 운동 완료한 수업만 횟수에 포함돼요.
           </p>
@@ -429,43 +417,7 @@ export default function GroupMember({ profile }) {
             ))}
         </>
       ) : (
-        <section className="g-panel">
-          <h2>TV에 표시할 이름</h2>
-          <p className="g-muted">
-            동의한 회원의 별명·추천·운동 결과만 체육관 TV에 표시돼요. 공개하지
-            않아도 개인 기록은 남아요.
-          </p>
-          <label>
-            별명
-            <input
-              maxLength="30"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="운동할 때 불릴 이름"
-            />
-          </label>
-          <label className="g-check">
-            <input
-              type="checkbox"
-              checked={visible}
-              onChange={(e) => setVisible(e.target.checked)}
-            />
-            체육관 TV에 내 별명과 운동 결과 표시
-          </label>
-          <button
-            className="g-primary"
-            disabled={busy || !membership}
-            onClick={() =>
-              act(
-                () =>
-                  rpc("group_set_privacy", { display_name: nickname, visible }),
-                "TV 표시 설정을 저장했어요.",
-              )
-            }
-          >
-            설정 저장
-          </button>
-        </section>
+        <TrainingJourney />
       )}
     </main>
   );

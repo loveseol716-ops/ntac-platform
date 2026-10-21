@@ -4,6 +4,13 @@
 .groups [data-phase="reset"] { --cycle-color: #aacbdd; --cycle-fill: #283e49; }
 .groups [data-phase="perform"] { --cycle-color: #e5b69b; --cycle-fill: #49352b; }
 .groups [data-phase="showtime"] { --cycle-color: #cdb9e5; --cycle-fill: #3f324e; }
+.groups .g-cycle-location { display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 14px; padding: 12px 14px; text-align: left; background: #17251f; border-color: #31483d; border-left: 3px solid var(--cycle-color); border-radius: 12px; }
+.groups .g-cycle-location:hover { background: #203029; }
+.g-cycle-location-copy { display: grid; flex: 1; min-width: 0; gap: 2px; }
+.g-cycle-location-copy > span { font-size: .69rem; color: #b8cbbf; }
+.g-cycle-location-copy strong { font-size: .85rem; font-weight: 600; overflow-wrap: anywhere; }
+.g-cycle-location .g-cycle-badge { flex-shrink: 0; white-space: nowrap; font-size: .7rem; }
+.g-cycle-location-arrow { color: #b8cbbf; font-size: 1.2rem; }
 .groups .g-training-journey { background: #17251f; border: 1px solid #31483d; border-radius: 18px; padding: 20px; margin: 18px 0; min-width: 0; }
 .g-cycle-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
 .g-cycle-heading > div { min-width: 0; }
@@ -20,24 +27,17 @@
 .g-cycle-track li[data-state="future"] { font-weight: 400; }
 .g-cycle-track li[data-state="current"] { background: var(--cycle-color); color: #16241c; font-weight: 800; position: relative; }
 .g-cycle-track li[data-state="current"]::after { content: ""; position: absolute; width: 5px; height: 5px; border-radius: 50%; bottom: -9px; left: calc(50% - 2.5px); background: var(--cycle-color); }
-.groups .g-cycle-class-select { display: flex; align-items: center; gap: 12px; margin: 14px 0 8px; }
-.g-cycle-class-select > span { flex-shrink: 0; color: #b8cbbf; font-size: .78rem; }
-.groups .g-cycle-class-select select { width: auto; flex: 1; max-width: 270px; min-width: 0; padding: 9px 10px; font-size: .84rem; background: #1b3025; border-color: #385343; }
-.groups .g-cycle-goal { margin: 8px 0 0; font-size: .9rem; line-height: 1.65; word-break: keep-all; overflow-wrap: anywhere; }
-.g-cycle-part { display: inline-block; font-size: .7rem; color: #b8cbbf; margin-right: 7px; }
-.g-cycle-details { margin-top: 13px; border-top: 1px solid #34473c; }
-.g-cycle-details > summary { padding: 13px 0 0; min-height: 44px; cursor: pointer; font-size: .82rem; color: #c8dcd0; }
-.g-cycle-details > summary:focus-visible { outline: 2px solid #a2d4b8; outline-offset: 3px; border-radius: 3px; }
-.g-cycle-week-focus { margin-top: 15px; font-size: .85rem; }
-.groups .g-cycle-week-focus p { margin: 5px 0 14px; color: #c3d1c8; line-height: 1.65; }
+.g-cycle-flow, .g-cycle-year-section { margin-top: 20px; padding-top: 18px; border-top: 1px solid #34473c; }
+.groups .g-cycle-flow h3, .groups .g-cycle-year-section h3 { font-size: .9rem; margin-bottom: 10px; }
 .g-cycle-phase-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 15px; }
 .g-cycle-phase-list > div { display: grid; grid-template-columns: 6px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 9px 0; color: #b8cbbf; font-size: .74rem; }
 .g-cycle-phase-list strong { color: #edf2ee; font-size: .76rem; }
-.groups .g-cycle-phase-list p { margin: 2px 0 0; font-size: .74rem; }
+.groups .g-cycle-phase-list p { margin: 4px 0 0; font-size: .76rem; line-height: 1.65; word-break: keep-all; overflow-wrap: anywhere; }
 .g-cycle-phase-list .is-current strong { color: var(--cycle-color); }
+.g-cycle-phase-list strong em { margin-left: 7px; font-size: .68rem; font-style: normal; font-weight: 400; }
 .g-cycle-phase-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cycle-color); }
 .groups .g-cycle-note { font-size: .76rem; line-height: 1.65; color: #b8cbbf; margin: 13px 0 0; word-break: keep-all; }
-.g-cycle-year { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin-top: 18px; padding-top: 14px; border-top: 1px solid #34473c; }
+.g-cycle-year { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .g-cycle-year > div { display: grid; gap: 3px; font-size: .75rem; color: #b8cbbf; }
 .g-cycle-year strong { font-size: .75rem; font-weight: 500; }
 .g-cycle-year .is-current strong { color: #d2f1df; font-weight: 700; }

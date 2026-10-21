@@ -30,7 +30,7 @@
 2. **TV 1 · 추천 중량**, **TV 2 · 결과 보드** 링크를 각각 해당 TV의 브라우저나 웹 앱 실행 기기에서 엽니다.
 3. 수업 운영에서 수업을 열고 **이 수업 TV 송출 → 이 수업을 두 화면에 송출**을 누릅니다. 운동 선택도 두 화면에 같이 적용됩니다.
 4. TV는 5초 간격으로 서버 내용을 확인합니다. 9명씩 표시하고 8초마다 다음 페이지로 넘어갑니다. 연결 지연 시 마지막 화면이라는 표시가 뜹니다.
-5. 회원의 **TV 표시** 설정은 기본 비공개입니다. 회원이 별명을 입력하고 공개에 동의해야 TV에 표시됩니다. 이메일·연락처·메모·PT 횟수·원래 프로필 ID는 TV API가 반환하지 않습니다.
+5. 회원의 **내 프로필 → 체육관 TV 표시** 설정은 기본 비공개입니다. 회원이 별명을 입력하고 공개에 동의해야 TV에 표시됩니다. 이메일·연락처·메모·PT 횟수·원래 프로필 ID는 TV API가 반환하지 않습니다.
 6. 링크는 90일 동안 유효한 읽기 전용 연결입니다. TV에 관리자 로그인을 하지 않습니다. 링크를 다시 만들려면 기존 연결을 해제하고 새 TV 묶음을 만듭니다.
 
 일반 모니터만으로 웹 앱을 실행할 수는 없습니다. 각 화면에 웹 앱을 열 수 있는 스마트 TV 기능 또는 호환 HDMI 실행 기기가 필요합니다. 아이패드는 운영 화면을 제어합니다. 실제 설치 기기와 현장 Wi-Fi에서의 검증은 별도입니다.
@@ -174,7 +174,9 @@ Hosted migration versions: `20261020084237_group_weekly_strength.sql` and `20261
 운영 migration: `20261021021051_group_program_visibility.sql`.
 # NOLTO 2.0 training journey — 2026-10-21
 
-The member group home shows a separate compact training-journey section. Its clock uses Asia/Seoul and refreshes on focus and every minute. This is the shared program's position, not a count of the member's attendance. The current phase, week and class-specific goal are visible first; the full roadmap and phase explanations expand on demand.
+The member group home shows only a compact current-position bar: block, week and a colored phase badge. Tapping it opens the dedicated **트레이닝 여정** tab with the week timeline, phase explanations and annual schedule. There is no class-goal selector or personalized today's-workout hero. Completed-session and training-day totals live in **나의 기록**. The clock uses Asia/Seoul and refreshes on focus and every minute. This is the shared program's position, not a count of the member's attendance.
+
+TV preferences live under **내 프로필 → 체육관 TV 표시**, not in the group navigation. The self-profile loads the member's existing nickname and consent on opening and saves only when requested through the existing `group_set_privacy` RPC. Admin editing of another profile never exposes this self-only control; no consent defaults or stored values are changed by the move.
 
 - 2026-10-21–11-01: season preparation; do not pretend that a training block has already started.
 - 2026-11-02–12-27: 8-week PRE-SEASON, using the regular cycle's weeks 5–12 (LOAD, RESET, PERFORM, SHOWTIME). Member numbering is 1–8. SWEAT assessment is 12/14–20 and STRENGTH assessment is 12/21–27.
