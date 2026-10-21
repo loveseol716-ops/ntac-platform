@@ -117,7 +117,7 @@ export default function WeeklyPrograms({
         {start} 시작 주 · 반복 수업 {timetable?.slots.length || 26}개
         {!timetable?.slots.length ? " (첨부 시간표 기본값)" : ""}
       </p>
-      <AuthoringContext date={start} />
+      <AuthoringContext date={start} week />
       {blockGoals.error && <p className="g-error" role="alert">블록 목표를 불러오지 못했어요. <button onClick={blockGoals.refresh}>다시 불러오기</button></p>}
       {timetable && !timetable.slots.length && (
         <p className="g-muted">

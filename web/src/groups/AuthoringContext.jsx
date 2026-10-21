@@ -1,15 +1,18 @@
 import { PhaseBadge } from "./TrainingJourney.jsx";
-import { blockLabel, classDirection, PHASES, trainingPosition, trainingWeeks } from "./trainingCycle.js";
+import { blockLabel, classDirection, CYCLE_LAUNCH, PHASES, trainingPosition, trainingWeeks } from "./trainingCycle.js";
+import { addDays } from "./model.js";
 import { classTypeName } from "./classTypes.js";
 import { STRENGTH_TYPES } from "./blockGoals.js";
 
-export default function AuthoringContext({ date, classType, goals = [], exercises = [], loading = false, error = "" }) {
-  const position = trainingPosition(date), direction = classDirection(position, classType);
+export default function AuthoringContext({ date, week = false, classType, goals = [], exercises = [], loading = false, error = "" }) {
+  // The rollout begins midweek; show PREP for that weekly bundle, as on the calendar.
+  const referenceDate = week && date < CYCLE_LAUNCH && addDays(date, 6) >= CYCLE_LAUNCH ? CYCLE_LAUNCH : date;
+  const position = trainingPosition(referenceDate), direction = classDirection(position, classType);
   if (!position) return <aside className="g-cycle-context">{date} · 등록된 블록 일정이 없어요.</aside>;
   const weeks = trainingWeeks(position.block);
   return <aside className="g-author-context" data-phase={position.phase} aria-label="작성 중인 프로그램의 위치">
     <div className="g-cycle-heading">
-      <div><p className="g-cycle-eyebrow">작성할 수업 기준 · {date}</p>
+      <div><p className="g-cycle-eyebrow">{week ? "작성할 주" : "작성할 수업"} 기준 · {date}{week ? " 시작" : ""}</p>
         <strong>{position.block ? blockLabel(position.block) : position.label}</strong></div>
       {position.week && <span className="g-cycle-count"><strong>{position.week}</strong> / {position.total}주차</span>}
     </div>

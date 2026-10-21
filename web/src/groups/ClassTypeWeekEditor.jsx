@@ -97,7 +97,7 @@ export default function ClassTypeWeekEditor({
           <section className="g-type-edit">
             <p className="g-kicker">{typeDays(selected)}요일 자동 배치</p>
             <h3>{type.name}</h3>
-            <AuthoringContext date={form.week_start} classType={selected} goals={goals} exercises={exercises} />
+            <AuthoringContext date={form.week_start} week classType={selected} goals={goals} exercises={exercises} />
             {templates.length > 0 && (
               <label>
                 템플릿 가져오기
