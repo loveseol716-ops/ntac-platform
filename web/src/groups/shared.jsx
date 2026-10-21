@@ -11,7 +11,14 @@ import {
   stateLabels,
   classTime,
   prescriptionText,
+  recordUse,
+  recordUses,
 } from "./model.js";
+export function RecordUseBadge({ movement }) {
+  if (movement.kind !== "weight") return null;
+  const use = recordUse(movement);
+  return <span className="g-record-use" data-use={use}>{recordUses[use]}</span>;
+}
 export function Dialog({ title, onClose, children }) {
   const ref = useRef(null);
   useEffect(() => {
@@ -74,6 +81,7 @@ export function Program({ c, exercises }) {
             <span className="g-index">{String(i + 1).padStart(2, "0")}</span>
             <div>
               <strong>{movementLabel(m, exercises)}</strong>
+              <RecordUseBadge movement={m} />
               <p>
                 {kinds[m.kind]}
                 {m.kind === "weight" &&
@@ -207,6 +215,7 @@ export function RecordEditor({
         {c.movements.map((m) => (
           <section className="g-record-movement" key={m.id}>
             <h3>{movementLabel(m, exercises)}</h3>
+            <RecordUseBadge movement={m} />
             {m.training_type === "strength" ? (
               <StrengthSets
                 m={m}

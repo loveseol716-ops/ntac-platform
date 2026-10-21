@@ -44,7 +44,8 @@ for (const file of fs
       f.endsWith("_group_recording_compatibility.sql") ||
       f.endsWith("_group_class_type_weeks.sql") ||
       f.endsWith("_unified_member_services.sql") ||
-      f.endsWith("_group_program_visibility.sql"),
+      f.endsWith("_group_program_visibility.sql") ||
+      f.endsWith("_group_record_use.sql"),
   ))
   await db.exec(fs.readFileSync("supabase/migrations/" + file, "utf8"));
 const ids = {
@@ -278,7 +279,7 @@ ok(
   "expired enrollment retains own history",
 );
 await as("admin");
-// Recommendation fallback and matching: an old completed exact-condition result wins.
+// Unclassified historical results remain readable but cannot influence a new suggestion.
 const later = { ...payload, starts_at: `${date}T23:00:00+09:00` };
 const next = await rpc("group_save_class", [later]);
 await rpc("group_set_class_status", [next, "published", 1]);
@@ -288,9 +289,9 @@ await as("member");
 await rpc("group_join", [next]);
 const np = (await rpc("group_detail", [next])).participants[0];
 ok(
-  np.recommendations.squat.weight === 42.5 &&
-    np.recommendations.squat.source === "recent_result",
-  "recent eligible actual weight used",
+  np.recommendations.squat.weight === 40 &&
+    np.recommendations.squat.source === "coach_baseline",
+  "unclassified legacy record excluded; coach baseline retained",
 );
 await as("admin");
 const changed = await rpc("group_save_class", [
@@ -339,6 +340,7 @@ await (
 await (
   await import("./group-visibility-database.mjs")
 ).visibilityChecks({ db, as, rpc, ids, ok, denied });
+await (await import("./group-record-use-database.mjs")).recordUseChecks({ db, as, rpc, ids, ok, denied, date, payload });
 await db.exec("reset role");
 for (const table of ["pt_sessions", "pt_pass_events", "workout_records"])
   ok(
@@ -348,4 +350,6 @@ for (const table of ["pt_sessions", "pt_pass_events", "workout_records"])
 console.log(
   `PASS: ${checks} assertions plus permission/concurrency denials; isolated PostgreSQL group lifecycle, recommendation, RLS, TV privacy, PT isolation`,
 );
+await db.exec(fs.readFileSync("tests/group-record-use-production-smoke.sql", "utf8"));
+console.log("PASS: hosted rollback script against isolated PostgreSQL");
 await db.close();

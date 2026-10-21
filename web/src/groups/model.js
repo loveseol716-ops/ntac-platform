@@ -36,6 +36,15 @@ export const sourceLabels = {
   coach_required: "코치 확인 필요",
   program: "프로그램 기준",
 };
+export const recordUses = {
+  log_only: "기록용",
+  strength_estimate: "근력 추정용",
+};
+// Unclassified/legacy records are never implicitly opted into strength estimates.
+export const recordUse = (m) =>
+  m.training_type === "strength" && m.record_use === "strength_estimate"
+    ? "strength_estimate"
+    : "log_only";
 export const seoulDate = (value = new Date()) =>
   new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",

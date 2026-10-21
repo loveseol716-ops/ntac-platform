@@ -31,6 +31,11 @@
 .groups h3 {
   font-size: 1.05rem;
 }
+.g-record-use { display: inline-flex; margin: 4px 0 7px 8px; padding: 2px 7px; border: 1px solid #46534c; border-radius: 5px; color: #becbc3; font-size: .7rem; font-weight: 500; vertical-align: middle; }
+.g-record-use[data-use="strength_estimate"] { background: #203e2e; border-color: #3f6850; color: #bce2c9; }
+.g-record-movement > .g-record-use { margin-left: 0; }
+.groups .g-record-use-help { font-size: .8rem; line-height: 1.65; margin: 8px 0 16px; word-break: keep-all; }
+.g-record-use-help > span { display: block; margin-top: 4px; }
 .groups button,
 .groups a {
   font: inherit;

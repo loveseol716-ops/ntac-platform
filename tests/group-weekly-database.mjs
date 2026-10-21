@@ -16,6 +16,7 @@ export async function weeklyChecks({
     label: "Back SQ",
     kind: "weight",
     training_type: "strength",
+    record_use: "strength_estimate",
     target_reps: 10,
     unit: "kg",
     load_basis: "total",
@@ -27,6 +28,7 @@ export async function weeklyChecks({
     ...strength,
     id: "conditioning",
     training_type: "conditioning",
+    record_use: "log_only",
   };
   delete conditioning.sets;
   const today = new Date(`${date}T12:00:00Z`),

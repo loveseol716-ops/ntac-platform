@@ -1,4 +1,4 @@
-import { movementLabel, sourceLabels, nullableNumber } from "./model.js";
+import { movementLabel, sourceLabels, nullableNumber, recordUse } from "./model.js";
 export default function StrengthSets({
   m,
   result,
@@ -113,8 +113,9 @@ export default function StrengthSets({
         );
       })}
       <p className="g-muted">
-        실제 RIR은 남은 반복 여유예요. 모르면 비워 두세요. 다음 추천에 쓰려면
-        코치의 기록 확정이 필요해요.
+        {recordUse(m) === "strength_estimate"
+          ? "실제 RIR은 이 동작을 몇 회 더 할 수 있었는지예요. 모르면 비워 두세요. 실제 RIR을 남긴 완료·코치 확정 기록만 근력 추정에 활용해요. 수업 전체 RPE로 대신 계산하지 않아요."
+          : "오늘의 수행 기록으로 남겨요. 이 결과와 수업 전체 RPE로 최대근력을 계산하지 않아요. 실제 RIR은 원할 때만 입력하세요."}
       </p>
     </>
   );

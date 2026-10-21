@@ -1,4 +1,4 @@
-import { Dialog } from "./shared.jsx";
+import { Dialog, RecordUseBadge } from "./shared.jsx";
 import {
   classTime,
   seoulDate,
@@ -25,6 +25,7 @@ export default function HistoryRecord({ record, onClose }) {
         return (
           <section className="g-record-movement" key={m.id}>
             <h3>{m.label || m.exercise_id}</h3>
+            <RecordUseBadge movement={m} />
             {r?.sets ? (
               r.sets.map((s, i) => (
                 <p key={i}>

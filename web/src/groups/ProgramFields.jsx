@@ -1,10 +1,11 @@
-import { kinds } from "./model.js";
+import { kinds, recordUse, recordUses } from "./model.js";
 const newMovement = () => ({
   id: crypto.randomUUID(),
   exercise_id: "",
   label: "",
   kind: "weight",
   training_type: "strength",
+  record_use: "log_only",
   target_reps: 10,
   unit: "kg",
   load_basis: "total",
@@ -40,7 +41,10 @@ export default function ProgramFields({
         load_step: m.load_step || 2.5,
         min_load: m.min_load ?? 20,
       });
-    else delete next.sets;
+    else {
+      delete next.sets;
+      next.record_use = "log_only";
+    }
     set(
       "movements",
       form.movements.map((x) => (x.id === m.id ? next : x)),
@@ -200,6 +204,22 @@ export default function ProgramFields({
           )}
           {m.training_type === "strength" && (
             <>
+              <label>
+                이 기록의 활용
+                <select
+                  aria-label={`운동 ${i + 1} 기록 활용`}
+                  value={recordUse(m)}
+                  onChange={(e) => movement(m.id, { record_use: e.target.value })}
+                >
+                  {Object.entries(recordUses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </label>
+              <p className="g-muted g-record-use-help">
+                {recordUse(m) === "strength_estimate"
+                  ? "단독 OHP처럼 해당 종목의 능력을 확인할 때 선택해요. 실제 중량·횟수·RIR을 남기고 코치가 확정한 기록을 근력 추정에 활용해요."
+                  : "트리플 악셀 같은 연속 동작은 기록용으로 남겨요. 결과는 보관하지만 근력 추정과 다음 자동 추천의 근거로 사용하지 않아요."}
+                <span>오늘의 추천 중량을 받는 기능과는 별개예요.</span>
+              </p>
               <p className="g-prescription">
                 {m.sets.map((s) => s.reps).join("–")}회 ·{" "}
                 {m.sets.every((s) => s.rir === m.sets[0].rir)
