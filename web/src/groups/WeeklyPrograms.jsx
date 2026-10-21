@@ -7,7 +7,10 @@ import { checked, rpc, listWeeks } from "./api.js";
 import { weekStart, weekdays, addDays, programVisibleFrom } from "./model.js";
 import { Dialog } from "./shared.jsx";
 import ProgramFields from "./ProgramFields.jsx";
-import { TrainingContext } from "./TrainingJourney.jsx";
+import AuthoringContext from "./AuthoringContext.jsx";
+import BlockGoalsEditor from "./BlockGoalsEditor.jsx";
+import useBlockGoals from "./useBlockGoals.js";
+import { cleanProgram, goalsForDate } from "./blockGoals.js";
 import { trainingClass } from "./trainingCycle.js";
 export default function WeeklyPrograms({
   day,
@@ -18,6 +21,8 @@ export default function WeeklyPrograms({
   profile,
   onChange,
 }) {
+  const blockGoals = useBlockGoals();
+  const [goalSettings, setGoalSettings] = useState(false);
   const [weeks, setWeeks] = useState([]),
     [timetable, setTimetable] = useState(null),
     [edit, setEdit] = useState(null),
@@ -73,6 +78,8 @@ export default function WeeklyPrograms({
             7가지 수업을 한 주의 묶음으로 작성하고, 시간표에 맞춰 공개하세요.
           </p>
         </div>
+        <div className="g-actions">
+        <button disabled={blockGoals.loading || !!blockGoals.error} onClick={() => { setError(""); setGoalSettings(true); }}>블록 목표 설정</button>
         <button
           disabled={!timetable}
           onClick={() => {
@@ -82,6 +89,7 @@ export default function WeeklyPrograms({
         >
           반복 시간표 설정
         </button>
+        </div>
       </div>
       <div className="g-week-nav">
         <button onClick={() => onDay(addDays(start, -7))}>← 이전 주</button>
@@ -109,7 +117,8 @@ export default function WeeklyPrograms({
         {start} 시작 주 · 반복 수업 {timetable?.slots.length || 26}개
         {!timetable?.slots.length ? " (첨부 시간표 기본값)" : ""}
       </p>
-      <TrainingContext date={start} label="작성할 주의 위치" />
+      <AuthoringContext date={start} />
+      {blockGoals.error && <p className="g-error" role="alert">블록 목표를 불러오지 못했어요. <button onClick={blockGoals.refresh}>다시 불러오기</button></p>}
       {timetable && !timetable.slots.length && (
         <p className="g-muted">
           첫 공개 때 첨부 시간표를 적용하고 공개한 관리자를 담당 코치로
@@ -120,6 +129,7 @@ export default function WeeklyPrograms({
       {!weeks.length && (
         <button
           className="g-primary"
+          disabled={blockGoals.loading}
           onClick={() => {
             setError("");
             setEdit({
@@ -168,6 +178,7 @@ export default function WeeklyPrograms({
           )}
           <div className="g-actions">
             <button
+              disabled={blockGoals.loading}
               onClick={() => {
                 setError("");
                 setEdit(structuredClone(w));
@@ -253,6 +264,13 @@ export default function WeeklyPrograms({
           </div>
         ))}
       </section>
+      {goalSettings && <BlockGoalsEditor date={day} rows={blockGoals.rows} exercises={exercises} busy={busy} error={error}
+        onClose={() => { if (!busy) { setGoalSettings(false); blockGoals.refresh(); } }}
+        onSave={async (payload) => {
+          if (await act(() => rpc("group_save_block_goals", { payload }), "블록 목표를 저장했어요. 새 프로그램에서 평가 종목을 바로 불러와요.")) {
+            setGoalSettings(false); blockGoals.refresh();
+          }
+        }} />}
       {schedule && (
         <TimetableEditor
           current={schedule}
@@ -280,6 +298,7 @@ export default function WeeklyPrograms({
         <WeekEditorSwitch
           key={edit.id || edit.week_start}
           current={edit}
+          blockGoals={blockGoals.rows}
           exercises={exercises}
           templates={templates}
           busy={busy}
@@ -306,6 +325,7 @@ export default function WeeklyPrograms({
 }
 function LegacyWeekEditor({
   current,
+  blockGoals = [],
   exercises,
   templates,
   busy,
@@ -316,10 +336,10 @@ function LegacyWeekEditor({
   const [form, setForm] = useState(current),
     [dow, setDow] = useState(current.days[0]?.dow || 1);
   const d = form.days.find((x) => x.dow === dow),
-    set = (key, value) =>
+    set = (value) =>
       setForm((f) => ({
         ...f,
-        days: f.days.map((x) => (x.dow === dow ? { ...x, [key]: value } : x)),
+        days: f.days.map((x) => (x.dow === dow ? value : x)),
       }));
   return (
     <Dialog title="주간 프로그램 만들기 · 수정" onClose={onClose}>
@@ -328,6 +348,7 @@ function LegacyWeekEditor({
           e.preventDefault();
           onSave({
             ...form,
+            days: form.days.map(cleanProgram),
             status: e.nativeEvent.submitter?.value || form.status,
           });
         }}
@@ -426,8 +447,8 @@ function LegacyWeekEditor({
                   </select>
                 </label>
               )}
-              <TrainingContext date={addDays(form.week_start, dow - 1)} classType={trainingClass(d)} label="작성 중인 프로그램의 위치" />
-              <ProgramFields form={d} set={set} exercises={exercises} />
+              <AuthoringContext date={addDays(form.week_start, dow - 1)} classType={trainingClass(d)} goals={goalsForDate(blockGoals, addDays(form.week_start, dow - 1), trainingClass(d))} exercises={exercises} />
+              <ProgramFields form={d} onChange={set} goals={goalsForDate(blockGoals, addDays(form.week_start, dow - 1), trainingClass(d))} exercises={exercises} />
             </>
           )}
           {error && (

@@ -1,30 +1,19 @@
 import { kinds, recordUse, recordUses } from "./model.js";
-const newMovement = () => ({
-  id: crypto.randomUUID(),
-  exercise_id: "",
-  label: "",
-  kind: "weight",
-  training_type: "strength",
-  record_use: "log_only",
-  target_reps: 10,
-  unit: "kg",
-  load_basis: "total",
-  sets: [
-    { reps: 10, rir: 3 },
-    { reps: 10, rir: 3 },
-    { reps: 8, rir: 3 },
-    { reps: 8, rir: 3 },
-    { reps: 8, rir: 3 },
-  ],
-  load_step: 2.5,
-  min_load: 20,
-});
+import { useMemo } from "react";
+import { editProgram, newMovement, previewBlockDefaults } from "./blockGoals.js";
+import ExerciseSearch from "./ExerciseSearch.jsx";
+const NO_GOALS = [];
 export default function ProgramFields({
-  form,
-  set,
+  form: original,
+  set: setField,
+  onChange,
+  goals = NO_GOALS,
   exercises,
   hideTitle = false,
 }) {
+  const canSeed = !!onChange;
+  const form = useMemo(() => canSeed ? previewBlockDefaults(original, goals, exercises) : original, [original, goals, exercises, canSeed]);
+  const set = (key, value) => onChange ? onChange(editProgram(form, key, value)) : setField(key, value);
   const movement = (id, patch) =>
     set(
       "movements",
@@ -76,14 +65,27 @@ export default function ProgramFields({
           placeholder={"Warm-up\nMain\nFinisher"}
         />
       </label>
+      {form._blockPreview && <div className="g-default-preview">
+        <strong>이번 블록의 평가 종목을 미리 불러왔어요.</strong>
+        <p>오늘의 프로그램을 입력하거나 아래 내용을 수정하면 적용돼요. 반복 수·RIR은 오늘 수업에 맞춰 확인해 주세요.</p>
+        <button type="button" onClick={() => set("movements", form.movements)}>이 종목으로 작성</button>
+        <button type="button" onClick={() => set("movements", [])}>오늘은 다른 운동으로 작성</button>
+      </div>}
       <div className="g-heading">
         <h3>추천 · 기록할 핵심 운동</h3>
         <small>{form.movements.length}/20</small>
       </div>
+      {!!goals.length && !form._blockPreview && <div className="g-goal-quick-add">
+        {goals.filter((g) => !form.movements.some((m) => m.exercise_id === g.exercise_id)).map((g) => {
+          const e = exercises.find((e) => e.id === g.exercise_id);
+          return e && <button type="button" key={g.exercise_id} disabled={form.movements.length >= 20}
+            onClick={() => set("movements", [...form.movements, newMovement(e)])}>+ {e.name} <small>블록 목표</small></button>;
+        })}
+      </div>}
       {form.movements.map((m, i) => (
         <section className="g-record-movement" key={m.id}>
           <div className="g-heading">
-            <strong>운동 {i + 1}</strong>
+            <strong>운동 {i + 1}{m.label ? ` · ${m.label}` : ""}</strong>
             <button
               type="button"
               onClick={() =>
@@ -328,13 +330,8 @@ export default function ProgramFields({
           )}
         </section>
       ))}
-      <button
-        type="button"
-        disabled={form.movements.length >= 20}
-        onClick={() => set("movements", [...form.movements, newMovement()])}
-      >
-        + 핵심 운동 추가
-      </button>
+      <ExerciseSearch exercises={exercises} disabled={form.movements.length >= 20}
+        label="+ 핵심 운동 추가 · 이름으로 검색" onSelect={(e) => set("movements", [...form.movements, newMovement(e)])} />
     </>
   );
 }

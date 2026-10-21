@@ -45,7 +45,8 @@ for (const file of fs
       f.endsWith("_group_class_type_weeks.sql") ||
       f.endsWith("_unified_member_services.sql") ||
       f.endsWith("_group_program_visibility.sql") ||
-      f.endsWith("_group_record_use.sql"),
+      f.endsWith("_group_record_use.sql") ||
+      f.endsWith("_group_block_goals.sql"),
   ))
   await db.exec(fs.readFileSync("supabase/migrations/" + file, "utf8"));
 const ids = {
@@ -341,6 +342,7 @@ await (
   await import("./group-visibility-database.mjs")
 ).visibilityChecks({ db, as, rpc, ids, ok, denied });
 await (await import("./group-record-use-database.mjs")).recordUseChecks({ db, as, rpc, ids, ok, denied, date, payload });
+await (await import("./group-block-goals-database.mjs")).blockGoalsChecks({ db, as, rpc, ids, ok, denied, payload });
 await db.exec("reset role");
 for (const table of ["pt_sessions", "pt_pass_events", "workout_records"])
   ok(
@@ -351,5 +353,6 @@ console.log(
   `PASS: ${checks} assertions plus permission/concurrency denials; isolated PostgreSQL group lifecycle, recommendation, RLS, TV privacy, PT isolation`,
 );
 await db.exec(fs.readFileSync("tests/group-record-use-production-smoke.sql", "utf8"));
-console.log("PASS: hosted rollback script against isolated PostgreSQL");
+await db.exec(fs.readFileSync("tests/group-block-goals-production-smoke.sql", "utf8"));
+console.log("PASS: hosted rollback scripts against isolated PostgreSQL");
 await db.close();

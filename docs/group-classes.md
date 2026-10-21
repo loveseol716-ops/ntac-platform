@@ -200,3 +200,19 @@ Calendar phase bands, selected-day context, weekly program dialogs and both prog
 The shared schedule and descriptions live in `web/src/groups/trainingCycle.js`. Update this single source after future planning decisions; this release adds no database schema or member data changes. `TrainingJourney.jsx` renders the member overview and shared `TrainingContext`. `node tests/training-cycle.mjs` checks calendar boundaries, all planned training dates, Korea midnight, holiday pauses and class-specific goals.
 
 Record-use verification: `NTAC_TEST_MODULES=/tmp/ntac-test-tools/node_modules node tests/group-database.mjs` includes mixed-purpose templates, opt-in validation, legacy exclusion, actual-RIR and coach-confirmation gates, session-RPE separation, recommendation independence and own-history permissions. `tests/group-record-use-production-smoke.sql` repeats the central checks in a rollback-only hosted transaction.
+
+## Block goals and program authoring (2026-10-21)
+
+**관리 → 그룹수업 → 주간 프로그램 → 블록 목표 설정** lets an owner/admin choose any planned block in advance and save separate GENTLE STRENGTH and BOMB STRENGTH assessment exercises. Each class can have multiple exercises, each with a 1/2/3/5RM target. No example exercise is preselected as an agreed goal. The setting belongs to the block, not a particular class occurrence or member.
+
+`group_block_goals` stores both class goal lists atomically with a revision. Staff can read; only owner/admin can save through the guarded RPC. A stale editor must reload before saving. Members and anonymous clients cannot read or change this authoring configuration. Editing goals never modifies existing lessons, attendance, results, strength maxima or recommendation snapshots.
+
+New blank strength programs preview their block's exercises automatically. Writing the program text, editing a movement or choosing **이 종목으로 작성** accepts the preview. Weekly publication serializes only authored programs: merely visiting a strength tab never makes that class ready or publishes an untouched default. Saving an individual class explicitly accepts its visible preview. Existing authored programs and templates are preserved; deleted movements stay deleted during editing. Missing block exercises are offered as one-tap additions. Other exercises can be searched by Korean/English name, dictionary ID or common seeded aliases such as OHP.
+
+Only exercise identity is reused. A block's OHP 5RM goal does not prescribe 5RM in BUILD or turn the lesson's result into a strength-estimation source. The existing editable set/repetition/RIR defaults remain a starting point to review; `record_use` stays `log_only` until deliberately changed. Complex exercise load references and percentage-based OHP reference prescriptions are not part of this release.
+
+`AuthoringContext` shows the scheduled date's year, quarter, block, current week, colored phase, phase explanation and class-specific assessment goals. The numbered timeline highlights the current week. The shared calendar still owns dates and phase boundaries; preparation/transition weeks do not silently inherit another block's exercises. Member navigation remains compact.
+
+Verification: `node tests/block-goals.mjs` checks block/class/date routing, untouched previews, explicit removal and existing-program preservation. The PostgreSQL suite tests atomic versioning, authorization, invalid/duplicate goals, individual class identity and unchanged lesson data. `tests/group-block-goals-production-smoke.sql` verifies hosted saving and access in a rollback-only transaction. Server rendering checks cover the editor, settings and week/phase display. This change has not received real-device visual or browser interaction testing.
+
+운영 migration: `20261021043817_group_block_goals.sql`.

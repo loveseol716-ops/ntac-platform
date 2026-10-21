@@ -49,6 +49,16 @@
 .g-cycle-context-goal > span { color: #b8cbbf; }
 .g-cycle-calendar-band { grid-column: 1/-1; padding: 5px 10px; background: var(--cycle-fill); color: var(--cycle-color); font-size: .7rem; line-height: 1.5; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; }
 .g-cycle-calendar-band > span { color: #d5dfd8; }
+.groups .g-author-context { margin: 12px 0 20px; padding: 18px; border: 1px solid #344b3e; border-left: 4px solid var(--cycle-color); border-radius: 12px; background: #17251f; }
+.g-author-context .g-cycle-heading > div > strong { font-size: .93rem; }
+.g-author-phase { display: flex; align-items: center; gap: 10px; margin-top: 12px; color: #b8cbbf; font-size: .75rem; }
+.groups .g-author-focus { color: #d7e2da; font-size: .83rem; margin: 10px 0 0; line-height: 1.7; }
+.g-block-targets { margin-top: 14px; padding-top: 12px; border-top: 1px solid #34473c; }
+.g-block-targets > small { color: #b8cbbf; font-size: .72rem; }
+.groups .g-block-targets p { font-size: .8rem; color: #bdcdc3; margin: 7px 0 0; }
+.g-goal-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+.g-goal-chips > span { border: 1px solid #46604e; border-radius: 6px; padding: 6px 9px; font-size: .8rem; overflow-wrap: anywhere; }
+.g-goal-chips b { color: #bfdfca; margin-left: 5px; }
 @container (max-width: 460px) {
   .groups .g-training-journey { padding: 16px; }
   .g-cycle-phase-list { grid-template-columns: minmax(0, 1fr); }

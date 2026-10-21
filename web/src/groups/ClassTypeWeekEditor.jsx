@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Dialog } from "./shared.jsx";
 import { programVisibleFrom } from "./model.js";
 import ProgramFields from "./ProgramFields.jsx";
-import { TrainingContext } from "./TrainingJourney.jsx";
+import AuthoringContext from "./AuthoringContext.jsx";
+import { cleanProgram, goalsForDate } from "./blockGoals.js";
 import {
   CLASS_TYPES,
   blankPrograms,
@@ -11,6 +12,7 @@ import {
 } from "./classTypes.js";
 export default function ClassTypeWeekEditor({
   current,
+  blockGoals = [],
   exercises,
   templates,
   busy,
@@ -30,11 +32,12 @@ export default function ClassTypeWeekEditor({
   const p = form.programs.find((x) => x.class_type_id === selected),
     type = CLASS_TYPES.find((x) => x.id === selected),
     ready = form.programs.filter(programReady).length;
-  function set(key, value) {
+  const goals = goalsForDate(blockGoals, form.week_start, selected);
+  function setProgram(value) {
     setForm((f) => ({
       ...f,
       programs: f.programs.map((x) =>
-        x.class_type_id === selected ? { ...x, [key]: value } : x,
+        x.class_type_id === selected ? value : x,
       ),
     }));
   }
@@ -49,7 +52,7 @@ export default function ClassTypeWeekEditor({
             return;
           }
           setValidation("");
-          onSave({ ...form, program_mode: "class_type", status });
+          onSave({ ...form, programs: form.programs.map(cleanProgram), program_mode: "class_type", status });
         }}
       >
         <fieldset disabled={busy}>
@@ -94,7 +97,7 @@ export default function ClassTypeWeekEditor({
           <section className="g-type-edit">
             <p className="g-kicker">{typeDays(selected)}요일 자동 배치</p>
             <h3>{type.name}</h3>
-            <TrainingContext date={form.week_start} classType={selected} label="작성 중인 프로그램의 위치" />
+            <AuthoringContext date={form.week_start} classType={selected} goals={goals} exercises={exercises} />
             {templates.length > 0 && (
               <label>
                 템플릿 가져오기
@@ -129,7 +132,7 @@ export default function ClassTypeWeekEditor({
                 </select>
               </label>
             )}
-            <ProgramFields form={p} set={set} exercises={exercises} hideTitle />
+            <ProgramFields form={p} onChange={setProgram} goals={goals} exercises={exercises} hideTitle />
           </section>
           {(error || validation) && (
             <p className="g-error" role="alert">

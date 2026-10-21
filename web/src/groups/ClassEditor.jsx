@@ -2,7 +2,10 @@ import ProgramFields from "./ProgramFields.jsx";
 import { useState } from "react";
 import { Dialog } from "./shared.jsx";
 import { seoulDate, classTime } from "./model.js";
-import { TrainingContext } from "./TrainingJourney.jsx";
+import AuthoringContext from "./AuthoringContext.jsx";
+import useBlockGoals from "./useBlockGoals.js";
+import { cleanProgram, editProgram, goalsForDate, previewBlockDefaults } from "./blockGoals.js";
+import { CLASS_TYPES } from "./classTypes.js";
 import { trainingClass } from "./trainingCycle.js";
 export default function ClassEditor({
   current,
@@ -33,6 +36,8 @@ export default function ClassEditor({
           movements: [],
         },
   );
+  const blockGoals = useBlockGoals();
+  const goals = goalsForDate(blockGoals.rows, form.date, trainingClass(form));
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   return (
     <Dialog
@@ -42,8 +47,10 @@ export default function ClassEditor({
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          // Saving a single class explicitly accepts its visible defaults.
+          const draft = previewBlockDefaults(form, goals, exercises);
           onSave({
-            ...form,
+            ...cleanProgram(editProgram(draft, "movements", draft.movements)),
             recording_version: 2,
             starts_at: new Date(
               `${form.date}T${form.time}:00+09:00`,
@@ -51,7 +58,7 @@ export default function ClassEditor({
           });
         }}
       >
-        <fieldset disabled={busy}>
+        <fieldset disabled={busy || blockGoals.loading}>
           {error && (
             <p className="g-error" role="alert">
               {error}
@@ -131,8 +138,15 @@ export default function ClassEditor({
               ))}
             </select>
           </label>
-          <TrainingContext date={form.date} classType={trainingClass(form)} label="작성 중인 수업의 위치" />
-          <ProgramFields form={form} set={set} exercises={exercises} />
+          <label>수업 종류
+            <select value={trainingClass(form) || ""} onChange={(e) => setForm((f) => ({ ...f, class_type_id: e.target.value || null, title: !f.title || CLASS_TYPES.some((t) => t.name === f.title) ? CLASS_TYPES.find((t) => t.id === e.target.value)?.name || "" : f.title }))}>
+              <option value="">기타 · 직접 작성</option>
+              {CLASS_TYPES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </label>
+          <AuthoringContext date={form.date} classType={trainingClass(form)} goals={goals} exercises={exercises} loading={blockGoals.loading} error={blockGoals.error} />
+          {blockGoals.error && <button type="button" onClick={blockGoals.refresh}>블록 목표 다시 불러오기</button>}
+          <ProgramFields form={form} onChange={setForm} goals={goals} exercises={exercises} />
           <p className="g-muted">
             참가자가 생기면 프로그램이 고정돼요. 다른 조건의 운동은 새 종목으로
             구분해 주세요.
