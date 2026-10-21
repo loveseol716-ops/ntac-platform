@@ -1,5 +1,6 @@
 import MemberCalendar from "./MemberCalendar.jsx";
 import WeeklyOverview from "./WeeklyOverview.jsx";
+import HistoryRecord from "./HistoryRecord.jsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   rpc,
@@ -18,6 +19,7 @@ import {
   resultText,
   movementLabel,
   groupStats,
+  programVisibleFrom,
 } from "./model.js";
 import {
   ClassCard,
@@ -28,6 +30,8 @@ import {
 import "./Groups.css";
 export default function GroupMember({ profile }) {
   const [tab, setTab] = useState("today"),
+    [minDay, setMinDay] = useState(programVisibleFrom()),
+    [historyRecord, setHistoryRecord] = useState(null),
     [view, setView] = useState("month"),
     [day, setDay] = useState(seoulDate()),
     [classes, setClasses] = useState([]),
@@ -49,13 +53,16 @@ export default function GroupMember({ profile }) {
     [visible, setVisible] = useState(false),
     lock = useRef(false);
   useEffect(() => {
+    if (day < minDay) setDay(minDay);
+  }, [day, minDay]);
+  useEffect(() => {
     let live = true;
     setLoading(true);
     setError("");
     Promise.all([
       listClasses(day, "month"),
       listExercises(),
-      history(profile.id),
+      history(),
       rpc("group_bootstrap"),
       listWeeks(day),
     ])
@@ -66,6 +73,7 @@ export default function GroupMember({ profile }) {
           setExercises(es);
           setRecords(rs);
           setMembership(ctx.member);
+          setMinDay(ctx.program_visible_from || programVisibleFrom());
           setNickname(ctx.member?.nickname || "");
           setVisible(!!ctx.member?.show_on_tv);
         }
@@ -81,17 +89,24 @@ export default function GroupMember({ profile }) {
     const refresh = () =>
       Promise.all([
         listClasses(day, "month"),
-        history(profile.id),
+        history(),
         listWeeks(day),
+        rpc("group_bootstrap"),
       ])
-        .then(([cs, rs, ws]) => {
+        .then(([cs, rs, ws, ctx]) => {
           if (live) {
             setClasses(cs);
             setWeeks(ws);
             setRecords(rs);
+            setMinDay(ctx.program_visible_from || programVisibleFrom());
           }
         })
-        .catch((e) => live && setError(e.message));
+        .catch((e) => {
+          if (live) {
+            setDetail(null);
+            setError(e.message);
+          }
+        });
     const timer = setInterval(refresh, 15000);
     window.addEventListener("focus", refresh);
     return () => {
@@ -110,7 +125,12 @@ export default function GroupMember({ profile }) {
     const refresh = () =>
       loadDetail(selected)
         .then((d) => live && setDetail(d))
-        .catch((e) => live && setError(e.message));
+        .catch((e) => {
+          if (live) {
+            setDetail(null);
+            setError(e.message);
+          }
+        });
     refresh();
     const timer = setInterval(refresh, 15000);
     return () => {
@@ -197,6 +217,12 @@ export default function GroupMember({ profile }) {
         <p role="status" className="g-success">
           {message}
         </p>
+      )}
+      {historyRecord && (
+        <HistoryRecord
+          record={historyRecord}
+          onClose={() => setHistoryRecord(null)}
+        />
       )}
       {loading && selected && (
         <p className="g-muted" role="status">
@@ -356,6 +382,7 @@ export default function GroupMember({ profile }) {
             onSelect={setSelected}
             onPrograms={() => setTab("programs")}
             loading={loading}
+            minDay={minDay}
           />
         </>
       ) : tab === "programs" ? (
@@ -367,6 +394,7 @@ export default function GroupMember({ profile }) {
           exercises={exercises}
           onSchedule={() => setTab("today")}
           loading={loading}
+          minDay={minDay}
         />
       ) : tab === "history" ? (
         <>
@@ -386,7 +414,13 @@ export default function GroupMember({ profile }) {
                 key={r.id}
                 c={r.group_classes}
                 joined={r}
-                onClick={() => setSelected(r.class_id)}
+                actionLabel="기록 보기"
+                onClick={() =>
+                  r.group_classes.program_hidden ||
+                  seoulDate(r.group_classes.starts_at) < minDay
+                    ? setHistoryRecord(r)
+                    : setSelected(r.class_id)
+                }
               />
             ))}
         </>

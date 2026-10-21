@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Dialog } from "./shared.jsx";
+import { programVisibleFrom } from "./model.js";
 import ProgramFields from "./ProgramFields.jsx";
 import {
   CLASS_TYPES,
@@ -142,7 +143,9 @@ export default function ClassTypeWeekEditor({
               <button value="draft">임시 저장</button>
             )}
             <button className="g-primary" value="published">
-              저장 · 멤버 공개 · 캘린더 반영
+              {form.week_start < programVisibleFrom()
+                ? "관리자 보관본 저장"
+                : "저장 · 멤버 공개 · 캘린더 반영"}
             </button>
           </div>
         </fieldset>

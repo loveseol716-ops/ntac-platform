@@ -8,6 +8,7 @@ import {
   calendarRange,
   calendarDates,
   shiftMonth,
+  programVisibleFrom,
 } from "../web/src/groups/model.js";
 import { blankPrograms, programsForDay } from "../web/src/groups/classTypes.js";
 
@@ -58,6 +59,9 @@ assert.deepEqual(
 console.log(
   "PASS: month/week bounds, leap day, year navigation and all seven weekday programs independent of class occurrences",
 );
+assert.equal(programVisibleFrom("2026-10-21"), "2026-10-12");
+assert.equal(programVisibleFrom("2026-10-26"), "2026-10-19");
+assert.equal(programVisibleFrom("2027-01-04"), "2026-12-28");
 const m = { id: "x", kind: "weight", target_reps: 8, unit: "kg" };
 const row = (id, weight, reps, extra = {}) => ({
   id,

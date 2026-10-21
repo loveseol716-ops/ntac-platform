@@ -200,7 +200,7 @@
 .groups .g-class-card {
   width: 100%;
   display: grid;
-  grid-template-columns: 75px 1fr 25px;
+  grid-template-columns: 75px minmax(0, 1fr);
   gap: 18px;
   text-align: left;
   background: var(--g-panel);
@@ -220,10 +220,12 @@
   padding-right: 10px;
   align-content: center;
 }
-.g-class-card > span:last-child {
+.groups .g-class-card .g-card-action {
+  grid-column: 2;
+  justify-self: end;
   color: var(--g-accent);
-  font-size: 1.5rem;
-  align-content: center;
+  font-size: 0.78rem;
+  font-weight: 650;
 }
 .g-badge {
   display: inline-flex;
@@ -688,7 +690,7 @@
     padding: 20px;
   }
   .groups .g-class-card {
-    grid-template-columns: 65px 1fr 16px;
+    grid-template-columns: 65px minmax(0, 1fr);
     padding: 18px 14px;
     gap: 12px;
   }
@@ -1035,6 +1037,9 @@
   max-width: 1200px;
 }
 .groups.g-member {
+  container-type: inline-size;
+}
+.groups.g-admin {
   container-type: inline-size;
 }
 .groups .g-member-hero {
@@ -1416,11 +1421,119 @@
     min-width: 0;
   }
   .groups .g-class-card {
-    grid-template-columns: 58px minmax(0, 1fr) 12px;
+    grid-template-columns: 58px minmax(0, 1fr);
     gap: 10px;
   }
   .groups .g-recommendation {
     flex-wrap: wrap;
     gap: 8px;
+  }
+}
+.groups .g-calendar-options {
+  flex-wrap: wrap;
+}
+.groups .g-calendar-jump {
+  margin: 0;
+  width: 160px;
+}
+.g-calendar-day-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.groups .g-month-day:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.groups .g-month-day:disabled:hover {
+  background: #192125;
+}
+.g-archive-kind {
+  width: fit-content;
+  margin: 16px 0;
+}
+.g-archive-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 180px) minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 20px;
+}
+.groups .g-archive-filters label {
+  margin: 0;
+}
+.g-archive-list {
+  display: grid;
+  gap: 10px;
+}
+.groups .g-archive-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 14px;
+  align-items: center;
+  text-align: left;
+}
+.g-archive-row strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.g-archive-row .g-card-action {
+  font-size: 0.78rem;
+  color: var(--g-accent);
+}
+.g-archive-pages {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  margin: 20px 0;
+}
+.groups input[type="month"] {
+  display: block;
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 46px;
+}
+@media (max-width: 600px) {
+  .g-archive-filters {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .g-archive-filters label {
+    grid-column: 1/-1;
+  }
+  .groups .g-archive-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .g-archive-row > span:first-child {
+    grid-column: 1/-1;
+  }
+  .g-archive-row .g-card-action {
+    justify-self: end;
+  }
+  .g-admin .g-calendar-options {
+    display: grid;
+    grid-template-columns: auto auto;
+    width: 100%;
+  }
+  .g-admin .g-view-toggle {
+    justify-self: end;
+  }
+  .g-admin .g-calendar-jump {
+    grid-row: 2;
+    grid-column: 1/-1;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    white-space: nowrap;
+  }
+  .g-admin .g-calendar-jump input {
+    flex: 1;
+    width: 0;
   }
 }

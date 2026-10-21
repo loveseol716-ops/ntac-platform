@@ -15,16 +15,24 @@ export default function MemberCalendar({
   view,
   onView,
   classes,
-  records,
+  records = [],
   onSelect,
   onPrograms,
   loading,
+  minDay,
+  admin = false,
+  onCreate,
 }) {
   const today = seoulDate();
   const start = weekStart(day);
-  const selectedClasses = classes.filter((c) => seoulDate(c.starts_at) === day);
-  const move = (n) =>
-    onDay(view === "month" ? shiftMonth(day, n) : addDays(day, n * 7));
+  const selectedClasses = classes.filter(
+    (c) => seoulDate(c.starts_at) === day && (!minDay || day >= minDay),
+  );
+  const previousEnd = view === "month" ? shiftMonth(day, 0) : start;
+  const move = (n) => {
+    const target = view === "month" ? shiftMonth(day, n) : addDays(day, n * 7);
+    onDay(minDay && target < minDay ? minDay : target);
+  };
   return (
     <section className="g-member-calendar" aria-label="수업 캘린더">
       <div className="g-calendar-toolbar">
@@ -32,6 +40,7 @@ export default function MemberCalendar({
           <button
             aria-label={view === "month" ? "이전 달" : "이전 주"}
             onClick={() => move(-1)}
+            disabled={!!minDay && previousEnd <= minDay}
           >
             ‹
           </button>
@@ -49,6 +58,16 @@ export default function MemberCalendar({
         </div>
         <div className="g-calendar-options">
           <button onClick={() => onDay(today)}>오늘</button>
+          {admin && (
+            <label className="g-calendar-jump">
+              날짜 이동
+              <input
+                type="date"
+                value={day}
+                onChange={(e) => e.target.value && onDay(e.target.value)}
+              />
+            </label>
+          )}
           <div className="g-view-toggle" role="group" aria-label="캘린더 보기">
             <button
               aria-pressed={view === "month"}
@@ -73,15 +92,19 @@ export default function MemberCalendar({
         </div>
         <div className="g-month-grid">
           {calendarDates(day, view).map((date, i) => {
-            const rows = classes.filter((c) => seoulDate(c.starts_at) === date);
+            const hidden = !!minDay && date < minDay;
+            const rows = hidden
+              ? []
+              : classes.filter((c) => seoulDate(c.starts_at) === date);
             return (
               <button
                 key={date}
                 className={`g-month-day ${date.slice(0, 7) !== day.slice(0, 7) ? "outside" : ""} ${date === today ? "is-today" : ""}`}
                 data-date={date}
+                disabled={hidden}
                 aria-pressed={date === day}
                 aria-current={date === today ? "date" : undefined}
-                aria-label={`${date} ${weekdays[i % 7]}요일${loading ? "" : ` · 수업 ${rows.length}개`}`}
+                aria-label={`${date} ${weekdays[i % 7]}요일${hidden ? " · 공개 기간 이전" : loading ? "" : ` · 수업 ${rows.length}개`}`}
                 onClick={() => onDay(date)}
               >
                 <span className="g-date-number">{Number(date.slice(-2))}</span>
@@ -113,9 +136,18 @@ export default function MemberCalendar({
           {Number(day.slice(5, 7))}월 {Number(day.slice(8))}일 ·{" "}
           {weekdays[(new Date(`${day}T12:00:00Z`).getUTCDay() + 6) % 7]}요일
         </h3>
-        <button className="g-text-button" onClick={onPrograms}>
-          이 주의 프로그램 ↗
-        </button>
+        <div className="g-calendar-day-actions">
+          {onPrograms && (
+            <button className="g-text-button" onClick={onPrograms}>
+              이 주의 프로그램 보기
+            </button>
+          )}
+          {onCreate && (
+            <button className="g-primary" onClick={onCreate}>
+              + 선택일 수업 만들기
+            </button>
+          )}
+        </div>
       </div>
       <div className="g-selected-classes" aria-busy={loading}>
         {loading ? (
@@ -126,6 +158,7 @@ export default function MemberCalendar({
               key={c.id}
               c={c}
               joined={records.find((r) => r.class_id === c.id)}
+              actionLabel={admin ? "수업 관리" : "상세 보기"}
               onClick={() => onSelect(c.id)}
             />
           ))
@@ -133,9 +166,14 @@ export default function MemberCalendar({
           <p className="g-empty">이 날짜에는 등록된 수업이 없어요.</p>
         )}
       </div>
-      <p className="g-muted g-booking-note">
-        예약과 공식 출석은 운톡에서, 운동 시작과 기록은 NTAC에서 진행해요.
-      </p>
+      {!admin && (
+        <p className="g-muted g-booking-note">
+          지난주부터의 공개 프로그램을 볼 수 있어요. 이전 운동 기록은 ‘나의
+          기록’에 보관돼요.
+          <br />
+          예약과 공식 출석은 운톡에서, 운동 시작과 기록은 NTAC에서 진행해요.
+        </p>
+      )}
     </section>
   );
 }

@@ -29,15 +29,7 @@ export const saveParticipant = (p, payload) =>
     expected_revision: p.revision,
     payload,
   });
-export const history = (uid) =>
-  checked(
-    supabase
-      .from("group_participants")
-      .select("*,group_classes(*)")
-      .eq("user_id", uid)
-      .order("joined_at", { ascending: false })
-      .limit(200),
-  );
+export const history = () => rpc("group_my_history");
 
 export const listWeeks = (day) =>
   checked(

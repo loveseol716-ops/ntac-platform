@@ -4,7 +4,7 @@ import { blankPrograms, programReady, typeDays } from "./classTypes.js";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "../lib/supabase.js";
 import { checked, rpc, listWeeks } from "./api.js";
-import { weekStart, weekdays, addDays } from "./model.js";
+import { weekStart, weekdays, addDays, programVisibleFrom } from "./model.js";
 import { Dialog } from "./shared.jsx";
 import ProgramFields from "./ProgramFields.jsx";
 export default function WeeklyPrograms({
@@ -137,7 +137,11 @@ export default function WeeklyPrograms({
           <div className="g-heading">
             <h3>{w.title}</h3>
             <span className="g-badge">
-              {w.status === "published" ? "멤버 공개 중" : "작성 중"}
+              {w.status === "published"
+                ? w.week_start < programVisibleFrom()
+                  ? "멤버 공개 종료 · 관리자 보관"
+                  : "멤버 공개 중"
+                : "작성 중"}
             </span>
           </div>
           {w.program_mode === "class_type" ? (
@@ -177,11 +181,15 @@ export default function WeeklyPrograms({
                       payload: { ...w, status: "published" },
                     }),
                   (r) =>
-                    `공개 완료 · 수업 ${r.created}개 생성, ${r.updated}개 반영, 기존 수업 ${r.kept}개 유지${r.conflicts ? ` · 시간 겹침 ${r.conflicts}개 유지` : ""}`,
+                    w.week_start < programVisibleFrom()
+                      ? "관리자 보관본을 저장했어요. 멤버 공개 기간은 변경되지 않아요."
+                      : `공개 완료 · 수업 ${r.created}개 생성, ${r.updated}개 반영, 기존 수업 ${r.kept}개 유지${r.conflicts ? ` · 시간 겹침 ${r.conflicts}개 유지` : ""}`,
                 )
               }
             >
-              공개 · 시간표 반영
+              {w.week_start < programVisibleFrom()
+                ? "관리자 보관본 저장"
+                : "공개 · 시간표 반영"}
             </button>
             <button
               disabled={busy}
@@ -280,7 +288,9 @@ export default function WeeklyPrograms({
                 () => rpc("group_save_week", { payload }),
                 (r) =>
                   payload.status === "published"
-                    ? `멤버에게 공개했어요. 수업 ${r.created}개 생성 · ${r.updated}개 수정 · 등록/시작한 수업 ${r.kept}개 유지${r.conflicts ? ` · 시간 겹침 ${r.conflicts}개 유지` : ""}${r.default_timetable_loaded ? " · 기본 시간표 자동 적용" : ""}`
+                    ? payload.week_start < programVisibleFrom()
+                      ? "관리자 보관본을 저장했어요. 멤버 공개 기간은 변경되지 않아요."
+                      : `멤버에게 공개했어요. 수업 ${r.created}개 생성 · ${r.updated}개 수정 · 등록/시작한 수업 ${r.kept}개 유지${r.conflicts ? ` · 시간 겹침 ${r.conflicts}개 유지` : ""}${r.default_timetable_loaded ? " · 기본 시간표 자동 적용" : ""}`
                     : "주간 프로그램을 임시 저장했어요.",
               )
             )
@@ -430,7 +440,9 @@ function LegacyWeekEditor({
               <button value="draft">임시 저장</button>
             )}
             <button className="g-primary" value="published">
-              저장 · 멤버 공개 · 캘린더 반영
+              {form.week_start < programVisibleFrom()
+                ? "관리자 보관본 저장"
+                : "저장 · 멤버 공개 · 캘린더 반영"}
             </button>
           </div>
         </fieldset>

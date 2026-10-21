@@ -159,6 +159,8 @@ export const addDays = (day, n) =>
 export const weekStart = (day) =>
   addDays(day, -((new Date(`${day}T12:00:00Z`).getUTCDay() + 6) % 7));
 export const weekdays = ["월", "화", "수", "목", "금", "토", "일"];
+export const programVisibleFrom = (today = seoulDate()) =>
+  addDays(weekStart(today), -7);
 export const shiftMonth = (day, amount) => {
   const d = new Date(`${day.slice(0, 7)}-01T12:00:00Z`);
   d.setUTCMonth(d.getUTCMonth() + amount);

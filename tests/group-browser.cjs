@@ -64,6 +64,15 @@ const participants = [],
 let saveFail = false,
   displayTokenAuth = null;
 const requests = [];
+const addDate = (d, n) =>
+  new Date(new Date(`${d}T12:00:00Z`).getTime() + n * 86400000)
+    .toISOString()
+    .slice(0, 10);
+const monday = addDate(
+  date,
+  -((new Date(`${date}T12:00:00Z`).getUTCDay() + 6) % 7),
+);
+const cutoff = addDate(monday, -7);
 (async () => {
   const browser = await (
     process.env.BROWSER === "webkit" ? webkit : chromium
@@ -74,7 +83,10 @@ const requests = [];
   });
   let errors = [];
   async function open(id, width = 390, height = 900, hash = "") {
-    const context = await browser.newContext({ viewport: { width, height } });
+    const context = await browser.newContext({
+      viewport: { width, height },
+      timezoneId: "Asia/Seoul",
+    });
     const user = users.find((u) => u.id === id);
     if (user)
       await context.addInitScript(
@@ -111,14 +123,26 @@ const requests = [];
         return route.fulfill({ json: user || {} });
       const reply = (data) => route.fulfill({ json: data });
       if (table === "group_timetable") return reply(timetable);
-      if (table === "group_weeks")
-        return reply(
-          weeks.filter(
-            (w) =>
-              w.status !== "archived" &&
-              w.week_start === url.searchParams.get("week_start")?.slice(3),
-          ),
+      if (table === "group_weeks") {
+        const exact = url.searchParams.get("week_start")?.startsWith("eq.");
+        let data = weeks.filter(
+          (w) =>
+            (!exact ||
+              w.week_start === url.searchParams.get("week_start").slice(3)) &&
+            (!url.searchParams.has("status") || w.status !== "archived") &&
+            (id === "admin" || w.week_start >= cutoff),
         );
+        const search = url.searchParams.get("title");
+        if (search)
+          data = data.filter((w) => w.title.includes(search.slice(7, -1)));
+        return route.fulfill({
+          json: data,
+          headers: {
+            "access-control-expose-headers": "content-range",
+            "content-range": `0-${Math.max(0, data.length - 1)}/${data.length}`,
+          },
+        });
+      }
       if (table === "group_save_timetable") {
         timetable.slots = body.payload;
         timetable.revision++;
@@ -183,6 +207,7 @@ const requests = [];
         return reply({
           member: members[id] || null,
           has_history: participants.some((p) => p.user_id === id),
+          program_visible_from: cutoff,
         });
       if (table === "group_directory")
         return reply(
@@ -362,25 +387,49 @@ const requests = [];
       }
       if (table === "pt_members")
         return reply(req.headers().accept?.includes("object") ? null : []);
-      if (table === "group_classes")
-        return reply(
-          classes.filter(
-            (c) =>
-              !c.archived_at &&
-              new Date(c.starts_at) >=
-                new Date(url.searchParams.get("starts_at")?.slice(4) || 0) &&
-              (!url.searchParams.getAll("starts_at")[1] ||
-                new Date(c.starts_at) <
-                  new Date(url.searchParams.getAll("starts_at")[1].slice(3))),
-          ),
+      if (table === "group_classes") {
+        const ranges = url.searchParams.getAll("starts_at");
+        const data = classes.filter(
+          (c) =>
+            (!url.searchParams.has("archived_at") || !c.archived_at) &&
+            (id === "admin" || c.starts_at.slice(0, 10) >= cutoff) &&
+            ranges.every((v) =>
+              v.startsWith("gte.")
+                ? new Date(c.starts_at) >= new Date(v.slice(4))
+                : new Date(c.starts_at) < new Date(v.slice(3)),
+            ),
         );
-      if (table === "group_participants")
+        return route.fulfill({
+          json: data,
+          headers: {
+            "access-control-expose-headers": "content-range",
+            "content-range": `0-${Math.max(0, data.length - 1)}/${data.length}`,
+          },
+        });
+      }
+      if (table === "group_participants" || table === "group_my_history")
         return reply(
           participants
             .filter((p) => p.user_id === id)
             .map((p) => ({
               ...p,
-              group_classes: classes.find((c) => c.id === p.class_id),
+              group_classes: (() => {
+                const c = classes.find((c) => c.id === p.class_id);
+                return {
+                  ...c,
+                  program_hidden: c.starts_at.slice(0, 10) < cutoff,
+                  description: undefined,
+                  movements: c.movements.map(
+                    ({ id, label, kind, unit, exercise_id }) => ({
+                      id,
+                      label,
+                      kind,
+                      unit,
+                      exercise_id,
+                    }),
+                  ),
+                };
+              })(),
             })),
         );
       if (table === "group_exercises")
@@ -402,6 +451,36 @@ const requests = [];
     await page.getByRole("navigation", { name: "이용 프로그램" }).count(),
     0,
   );
+  await page.locator(".g-month-calendar[aria-busy=false]").waitFor();
+  assert(
+    await page
+      .locator(".g-month-day")
+      .evaluateAll(
+        (els, min) =>
+          els.every((el) =>
+            el.dataset.date < min ? el.disabled : !el.disabled,
+          ),
+        cutoff,
+      ),
+    "only dates before last Monday are disabled",
+  );
+  assert.equal(
+    await page.getByText("↗", { exact: true }).count(),
+    0,
+    "ambiguous arrow removed",
+  );
+  await page
+    .getByRole("button", { name: "주간 프로그램", exact: true })
+    .click();
+  await page.getByRole("button", { name: "이전 주", exact: true }).click();
+  assert(
+    await page
+      .getByRole("button", { name: "이전 주", exact: true })
+      .isDisabled(),
+    "cannot browse older than previous week",
+  );
+  await page.getByRole("button", { name: "이번 주", exact: true }).click();
+  await page.getByRole("button", { name: "수업 캘린더", exact: true }).click();
   await page.getByRole("button", { name: /하체 스트렝스/ }).click();
   await page
     .getByRole("button", { name: "오늘 운동 시작", exact: true })
@@ -445,6 +524,39 @@ const requests = [];
     .getByRole("navigation", { name: "관리 메뉴", exact: true })
     .getByRole("button", { name: "그룹수업", exact: true })
     .click();
+  await page.locator(".g-month-calendar[aria-busy=false]").waitFor();
+  for (const width of [1920, 1024, 768, 390, 320]) {
+    await page.setViewportSize({ width, height: 1080 });
+    const cells = await page
+      .locator(".g-month-day")
+      .evaluateAll((els) =>
+        els.slice(0, 7).map((el) => el.getBoundingClientRect().y),
+      );
+    assert(
+      cells.length === 7 && cells.every((y) => Math.abs(y - cells[0]) < 1),
+      `admin calendar stays seven columns ${width}`,
+    );
+    assert(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      `admin calendar fits ${width}`,
+    );
+    assert(
+      await page
+        .locator(".g-calendar-toolbar input")
+        .evaluateAll((els) =>
+          els.every((el) => el.getBoundingClientRect().right <= innerWidth),
+        ),
+      `admin jump field fits ${width}`,
+    );
+    if (width === 390 || width === 1920)
+      await page.screenshot({
+        path: `/tmp/ntac-admin-calendar-${width}.png`,
+        fullPage: true,
+      });
+  }
+  await page.setViewportSize({ width: 1200, height: 900 });
   await page.getByRole("button", { name: /하체 스트렝스/ }).click();
   await page.getByRole("button", { name: "참가자 추가", exact: true }).click();
   dialog = page.getByRole("dialog");
@@ -462,7 +574,7 @@ const requests = [];
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   assert(participants[0].finalized);
   await page.getByRole("button", { name: "← 수업 목록", exact: true }).click();
-  await page.getByRole("button", { name: "+ 수업 만들기" }).click();
+  await page.getByRole("button", { name: "+ 선택일 수업 만들기" }).click();
   dialog = page.getByRole("dialog");
   await dialog.getByLabel("수업명", { exact: true }).fill("새 스트렝스 수업");
   await dialog
@@ -954,7 +1066,7 @@ const requests = [];
     .getByRole("navigation", { name: "관리 메뉴", exact: true })
     .getByRole("button", { name: "그룹수업", exact: true })
     .click();
-  await page.getByRole("button", { name: /^다음 주/ }).click();
+  await page.getByLabel("날짜 이동").fill(weeks[0].week_start);
   await page
     .getByRole("button", { name: /GENTLE STRENGTH/ })
     .first()
@@ -1005,6 +1117,87 @@ const requests = [];
     });
     await context.close();
   }
+  const oldDay = addDate(cutoff, -7);
+  const oldClass = {
+    ...classes[0],
+    id: "old-own",
+    title: "과거 테스트 운동",
+    starts_at: `${oldDay}T10:00:00+09:00`,
+    description: "비공개 과거 운동 본문",
+    movements: [movement],
+    status: "ended",
+  };
+  classes.push(oldClass);
+  participants.push({
+    id: "old-record",
+    class_id: oldClass.id,
+    user_id: "member",
+    status: "completed",
+    difficulty: "standard",
+    results: { squat: { weight: 55, reps: 8 } },
+    session_rpe: 7,
+  });
+  weeks.push({
+    id: "old-week",
+    title: "과거 테스트 주간",
+    week_start: oldDay,
+    status: "published",
+    program_mode: "class_type",
+    programs: [
+      {
+        class_type_id: "gentle_strength",
+        title: "GENTLE STRENGTH",
+        description: "비공개 과거 운동 본문",
+        movements: [movement],
+      },
+    ],
+  });
+  ({ page, context } = await open("member"));
+  await page.getByRole("button", { name: "나의 기록", exact: true }).click();
+  await page.getByRole("button", { name: /과거 테스트 운동/ }).click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByText("55 kg × 8회", { exact: true }).waitFor();
+  assert.equal(
+    await dialog.getByText("비공개 과거 운동 본문").count(),
+    0,
+    "old program body absent from own record",
+  );
+  await context.close();
+  ({ page, context } = await open("admin", 390, 900));
+  await page
+    .getByRole("navigation", { name: "관리 메뉴", exact: true })
+    .getByRole("button", { name: "그룹수업", exact: true })
+    .click();
+  await page.getByRole("button", { name: "운동 DB", exact: true }).click();
+  await page.getByLabel("프로그램 이름").fill("과거 테스트");
+  await page.getByRole("button", { name: "검색", exact: true }).click();
+  await page
+    .locator(".g-archive-row")
+    .filter({ hasText: "과거 테스트 주간" })
+    .click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByText("비공개 과거 운동 본문", { exact: true }).waitFor();
+  await dialog.getByRole("button", { name: "닫기", exact: true }).click();
+  await page.screenshot({
+    path: "/tmp/ntac-program-archive-390.png",
+    fullPage: true,
+  });
+  assert(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+    "archive fits phone",
+  );
+  await page.getByRole("button", { name: "개별 수업", exact: true }).click();
+  await page
+    .locator(".g-archive-row")
+    .filter({ hasText: "과거 테스트 운동" })
+    .click();
+  await page.getByText("비공개 과거 운동 본문", { exact: true }).waitFor();
+  await context.close();
+  console.log(
+    "PASS: member previous-week window, private old records, admin month/week calendar and searchable old program DB",
+  );
   assert.deepEqual(errors, []);
   await browser.close();
   console.log(

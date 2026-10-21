@@ -177,6 +177,7 @@ const fixtures = {
   let errors = [];
   async function open(id, width = 1200, clockTime) {
     const context = await browser.newContext({
+      timezoneId: "Asia/Seoul",
       viewport: { width, height: 1000 },
     });
     const user = profiles.find((p) => p.id === id);

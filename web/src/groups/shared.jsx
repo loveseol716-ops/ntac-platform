@@ -36,7 +36,7 @@ export function Dialog({ title, onClose, children }) {
     </dialog>
   );
 }
-export function ClassCard({ c, onClick, joined }) {
+export function ClassCard({ c, onClick, joined, actionLabel = "상세 보기" }) {
   return (
     <button className="g-class-card" onClick={onClick}>
       <span className="g-time">
@@ -56,7 +56,7 @@ export function ClassCard({ c, onClick, joined }) {
               : "오늘의 프로그램"}
         </small>
       </span>
-      <span aria-hidden="true">↗</span>
+      <span className="g-card-action">{actionLabel}</span>
     </button>
   );
 }

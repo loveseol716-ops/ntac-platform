@@ -16,10 +16,14 @@ export default function WeeklyOverview({
   exercises,
   onSchedule,
   loading,
+  minDay,
 }) {
   const start = weekStart(day);
   const week = weeks.find(
-    (w) => w.week_start === start && w.status === "published",
+    (w) =>
+      w.week_start === start &&
+      w.status === "published" &&
+      (!minDay || w.week_start >= minDay),
   );
   const [selected, setSelected] = useState(null);
   return (
@@ -29,6 +33,7 @@ export default function WeeklyOverview({
           <button
             aria-label="이전 주"
             onClick={() => onDay(addDays(start, -7))}
+            disabled={!!minDay && addDays(start, -7) < minDay}
           >
             ‹
           </button>
@@ -49,7 +54,8 @@ export default function WeeklyOverview({
           : week?.title || "공개된 주간 프로그램이 없어요."}
       </p>
       <p className="g-muted">
-        요일별 프로그램을 누르면 운동 구성과 세트 수를 볼 수 있어요.
+        지난주부터의 공개 프로그램을 볼 수 있어요. 프로그램을 누르면 운동 구성과
+        세트 수가 열려요.
       </p>
       <div className="g-program-week" aria-busy={loading}>
         {weekdays.map((name, i) => {

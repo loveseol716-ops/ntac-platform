@@ -1,4 +1,5 @@
-import WeekCalendar from "./WeekCalendar.jsx";
+import MemberCalendar from "./MemberCalendar.jsx";
+import ProgramArchive from "./ProgramArchive.jsx";
 import WeeklyPrograms from "./WeeklyPrograms.jsx";
 import StrengthMax from "./StrengthMax.jsx";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -28,6 +29,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
   const admin = ["owner", "admin"].includes(profile.role),
     lock = useRef(false);
   const [tab, setTab] = useState("classes"),
+    [calendarView, setCalendarView] = useState("month"),
     [day, setDay] = useState(seoulDate()),
     [classes, setClasses] = useState([]),
     [exercises, setExercises] = useState([]),
@@ -53,7 +55,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
     let live = true;
     setLoading(true);
     Promise.all([
-      listClasses(day),
+      listClasses(day, "month"),
       listExercises(),
       checked(
         supabase
@@ -148,6 +150,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
           ...(admin
             ? [
                 ["programs", "주간 프로그램"],
+                ["archive", "운동 DB"],
                 ["members", "회원 · 기준 중량"],
                 ["tv", "TV 연결"],
               ]
@@ -493,32 +496,23 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                     프로그램 준비부터 참가·기록까지 한곳에서.
                   </p>
                 </div>
-                <button
-                  className="g-primary"
-                  onClick={() => {
-                    setEditing({ new: true });
-                    setError("");
-                  }}
-                >
-                  + 수업 만들기
-                </button>
               </div>
               {loading && <p role="status">수업을 불러오고 있어요.</p>}
-              <WeekCalendar
+              <MemberCalendar
+                admin
                 day={day}
                 onDay={setDay}
+                view={calendarView}
+                onView={setCalendarView}
                 classes={classes}
                 onSelect={setSelected}
+                loading={loading}
+                onPrograms={admin ? () => setTab("programs") : undefined}
+                onCreate={() => {
+                  setEditing({ new: true });
+                  setError("");
+                }}
               />
-              {!loading && !classes.length && (
-                <div className="g-empty">
-                  <h3>이 날짜의 첫 수업을 준비해 보세요.</h3>
-                  <p>
-                    프로그램을 만든 후 공개하고, 수업 당일 참가 접수를 열어
-                    주세요.
-                  </p>
-                </div>
-              )}
             </>
           )}
         </>
@@ -532,6 +526,20 @@ export default function GroupAdmin({ profile, onManageMembers }) {
           templates={templates}
           profile={profile}
           onChange={() => setVersion((v) => v + 1)}
+        />
+      )}
+      {tab === "archive" && admin && (
+        <ProgramArchive
+          exercises={exercises}
+          onWeek={(date) => {
+            setDay(date);
+            setTab("programs");
+          }}
+          onClass={(row) => {
+            setDay(seoulDate(row.starts_at));
+            setSelected(row.id);
+            setTab("classes");
+          }}
         />
       )}
       {tab === "members" && (
