@@ -7,8 +7,8 @@
 1. **관리 → 그룹수업 → 회원 · 기준 중량**에서 그룹 이용 회원을 등록합니다. NTAC/PT 이용 권한은 바뀌지 않습니다.
 2. **수업 운영 → 수업 만들기**에서 날짜·시간·코치·프로그램을 입력합니다. 추천/기록할 운동만 핵심 운동으로 추가합니다.
 3. 중량 운동은 표준 종목, 목표 반복 수, kg/lb, 바 포함 총중량/덤벨 한 손 기준을 지정합니다. 수행 방식이 다르면 별도 표준 종목으로 등록합니다.
-4. 프로그램을 공개하고 **수업 당일 참가 접수 열기**를 누릅니다.
-5. 회원은 **그룹수업 → 수업 선택 → 오늘 운동 시작**을 누릅니다. 코치는 **참가자 추가**로 여러 명을 등록할 수 있습니다. 두 경로의 참가 정보는 하나로 합쳐집니다.
+4. 프로그램을 공개하면 시간표에 맞춰 자동 진행됩니다. 별도의 접수·수업 시작·종료 버튼은 없습니다.
+5. 시작 30분 전부터 종료 시간까지 회원은 **그룹수업 → 수업 선택 → 수업 참여**를 누릅니다. 코치는 **멤버 입장**으로 여러 명을 한 번에 입장시킬 수 있습니다. 두 경로의 참가 정보는 하나로 합쳐집니다.
 6. 회원 또는 코치가 실제 수행 기록을 입력합니다. 수치 없이 운동 완료도 가능합니다. 수업 전체 종료는 참가자 자동 완료가 아닙니다.
 7. 코치는 **기록 · 추천 조정**에서 중량·난이도 조정과 기록 확정을 합니다. 그룹 완료는 PT 차감이나 NTAC 과제 완료에 영향을 주지 않습니다.
 
@@ -28,7 +28,7 @@
 
 1. **TV 연결 → TV 연결 만들기**에서 TV 묶음을 만듭니다.
 2. **TV 1 · 추천 중량**, **TV 2 · 결과 보드** 링크를 각각 해당 TV의 브라우저나 웹 앱 실행 기기에서 엽니다.
-3. 수업 운영에서 수업을 열고 **이 수업 TV 송출 → 이 수업을 두 화면에 송출**을 누릅니다. 운동 선택도 두 화면에 같이 적용됩니다.
+3. 연결 후 두 TV는 같은 시간표를 자동으로 따릅니다. 진행 중 수업을 우선 표시하고, 없으면 시작 30분 전부터 다음 수업을 표시합니다. 종료 후에는 다음 입장 시간까지 당일 최근 수업의 기록을 유지합니다. 핵심 운동은 20초마다 함께 순환하며, 수업마다 수동 송출할 필요가 없습니다.
 4. TV는 5초 간격으로 서버 내용을 확인합니다. 9명씩 표시하고 8초마다 다음 페이지로 넘어갑니다. 연결 지연 시 마지막 화면이라는 표시가 뜹니다.
 5. 회원의 **내 프로필 → 체육관 TV 표시** 설정은 기본 비공개입니다. 회원이 별명을 입력하고 공개에 동의해야 TV에 표시됩니다. 이메일·연락처·메모·PT 횟수·원래 프로필 ID는 TV API가 반환하지 않습니다.
 6. 링크는 90일 동안 유효한 읽기 전용 연결입니다. TV에 관리자 로그인을 하지 않습니다. 링크를 다시 만들려면 기존 연결을 해제하고 새 TV 묶음을 만듭니다.
@@ -69,7 +69,7 @@ The group service remains independent of NTAC and PT. Official reservations and 
 
 1. In **그룹수업 → 주간 프로그램 → 반복 시간표 설정**, register recurring weekday/time/duration/coach slots. Slot IDs stay stable when editing.
 2. Choose a week (Monday–Sunday, Asia/Seoul), add each training day, then **저장 · 멤버 공개 · 캘린더 반영**. Publication creates matching *future* class occurrences immediately. Members with group access can read both the published weekly overview and each scheduled class. Draft weeks remain staff-only.
-3. Open a calendar class and **참가자 추가**. Published future classes create `planned` participants, never completed attendance. On the day, open registration and let the member or coach start the workout. Starting a planned entry refreshes its recommendation snapshot from the latest eligible history.
+3. From 30 minutes before the scheduled start until its scheduled end, members use **수업 참여** or coaches use **멤버 입장**. Entry immediately activates the participant. Earlier legacy planned entries remain planned until explicitly admitted and refresh their recommendation snapshot at entry. No registration/start/end action is required.
 4. Members or coaches record actual sets, optionally actual set RIR, and finish with **수업 전체 RPE** (0–10). New classes require final session RPE to complete. Saving unfinished records does not require RPE. The coach can confirm the record; only completed, confirmed sets explicitly marked **근력 추정용** inform later recommendations.
 5. Templates, individual class programs and weekly programs have deletion controls. Deletion archives rather than erases. Completed classes retain ended status and historical results. Removing a week cancels its future draft/published occurrences and planned rosters, preserving started/ended classes. Archived weeks can be replaced by a new program for the same dates.
 
@@ -216,3 +216,13 @@ Only exercise identity is reused. A block's OHP 5RM goal does not prescribe 5RM 
 Verification: `node tests/block-goals.mjs` checks block/class/date routing, untouched previews, explicit removal and existing-program preservation. The PostgreSQL suite tests atomic versioning, authorization, invalid/duplicate goals, individual class identity and unchanged lesson data. `tests/group-block-goals-production-smoke.sql` verifies hosted saving and access in a rollback-only transaction. Server rendering checks cover the editor, settings and week/phase display. This change has not received real-device visual or browser interaction testing.
 
 운영 migration: `20261021043817_group_block_goals.sql`.
+
+## 시간표 자동 진행 (2026-10-21)
+
+서버 시간과 수업 길이로 입장 가능·진행 중·종료 상태를 계산합니다. 관리자 화면을 닫아도 동작하며, 초안·취소 수업은 자동 시작하지 않습니다. 종료는 실제 운동 기록이나 개인 완료를 만들지 않습니다. 회원의 기록 수정 기한은 예정 종료 후 24시간이며 코치 확정 제한을 유지합니다.
+
+코치의 복제·템플릿 저장·취소 등은 **수업 관리** 안에 모았습니다. 모바일은 참가자와 **멤버 입장**을 프로그램 위에 보여줍니다. 저장한 템플릿은 **그룹수업 → 주간 프로그램 → 저장한 템플릿**에서 확인합니다.
+
+TV 링크는 최초 한 번 각각 열어 두면 됩니다. 기존 링크도 자동 시간표 방식으로 동작합니다. TV 공개 동의와 별명 설정은 그대로 유지하며, 비공개 회원은 표시하지 않습니다. 현재 시간표는 동시간대 수업이 겹치지 않는 단일 수업 운영을 기준으로 합니다. 겹치면 가장 최근에 시작한 진행 중 수업을 선택합니다.
+
+운영 migration: `20261021081959_group_auto_class_flow.sql`. 독립 DB 자동 흐름 26개 검증, 운영 DB 롤백 테스트, 가상 세션 기반 모바일/TV 브라우저 검증을 통과했습니다.

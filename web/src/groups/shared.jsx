@@ -1,4 +1,5 @@
 import StrengthSets from "./StrengthSets.jsx";
+import { classPhase } from "./classClock.js";
 import { useEffect, useRef, useState } from "react";
 import {
   levels,
@@ -44,6 +45,7 @@ export function Dialog({ title, onClose, children }) {
   );
 }
 export function ClassCard({ c, onClick, joined, actionLabel = "상세 보기" }) {
+  const phase = classPhase(c);
   return (
     <button className="g-class-card" onClick={onClick}>
       <span className="g-time">
@@ -53,7 +55,7 @@ export function ClassCard({ c, onClick, joined, actionLabel = "상세 보기" })
         <small>{c.duration_minutes}분</small>
       </span>
       <span className="g-class-content">
-        <span className={`g-badge ${c.status}`}>{stateLabels[c.status]}</span>
+        <span className={`g-badge ${phase}`}>{stateLabels[phase]}</span>
         <strong>{c.title}</strong>
         <small>
           {joined

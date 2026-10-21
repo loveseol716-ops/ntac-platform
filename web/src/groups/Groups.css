@@ -405,6 +405,37 @@
 .g-state-actions {
   margin-bottom: 24px;
 }
+.groups .g-auto-flow {
+  padding: 14px 16px;
+  margin: 20px 0 24px;
+  border: 1px solid #355447;
+  border-radius: 12px;
+  background: #14271f;
+  color: #bdd7c9;
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+.groups .g-class-options {
+  min-width: 0;
+  max-width: 100%;
+}
+.groups .g-class-options > summary {
+  cursor: pointer;
+  padding: 12px 4px;
+  min-height: 44px;
+  font-size: 0.85rem;
+  color: var(--g-muted);
+}
+.groups .g-class-options[open] {
+  flex-basis: 100%;
+}
+.groups .g-class-options .g-actions {
+  margin: 12px 0 20px;
+  gap: 12px;
+}
+.groups .g-member .g-full + .g-cycle-context {
+  margin-top: 20px;
+}
 .g-admin-columns {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
@@ -673,6 +704,9 @@
   }
   .g-admin-columns {
     grid-template-columns: 1fr;
+  }
+  .g-admin-roster {
+    grid-row: 1;
   }
   .g-class-header {
     display: block;

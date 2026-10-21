@@ -117,7 +117,11 @@ export default function GroupDisplay({ token }) {
             <div>
               <p>
                 {classTime(c.starts_at)} ·{" "}
-                {c.status === "ended" ? "수업 종료" : "오늘의 수업"}
+                {c.status === "ended"
+                  ? "오늘의 기록"
+                  : c.status === "open"
+                    ? "입장 중 · 곧 시작해요"
+                    : "수업 진행 중"}
               </p>
               <h1>{c.title}</h1>
             </div>
@@ -146,15 +150,22 @@ export default function GroupDisplay({ token }) {
                     >
                       {m
                         ? m.training_type === "strength"
-                          ? `${(p.results?.[m.id]?.sets || []).filter((s) => !s.dnf && s.weight != null && s.reps != null).length}/${m.sets.length}세트 · ${(
-                              p.results?.[m.id]?.sets || []
+                          ? !(p.results?.[m.id]?.sets || []).some(
+                              (s) =>
+                                !s.dnf && s.weight != null && s.reps != null,
                             )
-                              .filter(
-                                (s) =>
-                                  !s.dnf && s.weight != null && s.reps != null,
+                            ? "기록 대기"
+                            : `${(p.results?.[m.id]?.sets || []).filter((s) => !s.dnf && s.weight != null && s.reps != null).length}/${m.sets.length}세트 · ${(
+                                p.results?.[m.id]?.sets || []
                               )
-                              .reduce((sum, s) => sum + s.weight * s.reps, 0)
-                              .toLocaleString()} ${m.unit}·회`
+                                .filter(
+                                  (s) =>
+                                    !s.dnf &&
+                                    s.weight != null &&
+                                    s.reps != null,
+                                )
+                                .reduce((sum, s) => sum + s.weight * s.reps, 0)
+                                .toLocaleString()} ${m.unit}·회`
                           : resultText(m, p.results?.[m.id])
                         : p.status === "completed"
                           ? "운동 완료"
@@ -215,7 +226,7 @@ export default function GroupDisplay({ token }) {
             <div className="tv-empty">
               {results
                 ? "오늘의 운동 결과를 기다리고 있어요."
-                : "오늘 운동을 시작해 주세요."}
+                : "수업 참여를 누르면 이름과 추천 중량이 표시돼요."}
               <p>TV 공개에 동의한 회원의 별명과 기록이 표시돼요.</p>
             </div>
           )}
@@ -226,12 +237,15 @@ export default function GroupDisplay({ token }) {
           <p>
             {error
               ? "연결 상태를 확인해 주세요."
-              : "코치가 오늘의 수업을 선택하면 시작해요."}
+              : "시간표에 맞춰 자동으로 시작해요. 수업 30분 전부터 입장 명단이 표시돼요."}
           </p>
         </div>
       )}
       <footer>
         <span>
+          {c?.movements.length > 1
+            ? `운동 ${(data.movement_index ?? 0) + 1}/${c.movements.length} · 20초마다 자동 전환 · `
+            : ""}
           {results
             ? m?.training_type === "strength"
               ? "모든 세트의 반복 수를 완료한 확정 기록 · 총 수행량 기준"

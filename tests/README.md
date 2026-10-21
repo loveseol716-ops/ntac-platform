@@ -40,3 +40,11 @@ Pass ledger and profile release:
 - `CHROMIUM_PATH=/path/to/chromium node tests/run-browser.cjs tests/group-browser.cjs`: starts local Vite with synthetic API configuration and checks member/admin/TV flows, saved errors, mobile and 1080p layouts. Requires Playwright via `CODEX_PRIMARY_RUNTIME_NODE_MODULES`.
 - `CHROMIUM_PATH=/path/to/chromium node tests/run-browser.cjs`: existing PT/NTAC browser regression suite using the same server runner. Add `PT_COMPLETION_ONLY=1` for the existing PT timing/deduction regression.
 - Operations and limits: `docs/group-classes.md`.
+
+## Automatic group-class flow
+
+- `NTAC_TEST_MODULES=/path/to/node_modules node tests/group-auto-lifecycle.mjs`: isolated PostgreSQL checks scheduled phase boundaries, permissions, actual admission, duplicate joins, next-class TV selection, private names, token rejection, recording deadlines, stale revisions and no automatic completion or PT ledger changes.
+- `CHROMIUM_PATH=/path/to/chromium node tests/run-browser.cjs tests/group-auto-browser.cjs`: controlled-clock member/coach admission, automatic start, removed lifecycle controls, TV polling, private names and 320–1920 px layouts with synthetic API responses.
+- `group-auto-production-smoke.sql`: rollback-only schema compatibility, member/coach admission, actual records, two token-gated TV modes and private-helper access checks.
+
+The original group browser/database suites document the earlier manual lifecycle; the automatic-flow suites supersede their manual opening/start/finish expectations.

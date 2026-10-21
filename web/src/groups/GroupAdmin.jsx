@@ -24,10 +24,12 @@ import {
 import { Dialog, Program, RecordEditor } from "./shared.jsx";
 import ClassEditor from "./ClassEditor.jsx";
 import WallControl from "./WallControl.jsx";
+import { timedClass, useClassClock } from "./classClock.js";
 import { TrainingContext } from "./TrainingJourney.jsx";
 import { trainingClass } from "./trainingCycle.js";
 import "./Groups.css";
 export default function GroupAdmin({ profile, onManageMembers }) {
+  const now = useClassClock();
   const admin = ["owner", "admin"].includes(profile.role),
     lock = useRef(false);
   const [tab, setTab] = useState("classes"),
@@ -122,18 +124,10 @@ export default function GroupAdmin({ profile, onManageMembers }) {
       setBusy(false);
     }
   }
-  const c = detail?.class,
+  const c = timedClass(detail?.class, now),
     coaches = admin
       ? directory.filter((p) => ["owner", "admin", "coach"].includes(p.role))
       : [profile];
-  const transitions = {
-    draft: ["published", "cancelled"],
-    published: ["open", "draft", "cancelled"],
-    open: ["live", "ended", "cancelled"],
-    live: ["ended", "cancelled"],
-    ended: [],
-    cancelled: [],
-  };
   async function openAdd() {
     setChoices([]);
     setException(false);
@@ -203,109 +197,129 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                         {stateLabels[c.status]}
                       </span>
                     </div>
-                    <div className="g-actions">
-                      {!detail.participants.length &&
-                        !["live", "ended", "cancelled"].includes(c.status) && (
-                          <button onClick={() => setEditing(c)}>
-                            프로그램 수정
+                    <details className="g-class-options">
+                      <summary>수업 관리</summary>
+                      <div className="g-actions">
+                        {!detail.participants.length &&
+                          !["live", "ended", "cancelled"].includes(
+                            c.status,
+                          ) && (
+                            <button onClick={() => setEditing(c)}>
+                              프로그램 수정
+                            </button>
+                          )}
+                        <button
+                          onClick={() =>
+                            setEditing({
+                              ...c,
+                              id: undefined,
+                              revision: undefined,
+                              date: day,
+                              status: "draft",
+                            })
+                          }
+                        >
+                          새 수업으로 복제
+                        </button>
+                        <button
+                          disabled={busy}
+                          onClick={async () => {
+                            if (
+                              confirm(
+                                "이 수업 프로그램을 목록에서 삭제할까요? 기존 운동 기록은 보존돼요.",
+                              )
+                            ) {
+                              if (
+                                await act(
+                                  () =>
+                                    rpc("group_remove_program", {
+                                      kind: "class",
+                                      target_id: c.id,
+                                      expected_revision: c.revision,
+                                    }),
+                                  "수업 프로그램을 삭제했어요.",
+                                )
+                              )
+                                setSelected(null);
+                            }
+                          }}
+                        >
+                          프로그램 삭제
+                        </button>
+                        <button
+                          disabled={busy}
+                          onClick={() =>
+                            act(
+                              () => rpc("group_save_template", { payload: c }),
+                              "템플릿을 저장했어요. 주간 프로그램 → 저장한 템플릿에서 확인하고 불러올 수 있어요.",
+                            )
+                          }
+                        >
+                          템플릿 저장
+                        </button>
+                        {!["ended", "cancelled"].includes(c.status) && (
+                          <button
+                            disabled={busy}
+                            onClick={() => {
+                              if (
+                                confirm(
+                                  "이 수업을 취소할까요? 기존 기록은 보관돼요.",
+                                )
+                              )
+                                act(
+                                  () =>
+                                    rpc("group_set_class_status", {
+                                      cid: c.id,
+                                      next_status: "cancelled",
+                                      expected_revision: c.revision,
+                                    }),
+                                  "수업을 취소했어요.",
+                                );
+                            }}
+                          >
+                            수업 취소
                           </button>
                         )}
-                      <button
-                        onClick={() =>
-                          setEditing({
-                            ...c,
-                            id: undefined,
-                            revision: undefined,
-                            date: day,
-                            status: "draft",
-                          })
-                        }
-                      >
-                        새 수업으로 복제
-                      </button>
-                      <button
-                        disabled={busy}
-                        onClick={async () => {
-                          if (
-                            confirm(
-                              "이 수업 프로그램을 목록에서 삭제할까요? 기존 운동 기록은 보존돼요.",
-                            )
-                          ) {
-                            if (
-                              await act(
-                                () =>
-                                  rpc("group_remove_program", {
-                                    kind: "class",
-                                    target_id: c.id,
-                                    expected_revision: c.revision,
-                                  }),
-                                "수업 프로그램을 삭제했어요.",
-                              )
-                            )
-                              setSelected(null);
-                          }
-                        }}
-                      >
-                        프로그램 삭제
-                      </button>
-                      <button
-                        disabled={busy}
-                        onClick={() =>
-                          act(
-                            () => rpc("group_save_template", { payload: c }),
-                            "템플릿을 저장했어요. 주간 프로그램 → 저장한 템플릿에서 확인하고 불러올 수 있어요.",
-                          )
-                        }
-                      >
-                        템플릿 저장
-                      </button>
-                    </div>
+                      </div>
+                    </details>
                   </header>
-                  <div className="g-actions g-state-actions">
-                    {transitions[c.status].map((s) => (
+                  {c.status === "draft" ? (
+                    <div className="g-actions g-state-actions">
                       <button
-                        key={s}
+                        className="g-primary"
                         disabled={busy}
-                        className={
-                          ["open", "live"].includes(s) ? "g-primary" : ""
-                        }
-                        onClick={() => {
-                          if (
-                            ["ended", "cancelled"].includes(s) &&
-                            !confirm(
-                              s === "ended"
-                                ? "수업을 종료할까요? 참가자의 운동 완료는 별도로 처리해 주세요."
-                                : "이 수업을 취소할까요? 운톡 예약·출석은 별도로 처리해 주세요.",
-                            )
-                          )
-                            return;
+                        onClick={() =>
                           act(
                             () =>
                               rpc("group_set_class_status", {
                                 cid: c.id,
-                                next_status: s,
+                                next_status: "published",
                                 expected_revision: c.revision,
                               }),
-                            `${stateLabels[s]} 상태로 변경했어요.`,
-                          );
-                        }}
-                      >
-                        {
-                          {
-                            published: "프로그램 공개",
-                            open: "참가 접수 열기",
-                            live: "수업 시작",
-                            ended: "수업 종료",
-                            cancelled: "수업 취소",
-                            draft: "공개 취소",
-                          }[s]
+                            "프로그램을 공개했어요. 시간표에 따라 자동으로 진행돼요.",
+                          )
                         }
+                      >
+                        프로그램 공개
                       </button>
-                    ))}
-                  </div>
+                    </div>
+                  ) : (
+                    c.status !== "cancelled" && (
+                      <p className="g-auto-flow">
+                        시간표 자동 진행 · 시작 30분 전 입장 · 정시에 TV 전환
+                      </p>
+                    )
+                  )}
                   <div className="g-admin-columns">
-                    <div><TrainingContext date={c.starts_at} classType={trainingClass(c)} label="이 수업의 위치" /><Program c={c} exercises={exercises} /></div>
-                    <section className="g-panel">
+                    <div>
+                      <TrainingContext
+                        date={c.starts_at}
+                        classType={trainingClass(c)}
+                        label="이 수업의 위치"
+                      />
+                      <Program c={c} exercises={exercises} />
+                    </div>
+                    <section className="g-panel g-admin-roster">
                       <div className="g-heading">
                         <h3>
                           참가자{" "}
@@ -318,10 +332,10 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                             }
                           </span>
                         </h3>
-                        {["published", "open", "live"].includes(c.status) &&
+                        {["open", "live"].includes(c.status) &&
                           !c.archived_at && (
                             <button className="g-primary" onClick={openAdd}>
-                              참가자 추가
+                              멤버 입장
                             </button>
                           )}
                       </div>
@@ -331,8 +345,8 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                       </p>
                       {!detail.participants.length && (
                         <p className="g-empty">
-                          캘린더에서 참가자를 미리 추가하고, 당일 접수를 열어
-                          운동을 시작하세요.
+                          멤버가 ‘수업 참여’를 누르거나 코치가 ‘멤버 입장’으로
+                          추가하면 바로 표시돼요.
                         </p>
                       )}
                       {detail.participants.map((p) => (
@@ -373,11 +387,11 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                                           cid: c.id,
                                           user_ids: [p.user_id],
                                         }),
-                                      "운동을 시작했어요.",
+                                      "멤버가 입장했어요. TV 공개 설정에 따라 화면에 반영돼요.",
                                     )
                                   }
                                 >
-                                  오늘 운동 시작
+                                  입장시키기
                                 </button>
                                 <button
                                   disabled={busy}
@@ -412,17 +426,6 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                                   >
                                     기록 · 추천 조정
                                   </button>
-                                  {p.status === "active" && (
-                                    <button
-                                      disabled={busy}
-                                      onClick={() => {
-                                        setRecord(p);
-                                        setError("");
-                                      }}
-                                    >
-                                      운동 완료
-                                    </button>
-                                  )}
                                   <button
                                     disabled={busy}
                                     onClick={() => {
@@ -487,7 +490,6 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                       회원용 수업 링크 복사
                     </button>
                   </div>
-                  {admin && <WallControl currentClass={c} compact />}
                 </>
               )}
             </>
@@ -638,7 +640,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
             if (
               await act(async () => {
                 id = await rpc("group_save_class", { payload });
-              }, "프로그램을 저장했어요. 공개 후 당일 참가 접수를 열어 주세요.")
+              }, "프로그램을 저장했어요. 공개하면 시간표에 따라 자동으로 진행돼요.")
             ) {
               setEditing(null);
               setDay(seoulDate(payload.starts_at));
@@ -668,13 +670,10 @@ export default function GroupAdmin({ profile, onManageMembers }) {
         />
       )}
       {adding && (
-        <Dialog
-          title="수업 참가자 추가"
-          onClose={() => !busy && setAdding(false)}
-        >
+        <Dialog title="멤버 입장" onClose={() => !busy && setAdding(false)}>
           <p className="g-muted">
-            수업에 참여할 회원을 선택하세요. 공개된 예정 수업은 참가 예정으로
-            등록돼요. 이미 등록된 회원은 중복 추가되지 않아요.
+            수업에 참여할 회원을 선택하세요. 입장하면 바로 추천 중량이 준비되고,
+            TV 공개를 켠 회원은 두 화면에 표시돼요.
           </p>
           <input
             aria-label="참가자 검색"
@@ -687,6 +686,11 @@ export default function GroupAdmin({ profile, onManageMembers }) {
               .filter(
                 (p) =>
                   (p.active || admin) &&
+                  !detail?.participants.some(
+                    (joined) =>
+                      joined.user_id === p.id &&
+                      ["active", "completed"].includes(joined.status),
+                  ) &&
                   `${p.name} ${p.email || ""}`
                     .toLowerCase()
                     .includes(query.toLowerCase()),
@@ -746,7 +750,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                 setAdding(false);
             }}
           >
-            {choices.length}명 참가 등록
+            {choices.length}명 입장
           </button>
         </Dialog>
       )}

@@ -1,7 +1,11 @@
+import { timedClass, useClassClock } from "./classClock.js";
 import MemberCalendar from "./MemberCalendar.jsx";
 import WeeklyOverview from "./WeeklyOverview.jsx";
 import HistoryRecord from "./HistoryRecord.jsx";
-import TrainingJourney, { TrainingContext, TrainingPositionBar } from "./TrainingJourney.jsx";
+import TrainingJourney, {
+  TrainingContext,
+  TrainingPositionBar,
+} from "./TrainingJourney.jsx";
 import { trainingClass } from "./trainingCycle.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -31,6 +35,7 @@ import {
 } from "./shared.jsx";
 import "./Groups.css";
 export default function GroupMember({ profile }) {
+  const now = useClassClock();
   const [tab, setTab] = useState("today"),
     [minDay, setMinDay] = useState(programVisibleFrom()),
     [historyRecord, setHistoryRecord] = useState(null),
@@ -156,14 +161,14 @@ export default function GroupMember({ profile }) {
       setBusy(false);
     }
   }
-  const c = detail?.class,
+  const c = timedClass(detail?.class, now),
     p = detail?.participants.find((p) => p.user_id === profile.id),
     stats = groupStats(records);
   const canEdit =
     p &&
     !p.finalized &&
     ["open", "live", "ended"].includes(c?.status) &&
-    (!c?.ended_at || Date.now() < new Date(c.ended_at).getTime() + 86400000) &&
+    (!c?.ended_at || now < new Date(c.ended_at).getTime() + 86400000) &&
     ["active", "completed"].includes(p.status);
   const openTab = (next) => {
     setTab(next);
@@ -174,7 +179,9 @@ export default function GroupMember({ profile }) {
   };
   return (
     <main className="groups g-member" aria-label="그룹수업">
-      {!selected && ["today", "programs"].includes(tab) && <TrainingPositionBar onOpen={() => openTab("journey")} />}
+      {!selected && ["today", "programs"].includes(tab) && (
+        <TrainingPositionBar onOpen={() => openTab("journey")} />
+      )}
       <nav className="g-tabs g-member-tabs" aria-label="그룹수업 메뉴">
         {[
           ["today", "수업 캘린더"],
@@ -237,7 +244,37 @@ export default function GroupMember({ profile }) {
                   {stateLabels[c.status]}
                 </span>
               </div>
-              <TrainingContext date={c.starts_at} classType={trainingClass(c)} label="이 수업의 위치" />
+              {(!p || ["planned", "left", "cancelled"].includes(p.status)) &&
+                ["open", "live"].includes(c.status) &&
+                (membership?.active ||
+                  (p?.status === "planned" && p.exception_access)) && (
+                  <button
+                    className="g-primary g-full"
+                    disabled={busy}
+                    onClick={() =>
+                      act(
+                        () => rpc("group_join", { cid: c.id }),
+                        "수업에 참여했어요. 추천 중량을 확인해 주세요.",
+                      )
+                    }
+                  >
+                    수업 참여
+                  </button>
+                )}
+              {!p &&
+                (!membership?.active ||
+                  !["open", "live"].includes(c.status)) && (
+                  <p className="g-empty">
+                    {!membership?.active
+                      ? "그룹 이용 권한을 코치에게 확인해 주세요."
+                      : "수업 시작 30분 전부터 종료 시간까지 참여할 수 있어요."}
+                  </p>
+                )}
+              <TrainingContext
+                date={c.starts_at}
+                classType={trainingClass(c)}
+                label="이 수업의 위치"
+              />
               <Program c={c} exercises={exercises} />
               {p && (
                 <>
@@ -266,8 +303,8 @@ export default function GroupMember({ profile }) {
                     )}
                     {p.status === "planned" && (
                       <p className="g-muted">
-                        참가 예정이에요. 당일 접수가 열리면 오늘 운동 시작을
-                        눌러 주세요.
+                        참가 예정이에요. 시작 30분 전부터 ‘수업 참여’를 눌러
+                        입장하세요.
                       </p>
                     )}
                     {p.finalized && (
@@ -281,11 +318,6 @@ export default function GroupMember({ profile }) {
                         >
                           기록 입력
                         </button>
-                        {p.status === "active" && (
-                          <button disabled={busy} onClick={() => setEditing(p)}>
-                            운동 마무리 · RPE
-                          </button>
-                        )}
                       </div>
                     )}
                     {p.status === "active" && c.status !== "cancelled" && (
@@ -310,32 +342,6 @@ export default function GroupMember({ profile }) {
                   </section>
                 </>
               )}
-              {(!p || ["planned", "left", "cancelled"].includes(p.status)) &&
-                ["open", "live"].includes(c.status) &&
-                (membership?.active ||
-                  (p?.status === "planned" && p.exception_access)) && (
-                  <button
-                    className="g-primary g-full"
-                    disabled={busy}
-                    onClick={() =>
-                      act(
-                        () => rpc("group_join", { cid: c.id }),
-                        "오늘 운동을 시작했어요.",
-                      )
-                    }
-                  >
-                    오늘 운동 시작
-                  </button>
-                )}
-              {!p &&
-                (!membership?.active ||
-                  !["open", "live"].includes(c.status)) && (
-                  <p className="g-empty">
-                    {!membership?.active
-                      ? "그룹 이용 권한을 코치에게 확인해 주세요."
-                      : "코치가 당일 참가 접수를 열면 운동을 시작할 수 있어요."}
-                  </p>
-                )}
               {editing && p && (
                 <RecordEditor
                   participant={editing}
@@ -388,8 +394,12 @@ export default function GroupMember({ profile }) {
         <>
           <h2>나의 운동 기록</h2>
           <div className="g-summary">
-            <span><b>{stats.sessions}</b> 완료한 수업</span>
-            <span><b>{stats.days}</b> 운동한 날</span>
+            <span>
+              <b>{stats.sessions}</b> 완료한 수업
+            </span>
+            <span>
+              <b>{stats.days}</b> 운동한 날
+            </span>
           </div>
           <p className="g-muted">
             최근 200개 참가 기록 · 운동 완료한 수업만 횟수에 포함돼요.

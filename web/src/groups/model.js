@@ -1,7 +1,7 @@
 export const stateLabels = {
   draft: "작성 중",
-  published: "공개됨",
-  open: "참가 가능",
+  published: "수업 예정",
+  open: "입장 가능",
   live: "진행 중",
   ended: "종료",
   cancelled: "취소",
