@@ -1518,3 +1518,119 @@
 .groups .g-default-preview { padding: 14px; background: #243b2e; border-radius: 9px; margin: 12px 0; font-size: .82rem; }
 .groups .g-default-preview p { font-size: .78rem; color: #c8d9ce; margin: 8px 0; }
 .groups .g-default-preview button { margin: 5px 7px 0 0; font-size: .77rem; }
+
+/* Use layout gaps for weekly authoring so buttons, cards and fields cannot touch. */
+.groups .g-weekly-programs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  padding-bottom: 24px;
+}
+.groups .g-weekly-programs > :not(dialog) {
+  margin: 0;
+  min-width: 0;
+}
+.groups .g-weekly-programs > button {
+  justify-self: start;
+  max-width: 100%;
+  white-space: normal;
+}
+.groups .g-weekly-programs > .g-heading {
+  align-items: flex-start;
+  gap: 16px 24px;
+}
+.groups .g-weekly-programs > .g-heading p {
+  margin: 10px 0 0;
+}
+.groups .g-weekly-programs > .g-heading .g-actions {
+  margin: 0;
+  gap: 12px;
+}
+.groups .g-week-range {
+  color: var(--g-muted);
+  font-size: .88rem;
+  overflow-wrap: anywhere;
+}
+.groups .g-template-library {
+  scroll-margin-block: 24px;
+}
+.groups .g-template-library > p:last-child {
+  margin-bottom: 0;
+}
+.groups .g-template-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+  padding: 20px 0;
+  border-top: 1px solid var(--g-border);
+}
+.groups .g-template-item:last-child {
+  padding-bottom: 0;
+}
+.groups .g-template-item > button {
+  font-size: .8rem;
+}
+.groups .g-template-preview {
+  min-width: 0;
+}
+.groups .g-template-preview > summary {
+  min-height: 44px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.groups .g-template-preview > summary small {
+  margin-top: 6px;
+}
+.groups .g-template-preview > .g-panel {
+  margin: 16px 0 0;
+  padding: 16px;
+  background: #141b1d;
+}
+.groups .g-week-editor > fieldset,
+.groups .g-week-editor .g-type-edit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+.groups .g-week-editor > fieldset > *,
+.groups .g-week-editor .g-type-edit > * {
+  margin: 0;
+  min-width: 0;
+}
+.groups .g-template-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--g-border);
+  border-radius: 12px;
+  background: #151e1b;
+}
+.groups .g-template-picker > label {
+  min-width: 0;
+  margin: 0;
+}
+.groups .g-template-picker > p {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+@media (max-width: 600px) {
+  .groups .g-weekly-programs {
+    gap: 20px;
+  }
+  .groups .g-weekly-programs > button {
+    width: 100%;
+  }
+  .groups .g-template-item,
+  .groups .g-template-picker {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .groups .g-template-item > button {
+    justify-self: end;
+  }
+  .groups .g-template-preview > .g-panel {
+    padding: 12px;
+  }
+}

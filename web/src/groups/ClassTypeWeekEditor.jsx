@@ -3,6 +3,7 @@ import { Dialog } from "./shared.jsx";
 import { programVisibleFrom } from "./model.js";
 import ProgramFields from "./ProgramFields.jsx";
 import AuthoringContext from "./AuthoringContext.jsx";
+import TemplatePicker from "./TemplatePicker.jsx";
 import { cleanProgram, goalsForDate } from "./blockGoals.js";
 import {
   CLASS_TYPES,
@@ -15,6 +16,8 @@ export default function ClassTypeWeekEditor({
   blockGoals = [],
   exercises,
   templates,
+  templatesLoading,
+  templatesError,
   busy,
   error,
   onClose,
@@ -44,6 +47,7 @@ export default function ClassTypeWeekEditor({
   return (
     <Dialog title="한 주의 수업 프로그램" onClose={onClose}>
       <form
+        className="g-week-editor"
         onSubmit={(e) => {
           e.preventDefault();
           const status = e.nativeEvent.submitter?.value || form.status;
@@ -98,40 +102,8 @@ export default function ClassTypeWeekEditor({
             <p className="g-kicker">{typeDays(selected)}요일 자동 배치</p>
             <h3>{type.name}</h3>
             <AuthoringContext date={form.week_start} week classType={selected} goals={goals} exercises={exercises} />
-            {templates.length > 0 && (
-              <label>
-                템플릿 가져오기
-                <select
-                  value=""
-                  onChange={(e) => {
-                    const t = templates.find((x) => x.id === e.target.value);
-                    if (t)
-                      setForm({
-                        ...form,
-                        programs: form.programs.map((x) =>
-                          x.class_type_id === selected
-                            ? {
-                                ...x,
-                                description: t.description,
-                                movements: t.movements.map((m) => ({
-                                  ...m,
-                                  id: crypto.randomUUID(),
-                                })),
-                              }
-                            : x,
-                        ),
-                      });
-                  }}
-                >
-                  <option value="">선택</option>
-                  {templates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
+            <TemplatePicker key={selected} templates={templates} loading={templatesLoading} error={templatesError} hasContent={programReady(p)}
+              onApply={(t) => setProgram({ ...p, description: t.description, movements: t.movements, _blockDefaultsHandled: true })} />
             <ProgramFields form={p} onChange={setProgram} goals={goals} exercises={exercises} hideTitle />
           </section>
           {(error || validation) && (

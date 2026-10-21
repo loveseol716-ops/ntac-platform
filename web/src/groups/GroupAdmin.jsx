@@ -49,6 +49,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(false),
+    [loadError, setLoadError] = useState(""),
     [version, setVersion] = useState(0),
     [baseline, setBaseline] = useState(null),
     [audit, setAudit] = useState(null),
@@ -56,6 +57,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
   useEffect(() => {
     let live = true;
     setLoading(true);
+    setLoadError("");
     Promise.all([
       listClasses(day, "month"),
       listExercises(),
@@ -76,7 +78,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
           setDirectory(ds);
         }
       })
-      .catch((e) => live && setError(e.message))
+      .catch((e) => live && setLoadError(e.message))
       .finally(() => live && setLoading(false));
     return () => {
       live = false;
@@ -172,9 +174,9 @@ export default function GroupAdmin({ profile, onManageMembers }) {
           </button>
         ))}
       </nav>
-      {error && (
+      {(error || loadError) && (
         <p className="g-error" role="alert">
-          {error}
+          {error || loadError}
         </p>
       )}
       {message && (
@@ -251,7 +253,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                         onClick={() =>
                           act(
                             () => rpc("group_save_template", { payload: c }),
-                            "프로그램을 템플릿으로 저장했어요.",
+                            "템플릿을 저장했어요. 주간 프로그램 → 저장한 템플릿에서 확인하고 불러올 수 있어요.",
                           )
                         }
                       >
@@ -526,6 +528,8 @@ export default function GroupAdmin({ profile, onManageMembers }) {
           coaches={coaches}
           exercises={exercises}
           templates={templates}
+          templatesLoading={loading}
+          templatesError={loadError}
           profile={profile}
           onChange={() => setVersion((v) => v + 1)}
         />

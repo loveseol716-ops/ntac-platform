@@ -5,8 +5,9 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "../lib/supabase.js";
 import { checked, rpc, listWeeks } from "./api.js";
 import { weekStart, weekdays, addDays, programVisibleFrom } from "./model.js";
-import { Dialog } from "./shared.jsx";
+import { Dialog, Program } from "./shared.jsx";
 import ProgramFields from "./ProgramFields.jsx";
+import TemplatePicker from "./TemplatePicker.jsx";
 import AuthoringContext from "./AuthoringContext.jsx";
 import BlockGoalsEditor from "./BlockGoalsEditor.jsx";
 import useBlockGoals from "./useBlockGoals.js";
@@ -18,11 +19,14 @@ export default function WeeklyPrograms({
   coaches,
   exercises,
   templates,
+  templatesLoading = false,
+  templatesError = "",
   profile,
   onChange,
 }) {
   const blockGoals = useBlockGoals();
   const [goalSettings, setGoalSettings] = useState(false);
+  const templateLibrary = useRef(null);
   const [weeks, setWeeks] = useState([]),
     [timetable, setTimetable] = useState(null),
     [edit, setEdit] = useState(null),
@@ -70,7 +74,7 @@ export default function WeeklyPrograms({
   }
   const start = weekStart(day);
   return (
-    <>
+    <div className="g-weekly-programs">
       <div className="g-heading">
         <div>
           <h2>주간 프로그램</h2>
@@ -79,6 +83,7 @@ export default function WeeklyPrograms({
           </p>
         </div>
         <div className="g-actions">
+        <button onClick={() => { templateLibrary.current?.scrollIntoView({ behavior: "smooth", block: "start" }); templateLibrary.current?.focus({ preventScroll: true }); }}>저장한 템플릿{!templatesLoading && !templatesError ? ` (${templates.length})` : ""}</button>
         <button disabled={blockGoals.loading || !!blockGoals.error} onClick={() => { setError(""); setGoalSettings(true); }}>블록 목표 설정</button>
         <button
           disabled={!timetable}
@@ -113,8 +118,8 @@ export default function WeeklyPrograms({
           {message}
         </p>
       )}
-      <p>
-        {start} 시작 주 · 반복 수업 {timetable?.slots.length || 26}개
+      <p className="g-week-range">
+        {start} – {addDays(start, 6)} · 반복 수업 {timetable?.slots.length || 26}개
         {!timetable?.slots.length ? " (첨부 시간표 기본값)" : ""}
       </p>
       <AuthoringContext date={start} week />
@@ -229,16 +234,25 @@ export default function WeeklyPrograms({
           </div>
         </section>
       ))}
-      <section className="g-panel">
-        <h3>저장한 템플릿</h3>
-        {!templates.length && (
+      <section className="g-panel g-template-library" ref={templateLibrary} tabIndex={-1} aria-label="저장한 템플릿 목록">
+        <div className="g-heading">
+          <h3>저장한 템플릿</h3>
+          {!templatesLoading && !templatesError && <span className="g-badge">{templates.length}개</span>}
+        </div>
+        <p className="g-muted">주차와 관계없이 보관돼요. 주간 프로그램 작성창에서 수업을 선택한 뒤 ‘저장한 템플릿 불러오기’로 적용하세요.</p>
+        {templatesLoading ? <p className="g-muted" role="status">템플릿을 불러오는 중이에요…</p> : templatesError ? (
+          <p className="g-error" role="alert">템플릿 목록을 불러오지 못했어요. <button onClick={onChange}>다시 불러오기</button></p>
+        ) : !templates.length && (
           <p className="g-muted">
-            수업 상세에서 템플릿을 저장하면 다시 사용할 수 있어요.
+            아직 저장한 템플릿이 없어요. 수업 운영 → 수업 선택 → ‘템플릿 저장’을 눌러 주세요. 주간 프로그램의 ‘임시 저장’은 해당 주에만 저장돼요.
           </p>
         )}
-        {templates.map((t) => (
-          <div className="g-heading" key={t.id}>
-            <span>{t.title}</span>
+        {!templatesLoading && !templatesError && templates.map((t) => (
+          <div className="g-template-item" key={t.id}>
+            <details className="g-template-preview">
+              <summary><strong>{t.title}</strong><small>내용 보기 · 핵심 운동 {t.movements.length}개</small></summary>
+              <Program c={t} exercises={exercises} />
+            </details>
             {(profile.role !== "coach" || t.created_by === profile.id) && (
               <button
                 disabled={busy}
@@ -301,6 +315,8 @@ export default function WeeklyPrograms({
           blockGoals={blockGoals.rows}
           exercises={exercises}
           templates={templates}
+          templatesLoading={templatesLoading}
+          templatesError={templatesError}
           busy={busy}
           error={error}
           onClose={() => !busy && setEdit(null)}
@@ -320,7 +336,7 @@ export default function WeeklyPrograms({
           }}
         />
       )}
-    </>
+    </div>
   );
 }
 function LegacyWeekEditor({
@@ -328,6 +344,8 @@ function LegacyWeekEditor({
   blockGoals = [],
   exercises,
   templates,
+  templatesLoading,
+  templatesError,
   busy,
   error,
   onClose,
@@ -344,6 +362,7 @@ function LegacyWeekEditor({
   return (
     <Dialog title="주간 프로그램 만들기 · 수정" onClose={onClose}>
       <form
+        className="g-week-editor"
         onSubmit={(e) => {
           e.preventDefault();
           onSave({
@@ -412,41 +431,8 @@ function LegacyWeekEditor({
                   이 요일 제거
                 </button>
               </div>
-              {templates.length > 0 && (
-                <label>
-                  템플릿 가져오기
-                  <select
-                    value=""
-                    onChange={(e) => {
-                      const t = templates.find((x) => x.id === e.target.value);
-                      if (t)
-                        setForm({
-                          ...form,
-                          days: form.days.map((x) =>
-                            x.dow === dow
-                              ? {
-                                  dow,
-                                  title: t.title,
-                                  description: t.description,
-                                  movements: t.movements.map((m) => ({
-                                    ...m,
-                                    id: crypto.randomUUID(),
-                                  })),
-                                }
-                              : x,
-                          ),
-                        });
-                    }}
-                  >
-                    <option value="">선택</option>
-                    {templates.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
+              <TemplatePicker key={dow} templates={templates} loading={templatesLoading} error={templatesError} hasContent={programReady(d)}
+                onApply={(t) => set({ ...d, title: t.title, description: t.description, movements: t.movements, _blockDefaultsHandled: true })} />
               <AuthoringContext date={addDays(form.week_start, dow - 1)} classType={trainingClass(d)} goals={goalsForDate(blockGoals, addDays(form.week_start, dow - 1), trainingClass(d))} exercises={exercises} />
               <ProgramFields form={d} onChange={set} goals={goalsForDate(blockGoals, addDays(form.week_start, dow - 1), trainingClass(d))} exercises={exercises} />
             </>
