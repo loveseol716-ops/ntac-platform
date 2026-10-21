@@ -8,6 +8,8 @@ import {
   weekStart,
 } from "./model.js";
 import { Dialog, Program } from "./shared.jsx";
+import { TrainingContext } from "./TrainingJourney.jsx";
+import { trainingClass } from "./trainingCycle.js";
 
 export default function WeeklyOverview({
   day,
@@ -53,6 +55,7 @@ export default function WeeklyOverview({
           ? "프로그램을 불러오고 있어요."
           : week?.title || "공개된 주간 프로그램이 없어요."}
       </p>
+      <TrainingContext date={start} label="보고 있는 주의 위치" />
       <p className="g-muted">
         지난주부터의 공개 프로그램을 볼 수 있어요. 프로그램을 누르면 운동 구성과
         세트 수가 열려요.
@@ -108,6 +111,7 @@ export default function WeeklyOverview({
           title={`${selected.date} 프로그램`}
           onClose={() => setSelected(null)}
         >
+          <TrainingContext date={selected.date} classType={trainingClass(selected.program)} label="이 프로그램의 위치" />
           <Program c={selected.program} exercises={exercises} />
           <button
             className="g-primary g-full"

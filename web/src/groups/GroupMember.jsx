@@ -1,6 +1,8 @@
 import MemberCalendar from "./MemberCalendar.jsx";
 import WeeklyOverview from "./WeeklyOverview.jsx";
 import HistoryRecord from "./HistoryRecord.jsx";
+import TrainingJourney, { TrainingContext } from "./TrainingJourney.jsx";
+import { trainingClass } from "./trainingCycle.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   rpc,
@@ -183,6 +185,7 @@ export default function GroupMember({ profile }) {
           </span>
         </div>
       </header>
+      {!selected && ["today", "programs"].includes(tab) && <TrainingJourney />}
       <nav className="g-tabs g-member-tabs" aria-label="그룹수업 메뉴">
         {[
           ["today", "수업 캘린더"],
@@ -250,6 +253,7 @@ export default function GroupMember({ profile }) {
                   {stateLabels[c.status]}
                 </span>
               </div>
+              <TrainingContext date={c.starts_at} classType={trainingClass(c)} label="이 수업의 위치" />
               <Program c={c} exercises={exercises} />
               {p && (
                 <>

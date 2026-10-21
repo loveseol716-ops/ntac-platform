@@ -2,6 +2,8 @@ import ProgramFields from "./ProgramFields.jsx";
 import { useState } from "react";
 import { Dialog } from "./shared.jsx";
 import { seoulDate, classTime } from "./model.js";
+import { TrainingContext } from "./TrainingJourney.jsx";
+import { trainingClass } from "./trainingCycle.js";
 export default function ClassEditor({
   current,
   day,
@@ -129,6 +131,7 @@ export default function ClassEditor({
               ))}
             </select>
           </label>
+          <TrainingContext date={form.date} classType={trainingClass(form)} label="작성 중인 수업의 위치" />
           <ProgramFields form={form} set={set} exercises={exercises} />
           <p className="g-muted">
             참가자가 생기면 프로그램이 고정돼요. 다른 조건의 운동은 새 종목으로

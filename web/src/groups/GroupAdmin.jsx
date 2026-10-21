@@ -24,6 +24,8 @@ import {
 import { Dialog, Program, RecordEditor } from "./shared.jsx";
 import ClassEditor from "./ClassEditor.jsx";
 import WallControl from "./WallControl.jsx";
+import { TrainingContext } from "./TrainingJourney.jsx";
+import { trainingClass } from "./trainingCycle.js";
 import "./Groups.css";
 export default function GroupAdmin({ profile, onManageMembers }) {
   const admin = ["owner", "admin"].includes(profile.role),
@@ -300,7 +302,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                     ))}
                   </div>
                   <div className="g-admin-columns">
-                    <Program c={c} exercises={exercises} />
+                    <div><TrainingContext date={c.starts_at} classType={trainingClass(c)} label="이 수업의 위치" /><Program c={c} exercises={exercises} /></div>
                     <section className="g-panel">
                       <div className="g-heading">
                         <h3>

@@ -7,6 +7,8 @@ import { checked, rpc, listWeeks } from "./api.js";
 import { weekStart, weekdays, addDays, programVisibleFrom } from "./model.js";
 import { Dialog } from "./shared.jsx";
 import ProgramFields from "./ProgramFields.jsx";
+import { TrainingContext } from "./TrainingJourney.jsx";
+import { trainingClass } from "./trainingCycle.js";
 export default function WeeklyPrograms({
   day,
   onDay,
@@ -107,6 +109,7 @@ export default function WeeklyPrograms({
         {start} 시작 주 · 반복 수업 {timetable?.slots.length || 26}개
         {!timetable?.slots.length ? " (첨부 시간표 기본값)" : ""}
       </p>
+      <TrainingContext date={start} label="작성할 주의 위치" />
       {timetable && !timetable.slots.length && (
         <p className="g-muted">
           첫 공개 때 첨부 시간표를 적용하고 공개한 관리자를 담당 코치로
@@ -423,6 +426,7 @@ function LegacyWeekEditor({
                   </select>
                 </label>
               )}
+              <TrainingContext date={addDays(form.week_start, dow - 1)} classType={trainingClass(d)} label="작성 중인 프로그램의 위치" />
               <ProgramFields form={d} set={set} exercises={exercises} />
             </>
           )}

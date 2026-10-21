@@ -172,3 +172,23 @@ Hosted migration versions: `20261020084237_group_weekly_strength.sql` and `20261
 검증: 격리 PostgreSQL에서 59개 검증과 권한 거부 테스트, 운영 DB에서 지난주 월요일 경계/과거 직접 조회 거부/개인 기록 보존/관리자 과거 조회를 롤백 검증했습니다. 회원·관리자 브라우저의 320–1920px 캘린더와 운동 DB 검색/분류 전환/기록 흐름, 기존 NTAC/PT 회귀 테스트를 실행했습니다. 운영 보안 점검에서 이번 변경으로 추가된 항목은 없습니다. 기존 TV용 익명 SECURITY DEFINER 경고는 만료·취소 가능한 표시 전용 토큰으로 의도적으로 제한됩니다([Supabase 점검 기준](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable)). 실물 iPhone 검증은 포함하지 않습니다.
 
 운영 migration: `20261021021051_group_program_visibility.sql`.
+# NOLTO 2.0 training journey — 2026-10-21
+
+The member group home shows a separate compact training-journey section. Its clock uses Asia/Seoul and refreshes on focus and every minute. This is the shared program's position, not a count of the member's attendance. The current phase, week and class-specific goal are visible first; the full roadmap and phase explanations expand on demand.
+
+- 2026-10-21–11-01: season preparation; do not pretend that a training block has already started.
+- 2026-11-02–12-27: 8-week PRE-SEASON, using the regular cycle's weeks 5–12 (LOAD, RESET, PERFORM, SHOWTIME). Member numbering is 1–8. SWEAT assessment is 12/14–20 and STRENGTH assessment is 12/21–27.
+- 2026-12-28–2027-01-03: preparation for the regular season.
+- 2027 BLOCK 01: 01/04–03/28. Transition: 03/29–04/04.
+- 2027 BLOCK 02: 04/05–06/27. Transition: 06/28–07/04.
+- 2027 BLOCK 03: weeks 1–10 on 07/05–09/12; Chuseok adjustment on 09/13–19; weeks 11–12 on 09/20–10/03. The adjustment week never advances the training count.
+- 2027 BLOCK 04: 10/04–12/26. Transition: 12/27–2028-01-02.
+- Dates outside the agreed schedule do not invent new blocks or repeat a previous year's goals.
+
+Regular phases are READY 1, BUILD 2–4, LOAD 5–6, RESET 7, PERFORM 8–10 and SHOWTIME 11–12. The last two weeks separate SWEAT and STRENGTH assessment. The non-assessed class description explicitly calls for adjusted training demand.
+
+Quarter focus alternates Gentle Strength upper/lower/upper/lower and Bomb Strength lower/upper/lower/upper. Sweat goals stay class-specific and are not assigned strength body-part targets. Preseason body-part focus and exact assessment exercises are intentionally not treated as decided. Gentle's agreed assessment family is 3RM/5RM, Bomb's is 1RM/2RM; the app asks members to wait for the actual selected exercise and rep target.
+
+Calendar phase bands, selected-day context, weekly program dialogs and both program editors use the scheduled date. This does not add exercise restrictions, approval gates or changes to program publication/visibility, attendance, recommendations, PT balances, NTAC plans or stored records. Calendar week bands use the end of the Monday–Sunday week so the partial launch week includes the rollout on Wednesday.
+
+The shared schedule and descriptions live in `web/src/groups/trainingCycle.js`. Update this single source after future planning decisions; this release adds no database schema or member data changes. `TrainingJourney.jsx` renders the member overview and shared `TrainingContext`. `node tests/training-cycle.mjs` checks calendar boundaries, all planned training dates, Korea midnight, holiday pauses and class-specific goals.

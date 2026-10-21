@@ -8,6 +8,9 @@ import {
   weekStart,
 } from "./model.js";
 import { ClassCard } from "./shared.jsx";
+import { Fragment } from "react";
+import { TrainingContext } from "./TrainingJourney.jsx";
+import { positionLabel, trainingPosition } from "./trainingCycle.js";
 
 export default function MemberCalendar({
   day,
@@ -93,14 +96,17 @@ export default function MemberCalendar({
         <div className="g-month-grid">
           {calendarDates(day, view).map((date, i) => {
             const hidden = !!minDay && date < minDay;
+            const cycle = i % 7 === 0 ? trainingPosition(addDays(date, 6)) : null;
             const rows = hidden
               ? []
               : classes.filter((c) => seoulDate(c.starts_at) === date);
             return (
+              <Fragment key={date}>
+              {cycle && cycle.state !== "unplanned" && <div className="g-cycle-calendar-band" data-phase={cycle.phase} aria-label={`${date} 시작 주 · ${positionLabel(cycle)}`}><strong>{positionLabel(cycle)}</strong>{cycle.block?.quarter && <span>{cycle.block.year} · {cycle.block.quarter}분기</span>}</div>}
               <button
-                key={date}
                 className={`g-month-day ${date.slice(0, 7) !== day.slice(0, 7) ? "outside" : ""} ${date === today ? "is-today" : ""}`}
                 data-date={date}
+                data-week-end={i % 7 === 6 ? "true" : undefined}
                 disabled={hidden}
                 aria-pressed={date === day}
                 aria-current={date === today ? "date" : undefined}
@@ -127,6 +133,7 @@ export default function MemberCalendar({
                   </>
                 )}
               </button>
+              </Fragment>
             );
           })}
         </div>
@@ -149,6 +156,7 @@ export default function MemberCalendar({
           )}
         </div>
       </div>
+      <TrainingContext date={day} label="선택한 날짜의 위치" />
       <div className="g-selected-classes" aria-busy={loading}>
         {loading ? (
           <p className="g-muted">수업을 불러오고 있어요.</p>

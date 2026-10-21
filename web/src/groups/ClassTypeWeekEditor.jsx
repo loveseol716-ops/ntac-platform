@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Dialog } from "./shared.jsx";
 import { programVisibleFrom } from "./model.js";
 import ProgramFields from "./ProgramFields.jsx";
+import { TrainingContext } from "./TrainingJourney.jsx";
 import {
   CLASS_TYPES,
   blankPrograms,
@@ -93,6 +94,7 @@ export default function ClassTypeWeekEditor({
           <section className="g-type-edit">
             <p className="g-kicker">{typeDays(selected)}요일 자동 배치</p>
             <h3>{type.name}</h3>
+            <TrainingContext date={form.week_start} classType={selected} label="작성 중인 프로그램의 위치" />
             {templates.length > 0 && (
               <label>
                 템플릿 가져오기
