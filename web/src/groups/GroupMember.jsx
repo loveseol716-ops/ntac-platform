@@ -167,7 +167,7 @@ export default function GroupMember({ profile }) {
   const canEdit =
     p &&
     !p.finalized &&
-    ["open", "live", "ended"].includes(c?.status) &&
+    c?.status === "ended" &&
     (!c?.ended_at || now < new Date(c.ended_at).getTime() + 86400000) &&
     ["active", "completed"].includes(p.status);
   const openTab = (next) => {
@@ -244,6 +244,7 @@ export default function GroupMember({ profile }) {
                   {stateLabels[c.status]}
                 </span>
               </div>
+              <h2 className="g-member-class-title">{c.title}</h2>
               {(!p || ["planned", "left", "cancelled"].includes(p.status)) &&
                 ["open", "live"].includes(c.status) &&
                 (membership?.active ||
@@ -270,26 +271,21 @@ export default function GroupMember({ profile }) {
                       : "수업 시작 30분 전부터 종료 시간까지 참여할 수 있어요."}
                   </p>
                 )}
-              <TrainingContext
-                date={c.starts_at}
-                classType={trainingClass(c)}
-                label="이 수업의 위치"
-              />
-              <Program c={c} exercises={exercises} />
-              {p && (
+              {p && c.status === "ended" && (
                 <>
-                  <Recommendations
-                    participant={p}
-                    c={c}
-                    exercises={exercises}
-                  />
                   <section className="g-panel">
                     <div className="g-heading">
-                      <h3>나의 기록</h3>
+                      <h3>수업 후 기록</h3>
                       <span className="g-badge">
-                        {participantLabels[p.status]}
+                        {p.status === "active"
+                          ? "기록 대기"
+                          : participantLabels[p.status]}
                       </span>
                     </div>
+                    <p className="g-muted">
+                      실제로 수행한 중량과 횟수를 남겨 주세요. 종료 후
+                      24시간까지 수정할 수 있어요.
+                    </p>
                     {c.movements.map((m) => (
                       <div key={m.id} className="g-recommendation">
                         <span>{movementLabel(m, exercises)}</span>
@@ -303,8 +299,8 @@ export default function GroupMember({ profile }) {
                     )}
                     {p.status === "planned" && (
                       <p className="g-muted">
-                        참가 예정이에요. 시작 30분 전부터 ‘수업 참여’를 눌러
-                        입장하세요.
+                        입장하지 않은 수업이에요. 참여했다면 코치에게 확인해
+                        주세요.
                       </p>
                     )}
                     {p.finalized && (
@@ -342,6 +338,29 @@ export default function GroupMember({ profile }) {
                   </section>
                 </>
               )}
+              {p &&
+                ["active", "completed"].includes(p.status) &&
+                c.status !== "cancelled" && (
+                  <>
+                    <Recommendations
+                      participant={p}
+                      c={c}
+                      exercises={exercises}
+                    />
+                    {["open", "live"].includes(c.status) && (
+                      <p className="g-auto-flow">
+                        추천 중량을 확인하고 운동하세요. 기록은 수업 종료 후
+                        입력해 주세요.
+                      </p>
+                    )}
+                  </>
+                )}
+              <TrainingContext
+                date={c.starts_at}
+                classType={trainingClass(c)}
+                label="이 수업의 위치"
+              />
+              <Program c={c} exercises={exercises} />
               {editing && p && (
                 <RecordEditor
                   participant={editing}

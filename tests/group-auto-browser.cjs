@@ -25,7 +25,9 @@ const movement = {
   kind: "weight",
   unit: "kg",
   load_basis: "total",
-  target_reps: 8,
+  target_reps: 10,
+  training_type: "strength",
+  sets: [10, 10, 8, 8, 8].map((reps) => ({ reps, rir: 3 })),
 };
 const classes = [
   {
@@ -39,6 +41,7 @@ const classes = [
     movements: [movement],
     status: "open",
     program_version: 1,
+    recording_version: 2,
     revision: 1,
   },
 ];
@@ -315,7 +318,24 @@ const cutoff = addDate(monday, -7);
             status: 400,
             json: { message: "다른 기기에서 기록이 바뀌었어요." },
           });
-        Object.assign(p, body.payload, { revision: p.revision + 1 });
+        const recommendations = { ...p.recommendations };
+        for (const [mid, value] of Object.entries(
+          body.payload.recommendations || {},
+        )) {
+          recommendations[mid] = Array.isArray(value)
+            ? {
+                ...recommendations[mid],
+                sets: recommendations[mid].sets.map((set, i) => ({
+                  ...set,
+                  weight: value[i],
+                })),
+              }
+            : { ...recommendations[mid], weight: value };
+        }
+        Object.assign(p, body.payload, {
+          recommendations,
+          revision: p.revision + 1,
+        });
         return reply(null);
       }
       if (table === "group_save_class") {
@@ -477,23 +497,57 @@ const cutoff = addDate(monday, -7);
     0,
   );
   await page.clock.fastForward(2000);
-  await page.getByRole("button", { name: "수업 참여", exact: true }).waitFor();
   await page.getByRole("button", { name: "수업 참여", exact: true }).click();
-  await page.getByRole("button", { name: "기록 입력", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "추천 중량", exact: true }).waitFor();
   assert.equal(participants[0].status, "active");
+  assert.deepEqual(participants[0].results, {});
   assert.equal(
-    await page
-      .getByRole("button", { name: "운동 마무리 · RPE", exact: true })
-      .count(),
+    await page.getByRole("button", { name: "기록 입력", exact: true }).count(),
     0,
+  );
+  assert(
+    (
+      await page
+        .getByRole("heading", { name: "추천 중량", exact: true })
+        .boundingBox()
+    ).y <
+      (await page.getByText("TODAY’S PROGRAM", { exact: true }).boundingBox())
+        .y,
   );
   await page.clock.fastForward(30 * 60000);
   assert.equal(
     await page.locator(".g-heading .g-badge").first().innerText(),
     "진행 중",
   );
-  await page.screenshot({ path: "/tmp/ntac-auto-member.png", fullPage: true });
+  for (const width of [320, 390, 768]) {
+    await page.setViewportSize({ width, height: 900 });
+    assert(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      `member fits ${width}`,
+    );
+  }
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.screenshot({ path: "/tmp/ntac-app-member.png", fullPage: true });
+  await page.getByRole("button", { name: "내 프로필", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "프로필 저장", exact: true })
+    .waitFor();
+  assert.equal(
+    await page
+      .getByRole("dialog")
+      .getByText("체육관 TV 표시", { exact: true })
+      .count(),
+    0,
+  );
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "닫기", exact: true })
+    .click();
   await context.close();
+
   ({ page, context } = await open("admin", 390, 900));
   page.setDefaultTimeout(12000);
   await page
@@ -506,16 +560,30 @@ const cutoff = addDate(monday, -7);
   assert.equal(
     await page
       .getByRole("button", {
-        name: /^(참가 접수 열기|수업 시작|수업 종료|이 수업을 두 화면에 송출)$/,
+        name: /^(참가 접수 열기|수업 시작|수업 종료|TV 연결)$/,
       })
       .count(),
     0,
   );
+  assert.equal(await page.getByText(/TV (표시|비공개|전환)/).count(), 0);
   assert.equal(
     await page
       .getByRole("button", { name: "템플릿 저장", exact: true })
       .isVisible(),
     false,
+  );
+  await page.getByRole("button", { name: "멤버 입장", exact: true }).click();
+  let dialog = page.getByRole("dialog");
+  await dialog.getByLabel(/이지윤/).check();
+  await dialog.getByRole("button", { name: "1명 입장", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  assert.equal(participants.length, 2);
+  const minsu = page.locator(".g-person").filter({ hasText: "김민수" });
+  const jiyun = page.locator(".g-person").filter({ hasText: "이지윤" });
+  await jiyun.getByText("1세트 · 67.5 kg", { exact: true }).waitFor();
+  assert.equal(
+    await minsu.getByText("5세트 · 72.5 kg", { exact: true }).count(),
+    1,
   );
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
@@ -523,76 +591,130 @@ const cutoff = addDate(monday, -7);
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
-      `admin fits ${width}`,
+      `coach fits ${width}`,
     );
     if (width === 390 || width === 1440)
       await page.screenshot({
-        path: `/tmp/ntac-auto-admin-${width}.png`,
+        path: `/tmp/ntac-app-coach-${width}.png`,
         fullPage: true,
       });
   }
-  await page.getByRole("button", { name: "멤버 입장", exact: true }).click();
-  let dialog = page.getByRole("dialog");
-  await dialog.getByLabel(/이지윤/).check();
-  await dialog.getByRole("button", { name: "1명 입장", exact: true }).click();
-  await dialog.waitFor({ state: "hidden" });
-  assert.equal(participants.length, 2);
-  assert(participants.every((p) => p.status === "active"));
-  await page.getByRole("button", { name: "TV 연결", exact: true }).click();
+  await minsu.getByRole("button", { name: "추천 조정", exact: true }).click();
+  dialog = page.getByRole("dialog");
   assert.equal(
-    await page.getByRole("button", { name: "대기 화면으로" }).count(),
+    await dialog.getByLabel("수업 전체 RPE", { exact: true }).count(),
     0,
   );
-  assert.equal(await page.getByRole("button", { name: /송출/ }).count(), 0);
+  assert.equal(await dialog.getByLabel(/실제 중량/).count(), 0);
+  await dialog
+    .getByLabel("코치 추천 조정 · 1세트 (kg)", { exact: true })
+    .fill("65");
+  await dialog
+    .getByLabel("추천 조정 이유", { exact: true })
+    .fill("오늘 컨디션에 맞춰 조정");
+  await dialog.getByRole("button", { name: "추천 저장", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  assert.equal(participants[0].recommendations.squat.sets[0].weight, 65);
+  assert.deepEqual(
+    participants[0].results,
+    {},
+    "recommendation update must not invent actual sets",
+  );
+  await page.clock.fastForward(80 * 60000);
+  await minsu
+    .getByRole("button", { name: "기록 입력 · 확인", exact: true })
+    .waitFor();
+  await context.close();
+
+  ({ page, context } = await open("member", 390, 900));
+  page.setDefaultTimeout(12000);
+  await page.getByRole("button", { name: /하체 스트렝스/ }).click();
+  await page.clock.fastForward(80 * 60000);
+  assert.equal(
+    await page.getByRole("button", { name: "기록 입력", exact: true }).count(),
+    0,
+    "record input stays hidden until scheduled end",
+  );
+  await page.clock.fastForward(2000);
+  await page.getByRole("button", { name: "기록 입력", exact: true }).waitFor();
+  assert(
+    (
+      await page
+        .getByRole("heading", { name: "수업 후 기록", exact: true })
+        .boundingBox()
+    ).y <
+      (
+        await page
+          .getByRole("heading", { name: "추천 중량", exact: true })
+          .boundingBox()
+      ).y,
+  );
   await page.screenshot({
-    path: "/tmp/ntac-auto-tv-setup.png",
+    path: "/tmp/ntac-app-after-class.png",
     fullPage: true,
   });
+  await page.getByRole("button", { name: "기록 입력", exact: true }).click();
+  dialog = page.getByRole("dialog");
+  const weight = dialog.getByLabel("백 스쿼트 1세트 실제 중량 (kg)", {
+    exact: true,
+  });
+  assert.equal(
+    await weight.inputValue(),
+    "",
+    "recommended load does not pre-fill actual record",
+  );
+  await weight.fill("62.5");
+  await dialog
+    .getByLabel("백 스쿼트 1세트 실제 반복 수", { exact: true })
+    .fill("10");
+  await dialog
+    .getByRole("button", { name: "기록 저장 · 완료", exact: true })
+    .click();
+  await dialog
+    .getByText("마지막으로 수업 전체 RPE를 선택해 주세요.", { exact: true })
+    .waitFor();
+  await dialog.getByLabel("수업 전체 RPE", { exact: true }).selectOption("7");
+  saveFail = true;
+  await dialog
+    .getByRole("button", { name: "기록 저장 · 완료", exact: true })
+    .click();
+  await dialog.getByText("저장 테스트 오류", { exact: true }).waitFor();
+  assert.equal(await weight.inputValue(), "62.5");
+  saveFail = false;
+  await dialog
+    .getByRole("button", { name: "기록 저장 · 완료", exact: true })
+    .click();
+  await dialog.waitFor({ state: "hidden" });
+  assert.equal(participants[0].status, "completed");
+  assert.equal(participants[0].results.squat.sets[0].weight, 62.5);
+  assert.equal(participants[0].session_rpe, 7);
+  await page.clock.fastForward(24 * 60 * 60000);
+  assert.equal(
+    await page.getByRole("button", { name: "기록 입력", exact: true }).count(),
+    0,
+    "existing 24-hour limit is preserved",
+  );
   await context.close();
-  for (const token of ["r".repeat(72), "s".repeat(72)]) {
-    ({ page, context } = await open(null, 1920, 1080, "#display=" + token));
-    page.setDefaultTimeout(12000);
-    await page.getByRole("heading", { name: "민수", exact: true }).waitFor();
-    assert.equal(
-      await page.getByRole("heading", { name: "지윤", exact: true }).count(),
-      0,
-      "private member stays hidden",
-    );
-    await page.screenshot({
-      path: `/tmp/ntac-auto-tv-${token[0]}.png`,
-      fullPage: true,
-    });
-    assert(
-      await page.evaluate(
-        () =>
-          document.documentElement.scrollWidth <= innerWidth &&
-          document.documentElement.scrollHeight <= innerHeight,
-      ),
-      "TV fits 1080p",
-    );
-    const previous = screenClass;
-    screenClass = {
-      ...classes[0],
-      id: "next-auto",
-      title: "다음 수업 자동 전환",
-      status: "live",
-    };
-    await page.clock.fastForward(6000);
-    await page
-      .getByRole("heading", { name: "다음 수업 자동 전환", exact: true })
-      .waitFor();
-    assert.equal(
-      await page.getByRole("heading", { name: "민수", exact: true }).count(),
-      0,
-      "old roster cleared after automatic switch",
-    );
-    screenClass = previous;
-    await context.close();
-  }
+
+  ({ page, context } = await open(
+    "member",
+    390,
+    900,
+    "#display=" + "r".repeat(72),
+  ));
+  await page
+    .getByRole("navigation", { name: "그룹수업 메뉴", exact: true })
+    .waitFor();
+  await context.close();
+  assert.equal(
+    requests.filter((r) => r === "group_display").length,
+    0,
+    "paused TV routes never fetch a public display",
+  );
   assert.deepEqual(errors, []);
   await browser.close();
   console.log(
-    "PASS: arrival/start clock boundaries, one-tap member and coach entry, no lifecycle or TV controls, private names, TV polling and responsive layouts",
+    "PASS: app-only entry, coach and member recommendations, no TV controls, recommendation-only adjustments, after-class records, save-error retention, RPE and expiry, responsive layouts",
   );
 })().catch((e) => {
   console.error(e);

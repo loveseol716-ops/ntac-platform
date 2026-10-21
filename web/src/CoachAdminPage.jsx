@@ -290,7 +290,7 @@ export default function CoachAdminPage({
                 : tab === "ntac"
                   ? "NTAC 회원의 프로그램과 훈련 리포트를 관리하세요."
                   : tab === "group"
-                    ? "오늘의 프로그램과 참가자·운동 기록·TV를 관리하세요."
+                    ? "수업 참여와 추천 중량을 확인하고, 수업 후 기록을 남기세요."
                     : "코치 계정과 관리자 권한을 설정하세요."}
           </p>
         </div>

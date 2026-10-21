@@ -20,10 +20,15 @@ import {
   levels,
   movementLabel,
   resultText,
+  loadLabel,
 } from "./model.js";
-import { Dialog, Program, RecordEditor } from "./shared.jsx";
+import {
+  Dialog,
+  Program,
+  RecordEditor,
+  RecommendationValue,
+} from "./shared.jsx";
 import ClassEditor from "./ClassEditor.jsx";
-import WallControl from "./WallControl.jsx";
 import { timedClass, useClassClock } from "./classClock.js";
 import { TrainingContext } from "./TrainingJourney.jsx";
 import { trainingClass } from "./trainingCycle.js";
@@ -150,7 +155,6 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                 ["programs", "주간 프로그램"],
                 ["archive", "운동 DB"],
                 ["members", "회원 · 기준 중량"],
-                ["tv", "TV 연결"],
               ]
             : []),
         ].map(([k, v]) => (
@@ -306,7 +310,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                   ) : (
                     c.status !== "cancelled" && (
                       <p className="g-auto-flow">
-                        시간표 자동 진행 · 시작 30분 전 입장 · 정시에 TV 전환
+                        수업 참여 → 추천 중량 확인 → 수업 후 기록
                       </p>
                     )
                   )}
@@ -340,8 +344,9 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                           )}
                       </div>
                       <p className="g-muted">
-                        참가 등록은 운동 기록용이에요. 운톡 공식 출석과 PT
-                        횟수는 바뀌지 않아요.
+                        {c.status === "ended"
+                          ? "실제로 수행한 중량과 횟수를 기록해 주세요."
+                          : "회원별 추천 중량을 확인하고 칠판이나 구두로 안내해 주세요."}
                       </p>
                       {!detail.participants.length && (
                         <p className="g-empty">
@@ -361,18 +366,38 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                                 {p.exception_access ? " · 일회 참가" : ""}
                               </small>
                             </div>
-                            <span className="g-muted">
-                              {p.show_on_tv ? "TV 표시" : "TV 비공개"}
-                            </span>
                           </div>
-                          {c.movements.map((m) => (
-                            <div className="g-person-result" key={m.id}>
-                              <span>{movementLabel(m, exercises)}</span>
-                              <strong>
-                                {resultText(m, p.results?.[m.id])}
-                              </strong>
-                            </div>
-                          ))}
+                          {["active", "completed"].includes(p.status) &&
+                            c.status !== "ended" &&
+                            c.movements
+                              .filter((m) => m.kind === "weight")
+                              .map((m) => (
+                                <div
+                                  className="g-coach-recommendation"
+                                  key={m.id}
+                                >
+                                  <div>
+                                    <strong>
+                                      {movementLabel(m, exercises)}
+                                    </strong>
+                                    <small>추천 중량 · {loadLabel(m)}</small>
+                                  </div>
+                                  <RecommendationValue
+                                    movement={m}
+                                    recommendation={p.recommendations?.[m.id]}
+                                    compact
+                                  />
+                                </div>
+                              ))}
+                          {c.status === "ended" &&
+                            c.movements.map((m) => (
+                              <div className="g-person-result" key={m.id}>
+                                <span>{movementLabel(m, exercises)}</span>
+                                <strong>
+                                  {resultText(m, p.results?.[m.id])}
+                                </strong>
+                              </div>
+                            ))}
                           <div className="g-actions">
                             {p.status === "planned" && (
                               <>
@@ -387,7 +412,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                                           cid: c.id,
                                           user_ids: [p.user_id],
                                         }),
-                                      "멤버가 입장했어요. TV 공개 설정에 따라 화면에 반영돼요.",
+                                      "멤버가 입장했어요. 추천 중량을 확인해 주세요.",
                                     )
                                   }
                                 >
@@ -424,7 +449,9 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                                       setError("");
                                     }}
                                   >
-                                    기록 · 추천 조정
+                                    {c.status === "ended"
+                                      ? "기록 입력 · 확인"
+                                      : "추천 조정"}
                                   </button>
                                   <button
                                     disabled={busy}
@@ -623,7 +650,6 @@ export default function GroupAdmin({ profile, onManageMembers }) {
           </div>
         </>
       )}
-      {tab === "tv" && <WallControl />}
       {editing && (
         <ClassEditor
           current={editing.new ? null : editing}
@@ -655,6 +681,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
           c={c}
           exercises={exercises}
           manager
+          recommendationOnly={c.status !== "ended"}
           busy={busy}
           error={error}
           onClose={() => !busy && setRecord(null)}
@@ -662,7 +689,9 @@ export default function GroupAdmin({ profile, onManageMembers }) {
             if (
               await act(
                 () => saveParticipant(record, payload),
-                "기록과 추천을 저장했어요.",
+                c.status === "ended"
+                  ? "운동 기록을 저장했어요."
+                  : "추천 중량을 저장했어요.",
               )
             )
               setRecord(null);
@@ -672,8 +701,8 @@ export default function GroupAdmin({ profile, onManageMembers }) {
       {adding && (
         <Dialog title="멤버 입장" onClose={() => !busy && setAdding(false)}>
           <p className="g-muted">
-            수업에 참여할 회원을 선택하세요. 입장하면 바로 추천 중량이 준비되고,
-            TV 공개를 켠 회원은 두 화면에 표시돼요.
+            수업에 참여할 회원을 선택하세요. 입장하면 회원과 코치의 앱에서 추천
+            중량을 확인할 수 있어요.
           </p>
           <input
             aria-label="참가자 검색"

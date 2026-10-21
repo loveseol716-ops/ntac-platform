@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "./lib/supabase.js";
 import { checked } from "./pt/api.js";
+import { GROUP_TV_ENABLED } from "./groups/features.js";
 export default function ProfileDialog({
   targetId,
   isAdmin = false,
@@ -38,7 +39,7 @@ export default function ProfileDialog({
     };
   }, [targetId]);
   useEffect(() => {
-    if (isAdmin || !showGroupSettings) return;
+    if (!GROUP_TV_ENABLED || isAdmin || !showGroupSettings) return;
     let live = true;
     setTvSettings(null);
     setTvError("");
@@ -207,7 +208,7 @@ export default function ProfileDialog({
               </button>
             </fieldset>
           </form>
-          {!isAdmin && showGroupSettings && (
+          {GROUP_TV_ENABLED && !isAdmin && showGroupSettings && (
             <details className="profile-settings">
               <summary>체육관 TV 표시</summary>
               <p className="muted">동의하면 별명·추천·운동 결과가 체육관 TV에 표시돼요. 공개하지 않아도 개인 기록은 남아요.</p>

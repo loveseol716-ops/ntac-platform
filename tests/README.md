@@ -44,7 +44,7 @@ Pass ledger and profile release:
 ## Automatic group-class flow
 
 - `NTAC_TEST_MODULES=/path/to/node_modules node tests/group-auto-lifecycle.mjs`: isolated PostgreSQL checks scheduled phase boundaries, permissions, actual admission, duplicate joins, next-class TV selection, private names, token rejection, recording deadlines, stale revisions and no automatic completion or PT ledger changes.
-- `CHROMIUM_PATH=/path/to/chromium node tests/run-browser.cjs tests/group-auto-browser.cjs`: controlled-clock member/coach admission, automatic start, removed lifecycle controls, TV polling, private names and 320–1920 px layouts with synthetic API responses.
+- `CHROMIUM_PATH=/path/to/chromium node tests/run-browser.cjs tests/group-auto-browser.cjs`: controlled-clock member/coach admission, recommendations before class, recommendation-only coach edits, after-class actual/RPE saving with error retention, the 24-hour edit cutoff, hidden TV controls and disabled display routes, and 320–1440px layouts using synthetic API responses.
 - `group-auto-production-smoke.sql`: rollback-only schema compatibility, member/coach admission, actual records, two token-gated TV modes and private-helper access checks.
 
 The original group browser/database suites document the earlier manual lifecycle; the automatic-flow suites supersede their manual opening/start/finish expectations.
