@@ -1,9 +1,10 @@
 import { addDays, seoulDate } from "./model.js";
 import { CLASS_TYPES } from "./classTypes.js";
+import { HYROX_CYCLE } from "./hyroxCycle.js";
 
 // Agreed NOLTO 2.0 calendar. This describes the program, never member attendance.
 // Keep dates explicit: holiday weeks do not count as completed training weeks.
-export const CYCLE_LAUNCH = "2026-10-21";
+export const CYCLE_LAUNCH = HYROX_CYCLE.start;
 export const PHASES = {
   ready: { name: "READY", label: "동작과 무게 익히기", description: "동작을 익히고, 이번 블록의 시작 중량을 찾아요." },
   build: { name: "BUILD", label: "반복하며 기본기 쌓기", description: "충분한 반복으로 기본기를 쌓고 다음 단계를 준비해요." },
@@ -11,14 +12,18 @@ export const PHASES = {
   reset: { name: "RESET", label: "부담을 낮추고 회복", description: "훈련 부담을 낮추고, 다음 단계를 준비해요." },
   perform: { name: "PERFORM", label: "수행 능력 끌어올리기", description: "쌓아 온 기본기를 바탕으로 수행 능력을 끌어올려요." },
   showtime: { name: "SHOWTIME", label: "성장 확인하기", description: "SWEAT과 STRENGTH를 한 주씩 나누어 성장한 모습을 확인해요." },
-  preparation: { name: "PREP", label: "시즌 준비 중", description: "11월 2일부터 8주 프리시즌을 함께 시작해요." },
+  rehearsal: { name: "REHEARSAL", label: "리허설과 종목 특이성", description: "실전 전환과 목표 페이스를 연습해요. 주간 고강도의 최고점은 한 번만 만들어요." },
+  taper: { name: "TAPER", label: "테이퍼와 성과 확인", description: "볼륨을 낮추고 대회를 준비해요. 평가 일정은 코치 안내에 따라 조정해요." },
+  preparation: { name: "PREP", label: "프리시즌 준비 중", description: "프리시즌의 일정과 평가 종목은 코치 협의 후 안내해요." },
   transition: { name: "TRANSITION", label: "조정 주간", description: "기술 연습과 회복으로 다음 훈련을 준비해요." },
   unplanned: { name: "NEXT", label: "다음 일정 안내 예정", description: "다음 블록의 일정과 목표를 준비하고 있어요." },
 };
 
 const REGULAR_PHASES = ["ready", "build", "build", "build", "load", "load", "reset", "perform", "perform", "perform", "showtime", "showtime"];
 export const TRAINING_BLOCKS = [
-  { id: "2026-preseason", year: 2026, name: "PRE-SEASON", quarter: null, number: null, start: "2026-11-02", end: "2026-12-27", phases: REGULAR_PHASES.slice(4), pauses: [] },
+  HYROX_CYCLE,
+  // Retain the ID for saved goal drafts without scheduling an unconfirmed season.
+  { id: "2026-preseason", year: 2026, name: "PRE-SEASON", quarter: null, number: null, start: null, end: null, phases: [], pauses: [], planning: true },
   { id: "2027-b01", year: 2027, name: "BLOCK 01", quarter: 1, number: 1, start: "2027-01-04", end: "2027-03-28", phases: REGULAR_PHASES, pauses: [] },
   { id: "2027-b02", year: 2027, name: "BLOCK 02", quarter: 2, number: 2, start: "2027-04-05", end: "2027-06-27", phases: REGULAR_PHASES, pauses: [] },
   { id: "2027-b03", year: 2027, name: "BLOCK 03", quarter: 3, number: 3, start: "2027-07-05", end: "2027-10-03", phases: REGULAR_PHASES, pauses: [{ start: "2027-09-13", end: "2027-09-19", label: "추석 조정 주간" }] },
@@ -26,7 +31,7 @@ export const TRAINING_BLOCKS = [
 ];
 
 const TRANSITIONS = [
-  { start: "2026-12-28", end: "2027-01-03", next: "2027-b01", label: "2027 시즌 준비" },
+  { start: "2026-11-16", end: "2027-01-03", planning: true, label: "프리시즌 준비 중" },
   { start: "2027-03-29", end: "2027-04-04", next: "2027-b02", label: "다음 블록 준비" },
   { start: "2027-06-28", end: "2027-07-04", next: "2027-b03", label: "다음 블록 준비" },
   { start: "2027-12-27", end: "2028-01-02", next: null, label: "연말 조정 주간" },
@@ -51,7 +56,7 @@ export function trainingWeeks(block) {
   return block.phases.map((phase, index) => {
     const pause = block.pauses.find((p) => date >= p.start && date <= p.end);
     if (pause) date = addDays(pause.end, 1);
-    const week = { number: index + 1, phase, start: date, end: addDays(date, 6) };
+    const week = { number: index + 1, phase, start: date, end: addDays(date, 6), plan: block.weekPlans?.[index] || null };
     date = addDays(date, 7);
     return week;
   });
@@ -60,16 +65,17 @@ export function trainingWeeks(block) {
 export function trainingPosition(value = new Date()) {
   const day = trainingDate(value);
   if (!day || day < CYCLE_LAUNCH) return null;
-  const block = TRAINING_BLOCKS.find((b) => day >= b.start && day <= b.end);
+  const block = TRAINING_BLOCKS.find((b) => !b.planning && day >= b.start && day <= b.end);
   if (block) {
     const weeks = trainingWeeks(block);
     const pause = block.pauses.find((p) => day >= p.start && day <= p.end);
     if (pause) return { day, state: "paused", phase: "transition", label: pause.label, block, week: null, total: weeks.length, next: weeks.find((w) => w.start > day) };
     const week = weeks.find((w) => day >= w.start && day <= w.end);
-    return { day, state: "active", phase: week.phase, label: PHASES[week.phase].label, block, week: week.number, total: weeks.length, weekStart: week.start, weekEnd: week.end, assessment: week.phase === "showtime" ? (week.number === weeks.length ? "strength" : "sweat") : null };
+    return { day, state: "active", phase: week.phase, label: week.plan?.title || PHASES[week.phase].label, block, week: week.number, total: weeks.length, weekStart: week.start, weekEnd: week.end, weekPlan: week.plan, stage: block.stages?.find((s) => week.number >= s.start && week.number <= s.end) || null, assessment: week.phase === "showtime" ? (week.number === weeks.length ? "strength" : "sweat") : null };
   }
   if (day < TRAINING_BLOCKS[0].start) return { day, state: "preparation", phase: "preparation", label: PHASES.preparation.label, block: null, week: null, nextBlock: TRAINING_BLOCKS[0], daysUntilStart: daysBetween(day, TRAINING_BLOCKS[0].start) };
   const transition = TRANSITIONS.find((p) => day >= p.start && day <= p.end);
+  if (transition?.planning) return { day, state: "planning", phase: "preparation", label: transition.label, block: null, week: null };
   if (transition) return { day, state: "transition", phase: "transition", label: transition.label, block: null, week: null, nextBlock: TRAINING_BLOCKS.find((b) => b.id === transition.next) || null };
   return { day, state: "unplanned", phase: "unplanned", label: PHASES.unplanned.label, block: null, week: null };
 }
@@ -90,6 +96,12 @@ export function trainingClass(program) {
 export const JOURNEY_CLASSES = ["gentle_strength", "bomb_strength", "gentle_sweat", "bomb_sweat"];
 
 export function classDirection(position, type) {
+  if (position?.block?.id === HYROX_CYCLE.id) {
+    const name = CLASS_TYPES.find((c) => c.id === type)?.name;
+    if (type === "nolto_team") return { name, part: null, goal: "토요일 팀 세션", prescription: position.weekPlan?.saturday, focus: position.weekPlan?.note || "이번 주의 페이스와 전환을 팀 훈련으로 연결해요.", assessment: null };
+    const direction = position.stage?.classes[type];
+    return direction ? { ...direction, name, part: null, assessment: null } : null;
+  }
   if (!position || !JOURNEY_CLASSES.includes(type)) return null;
   const gentle = type.startsWith("gentle"), strength = type.endsWith("strength");
   // The preseason's specific upper/lower focus and assessment lifts are not yet agreed.
@@ -103,7 +115,7 @@ export function classDirection(position, type) {
         : (gentle ? "반복 수행의 기본기를 쌓고, 점차 무거운 중량에 적응합니다." : "충분히 회복하며 훈련해 최대근력과 파워의 기반을 기릅니다.")
     : gentle ? "긴 호흡으로 꾸준히 움직이는 지구력을 기릅니다." : "강한 운동 구간에서 높은 출력을 내는 능력을 기릅니다.";
   let focus;
-  if (position.state === "preparation") focus = "11월 2일부터 LOAD → RESET → PERFORM → SHOWTIME 흐름을 함께 경험해요.";
+  if (["preparation", "planning"].includes(position.state)) focus = PHASES.preparation.description;
   else if (["paused", "transition"].includes(position.state)) focus = "훈련 부담을 조절하며 회복하고, 다음 훈련을 준비해요.";
   else if (position.state === "unplanned") focus = "다음 블록의 일정과 목표가 정해지면 안내할게요.";
   else if (position.assessment) {

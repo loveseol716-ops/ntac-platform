@@ -1,13 +1,10 @@
-import { PhaseBadge } from "./TrainingJourney.jsx";
-import { blockLabel, classDirection, CYCLE_LAUNCH, PHASES, trainingPosition, trainingWeeks } from "./trainingCycle.js";
-import { addDays } from "./model.js";
+import { PhaseBadge, TrainingWeekFocus } from "./TrainingJourney.jsx";
+import { blockLabel, classDirection, PHASES, trainingPosition, trainingWeeks } from "./trainingCycle.js";
 import { classTypeName } from "./classTypes.js";
 import { STRENGTH_TYPES } from "./blockGoals.js";
 
 export default function AuthoringContext({ date, week = false, classType, goals = [], exercises = [], loading = false, error = "" }) {
-  // The rollout begins midweek; show PREP for that weekly bundle, as on the calendar.
-  const referenceDate = week && date < CYCLE_LAUNCH && addDays(date, 6) >= CYCLE_LAUNCH ? CYCLE_LAUNCH : date;
-  const position = trainingPosition(referenceDate), direction = classDirection(position, classType);
+  const position = trainingPosition(date), direction = classDirection(position, classType);
   if (!position) return <aside className="g-cycle-context">{date} · 등록된 블록 일정이 없어요.</aside>;
   const weeks = trainingWeeks(position.block);
   return <aside className="g-author-context" data-phase={position.phase} aria-label="작성 중인 프로그램의 위치">
@@ -23,9 +20,11 @@ export default function AuthoringContext({ date, week = false, classType, goals 
         aria-current={w.number === position.week ? "step" : undefined}
         title={`${w.number}주차 · ${PHASES[w.phase].name} · ${w.start}–${w.end}`}>{w.number}</li>)}
     </ol>}
-    <p className="g-author-focus">{position.state === "paused" ? `${position.label} · ${position.next.start}부터 ${position.next.number}주차 재개` : PHASES[position.phase].description}</p>
+    <TrainingWeekFocus position={position} />
+    {!position.weekPlan && <p className="g-author-focus">{position.state === "paused" ? `${position.label} · ${position.next.start}부터 ${position.next.number}주차 재개` : PHASES[position.phase].description}</p>}
+    {position.weekPlan && direction && <div className="g-author-class-guide"><strong>{direction.name} · {direction.goal}</strong><p>{direction.prescription}</p><p>{direction.focus}</p><small>블록의 기본 기준이에요. 조절주·테이퍼에는 위의 주간 조정 기준을 우선 적용하세요.</small></div>}
     {position.nextBlock && <p className="g-muted">다음 블록 · {blockLabel(position.nextBlock)} · {position.nextBlock.start} 시작</p>}
-    {STRENGTH_TYPES.includes(classType) && position.block && <div className="g-block-targets">
+    {STRENGTH_TYPES.includes(classType) && position.block && !position.weekPlan && <div className="g-block-targets">
       <small>{classTypeName(classType)} · 이번 블록 평가 목표</small>
       {loading ? <p>목표 불러오는 중…</p> : error ? <p role="alert">블록 목표를 불러오지 못했어요. 다시 열어 주세요.</p>
         : goals.length ? <div className="g-goal-chips">{goals.map((g) => <span key={g.exercise_id}>{exercises.find((e) => e.id === g.exercise_id)?.name || g.exercise_id} <b>{g.test_reps}RM</b></span>)}</div>

@@ -7,7 +7,10 @@ import ExerciseSearch from "./ExerciseSearch.jsx";
 
 export default function BlockGoalsEditor({ date, rows, exercises, busy, error, onClose, onSave }) {
   const position = trainingPosition(date);
-  const [blockId, setBlockId] = useState((position?.block || position?.nextBlock || TRAINING_BLOCKS.at(-1)).id);
+  // The existing HYROX program is guidance, not a new RM assessment block.
+  const configurableBlocks = TRAINING_BLOCKS.filter((b) => !b.weekPlans);
+  const currentBlock = position?.block || position?.nextBlock;
+  const [blockId, setBlockId] = useState((configurableBlocks.find((b) => b.id === currentBlock?.id) || configurableBlocks.find((b) => b.planning) || configurableBlocks.at(-1)).id);
   const [drafts, setDrafts] = useState({});
   const saved = rows.find((r) => r.block_id === blockId);
   const programs = drafts[blockId] || saved?.programs || emptyBlockGoals();
@@ -17,12 +20,13 @@ export default function BlockGoalsEditor({ date, rows, exercises, busy, error, o
     <form onSubmit={(e) => { e.preventDefault(); onSave({ block_id: blockId, revision: saved?.revision || 0, programs }); }}>
       <fieldset disabled={busy}>
         <p className="g-muted">블록 시작 전에 평가 종목을 한 번 정해 두세요. 해당 블록의 새 스트렝스 프로그램에 종목을 미리 불러와요.</p>
+        {position?.weekPlan && <p className="g-muted">하이록스 준비 기간에는 현재 프로그램을 이어가요. 다음 시즌의 평가 목표를 초안으로 저장할 수 있어요.</p>}
         <label>설정할 블록<select value={blockId} onChange={(e) => setBlockId(e.target.value)}>
-          {TRAINING_BLOCKS.map((b) => <option value={b.id} key={b.id}>{blockLabel(b)}</option>)}
+          {configurableBlocks.map((b) => <option value={b.id} key={b.id}>{blockLabel(b)}</option>)}
         </select></label>
-        <p className="g-muted">{block.start} — {block.end} · {block.phases.length}주</p>
+        <p className="g-muted">{block.planning ? "일정·운영안 협의 중 · 저장한 목표는 초안으로 보관돼요." : `${block.start} — ${block.end} · ${block.phases.length}주`}</p>
         {STRENGTH_TYPES.map((type) => <section className="g-block-settings" key={type}>
-          <div className="g-heading"><h3>{classTypeName(type)}</h3><span className="g-badge">{classDirection(trainingPosition(block.start), type)?.part || "PRE-SEASON"}</span></div>
+          <div className="g-heading"><h3>{classTypeName(type)}</h3><span className="g-badge">{classDirection(trainingPosition(block.start), type)?.part || block.name}</span></div>
           {!programs[type].length && <p className="g-muted">평가 종목을 추가해 주세요. 여러 종목을 설정할 수 있어요.</p>}
           {programs[type].map((g, i) => <div className="g-goal-row" key={g.exercise_id}>
             <strong>{exercises.find((e) => e.id === g.exercise_id)?.name || g.exercise_id}</strong>

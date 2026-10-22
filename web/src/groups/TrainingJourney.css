@@ -4,6 +4,8 @@
 .groups [data-phase="reset"] { --cycle-color: #aacbdd; --cycle-fill: #283e49; }
 .groups [data-phase="perform"] { --cycle-color: #e5b69b; --cycle-fill: #49352b; }
 .groups [data-phase="showtime"] { --cycle-color: #cdb9e5; --cycle-fill: #3f324e; }
+.groups [data-phase="rehearsal"] { --cycle-color: #e5b69b; --cycle-fill: #49352b; }
+.groups [data-phase="taper"] { --cycle-color: #aacbdd; --cycle-fill: #283e49; }
 .groups .g-cycle-location { display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 14px; padding: 12px 14px; text-align: left; background: #17251f; border-color: #31483d; border-left: 3px solid var(--cycle-color); border-radius: 12px; }
 .groups .g-cycle-location:hover { background: #203029; }
 .g-cycle-location-copy { display: grid; flex: 1; min-width: 0; gap: 2px; }
@@ -59,13 +61,41 @@
 .g-goal-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
 .g-goal-chips > span { border: 1px solid #46604e; border-radius: 6px; padding: 6px 9px; font-size: .8rem; overflow-wrap: anywhere; }
 .g-goal-chips b { color: #bfdfca; margin-left: 5px; }
+.g-cycle-week-focus { padding: 16px; margin: 18px 0; border-radius: 12px; background: #20352a; border: 1px solid #3d5a47; }
+.groups .g-cycle-week-focus h3 { margin: 6px 0 8px; font-size: .98rem; line-height: 1.5; }
+.groups .g-cycle-week-focus > p:not(.g-cycle-eyebrow) { margin: 7px 0 0; color: #ceded3; font-size: .82rem; line-height: 1.7; }
+.g-cycle-class-section { margin-top: 24px; }
+.groups .g-cycle-class-section > h3 { font-size: .9rem; margin: 0 0 8px; }
+.g-cycle-class-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+.g-cycle-class-card { min-width: 0; padding: 16px; border: 1px solid #344d3f; border-radius: 12px; background: #192b22; }
+.groups .g-cycle-class-card h4 { margin: 0 0 12px; color: #b6d8c3; font-size: .74rem; letter-spacing: .03em; }
+.g-cycle-class-card > strong { display: block; color: #edf2ee; font-size: .86rem; line-height: 1.6; }
+.groups .g-cycle-class-card p { color: #b8cbbf; font-size: .8rem; line-height: 1.75; margin: 10px 0 0; word-break: keep-all; overflow-wrap: anywhere; }
+.groups .g-cycle-class-card .g-cycle-prescription { color: #e0e9e3; }
+.g-cycle-details { border-top: 1px solid #34473c; margin-top: 20px; padding-top: 8px; }
+.g-cycle-details > summary { padding: 14px 0; cursor: pointer; font-size: .85rem; color: #d7e5dc; }
+.g-cycle-details > ul { padding-left: 20px; font-size: .8rem; color: #b8cbbf; line-height: 1.8; }
+.g-cycle-details > ul > li + li { margin-top: 10px; }
+.g-cycle-week-list { list-style: none; padding: 0; margin: 0; }
+.g-cycle-week-list > li { padding: 16px 12px; border-bottom: 1px solid #34473c; }
+.g-cycle-week-list > li[aria-current="step"] { background: #20352a; border-radius: 8px; }
+.g-cycle-week-list > li > div { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: space-between; font-size: .81rem; line-height: 1.6; }
+.g-cycle-week-list > li > div > span { font-size: .75rem; color: #a9c8b5; }
+.groups .g-cycle-week-list p { font-size: .78rem; line-height: 1.7; color: #b8cbbf; margin: 6px 0 0; }
+.g-cycle-next { margin-top: 24px; padding: 16px; border: 1px dashed #456451; border-radius: 12px; font-size: .84rem; }
+.groups .g-cycle-next > p { margin: 8px 0 0; color: #b8cbbf; font-size: .8rem; line-height: 1.7; }
+.g-author-class-guide { padding-top: 4px; font-size: .83rem; line-height: 1.7; color: #d7e5dc; }
+.groups .g-author-class-guide p { margin: 8px 0; }
+.g-author-class-guide > small { color: #b8cbbf; font-size: .75rem; }
 @container (max-width: 460px) {
   .groups .g-training-journey { padding: 16px; }
   .g-cycle-phase-list { grid-template-columns: minmax(0, 1fr); }
   .g-cycle-track { gap: 3px; }
+  .g-cycle-class-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 460px) {
   .groups .g-training-journey { padding: 16px; }
   .g-cycle-phase-list { grid-template-columns: minmax(0, 1fr); }
   .g-cycle-track { gap: 3px; }
+  .g-cycle-class-grid { grid-template-columns: minmax(0, 1fr); }
 }
