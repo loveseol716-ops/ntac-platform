@@ -65,6 +65,10 @@ reset role;
 select set_config('request.jwt.claim.sub',(select admin_id::text from publication_fixture),true);
 set local role authenticated;
 select public.group_remove_program('week',(select week_id from publication_fixture),3);
+do $$ begin
+ if exists(select 1 from public.group_classes where week_id=(select week_id from publication_fixture) and archived_at is null) then raise exception 'Deleted week still in admin calendar'; end if;
+ if not exists(select 1 from public.group_classes where id=(select past_id from publication_fixture) and status='ended') then raise exception 'Completed class state lost'; end if;
+end $$;
 reset role;
 select set_config('request.jwt.claim.sub',(select member_id::text from publication_fixture),true);
 set local role authenticated;

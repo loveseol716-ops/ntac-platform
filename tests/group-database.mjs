@@ -357,6 +357,7 @@ await db.exec(fs.readFileSync("tests/group-block-goals-production-smoke.sql", "u
 console.log("PASS: hosted rollback scripts against isolated PostgreSQL");
 await db.exec(fs.readFileSync("supabase/migrations/20261021081959_group_auto_class_flow.sql", "utf8"));
 await db.exec(fs.readFileSync("supabase/migrations/20261025120515_group_week_publication_controls.sql", "utf8"));
+await db.exec(fs.readFileSync("supabase/migrations/20261025121656_group_deleted_week_occurrences.sql", "utf8"));
 await db.exec(fs.readFileSync("tests/group-week-publication-production-smoke.sql", "utf8"));
 console.log("PASS: week unpublish, republish, deletion, member RLS, direct RPC guards and retained history");
 await db.close();

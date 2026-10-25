@@ -179,8 +179,8 @@ export default function GroupMember({ profile }) {
   };
   return (
     <main className="groups g-member" aria-label="그룹수업">
-      {!selected && ["today", "programs"].includes(tab) && (
-        <TrainingPositionBar onOpen={() => openTab("journey")} />
+      {!selected && (tab === "today" || (tab === "programs" && weeks.some((w) => w.status === "published"))) && (
+        <TrainingPositionBar date={tab === "programs" ? day : undefined} onOpen={() => openTab("journey")} />
       )}
       <nav className="g-tabs g-member-tabs" aria-label="그룹수업 메뉴">
         {[
