@@ -1692,3 +1692,11 @@
     padding: 12px;
   }
 }
+.groups button.g-danger {
+  color: #ffb4ad;
+  border-color: #83443e;
+  background: #321e20;
+}
+.groups .g-week-actions {
+  gap: 10px;
+}

@@ -185,6 +185,7 @@ export default function ProgramArchive({ exercises, onWeek, onClass }) {
                   <span className="g-badge">
                     {archived
                       ? "삭제·보관"
+                      : row.status === "draft" ? "비공개 · 작성 중"
                       : date < programVisibleFrom()
                         ? "멤버 공개 종료"
                         : stateLabels[row.status] || "보관"}

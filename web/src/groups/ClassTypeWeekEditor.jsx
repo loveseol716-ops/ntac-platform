@@ -20,6 +20,8 @@ export default function ClassTypeWeekEditor({
   templatesError,
   busy,
   error,
+  onUnpublish,
+  onDelete,
   onClose,
   onSave,
 }) {
@@ -101,6 +103,12 @@ export default function ClassTypeWeekEditor({
           <section className="g-type-edit">
             <p className="g-kicker">{typeDays(selected)}요일 자동 배치</p>
             <h3>{type.name}</h3>
+            {programReady(p) && <button type="button" className="g-danger" onClick={() => {
+              if (confirm(`${type.name} 내용을 비울까요? 저장하면 반영돼요.`)) {
+                setProgram({ ...p, description: "", movements: [], _blockDefaultsHandled: true });
+                setValidation("");
+              }
+            }}>이 수업 내용 비우기</button>}
             <AuthoringContext date={form.week_start} week classType={selected} goals={goals} exercises={exercises} />
             <TemplatePicker key={selected} templates={templates} loading={templatesLoading} error={templatesError} hasContent={programReady(p)}
               onApply={(t) => setProgram({ ...p, description: t.description, movements: t.movements, _blockDefaultsHandled: true })} />
@@ -116,6 +124,8 @@ export default function ClassTypeWeekEditor({
             수업은 기존 프로그램을 유지해요.
           </p>
           <div className="g-actions">
+            {onUnpublish && <button type="button" onClick={onUnpublish}>공개 취소</button>}
+            {onDelete && <button type="button" className="g-danger" onClick={onDelete}>주간 프로그램 삭제</button>}
             {form.status !== "published" && (
               <button value="draft">임시 저장</button>
             )}

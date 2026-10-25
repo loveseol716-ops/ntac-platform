@@ -58,6 +58,7 @@ export default function WeeklyPrograms({
     lock.current = true;
     setBusy(true);
     setError("");
+    setMessage("");
     try {
       const r = await fn();
       setVersion((v) => v + 1);
@@ -71,6 +72,18 @@ export default function WeeklyPrograms({
       lock.current = false;
       setBusy(false);
     }
+  }
+  async function unpublish(w) {
+    if (!confirm(`${w.title} 공개를 취소할까요? 내용은 비공개로 보관하고, 연결된 수업 프로그램도 멤버에게 숨겨요.`)) return;
+    if (await act(() => rpc("group_unpublish_week", {
+      target_id: w.id, expected_revision: w.revision,
+    }), "공개를 취소했어요. 내용은 비공개로 보관되며 다시 공개할 수 있어요.")) setEdit(null);
+  }
+  async function remove(w) {
+    if (!confirm(`${w.title} 주간 프로그램을 삭제할까요? 멤버 화면과 주간 목록에서 사라져요. 기존 운동 기록과 관리자 보관본은 유지돼요.`)) return;
+    if (await act(() => rpc("group_remove_program", {
+      kind: "week", target_id: w.id, expected_revision: w.revision,
+    }), "주간 프로그램을 삭제했어요. 멤버에게 보이지 않으며 기존 기록은 보존돼요.")) setEdit(null);
   }
   const start = weekStart(day);
   return (
@@ -159,7 +172,7 @@ export default function WeeklyPrograms({
                 ? w.week_start < programVisibleFrom()
                   ? "멤버 공개 종료 · 관리자 보관"
                   : "멤버 공개 중"
-                : "작성 중"}
+                : "비공개 · 작성 중"}
             </span>
           </div>
           {w.program_mode === "class_type" ? (
@@ -181,7 +194,7 @@ export default function WeeklyPrograms({
                 .join(" · ")}
             </p>
           )}
-          <div className="g-actions">
+          <div className="g-actions g-week-actions">
             <button
               disabled={blockGoals.loading}
               onClick={() => {
@@ -210,26 +223,15 @@ export default function WeeklyPrograms({
                 ? "관리자 보관본 저장"
                 : "공개 · 시간표 반영"}
             </button>
+            {w.status === "published" && (
+              <button disabled={busy} onClick={() => unpublish(w)}>공개 취소</button>
+            )}
             <button
               disabled={busy}
-              onClick={() => {
-                if (
-                  confirm(
-                    "이 주간 프로그램과 앞으로 시작할 예정 수업을 삭제할까요? 진행·종료한 수업과 기록은 보존돼요.",
-                  )
-                )
-                  act(
-                    () =>
-                      rpc("group_remove_program", {
-                        kind: "week",
-                        target_id: w.id,
-                        expected_revision: w.revision,
-                      }),
-                    "주간 프로그램을 삭제했어요. 기존 운동 기록은 보존돼요.",
-                  );
-              }}
+              className="g-danger"
+              onClick={() => remove(w)}
             >
-              프로그램 삭제
+              주간 프로그램 삭제
             </button>
           </div>
         </section>
@@ -319,6 +321,8 @@ export default function WeeklyPrograms({
           templatesError={templatesError}
           busy={busy}
           error={error}
+          onUnpublish={edit.id && edit.status === "published" ? () => unpublish(edit) : null}
+          onDelete={edit.id ? () => remove(edit) : null}
           onClose={() => !busy && setEdit(null)}
           onSave={async (payload) => {
             if (
@@ -348,6 +352,8 @@ function LegacyWeekEditor({
   templatesError,
   busy,
   error,
+  onUnpublish,
+  onDelete,
   onClose,
   onSave,
 }) {
@@ -447,6 +453,8 @@ function LegacyWeekEditor({
             공개하면 나머지 예정 수업에만 반영돼요.
           </p>
           <div className="g-actions">
+            {onUnpublish && <button type="button" onClick={onUnpublish}>공개 취소</button>}
+            {onDelete && <button type="button" className="g-danger" onClick={onDelete}>주간 프로그램 삭제</button>}
             {form.status !== "published" && (
               <button value="draft">임시 저장</button>
             )}
