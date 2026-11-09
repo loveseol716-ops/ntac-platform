@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import ProfileDialog from "./ProfileDialog.jsx";
 import NTACLogo from "./NTACLogo.jsx";
 import AuthGate from "./AuthGate.jsx";
+import RequiredMemberName from "./RequiredMemberName.jsx";
+import { needsMemberName, normalizeMemberName } from "./management/memberIdentity.js";
 import PTMember from "./pt/PTMember.jsx";
 import { supabase } from "./lib/supabase.js";
 import { loadWeeklyProgramsFromSupabase } from "./data/weeklyPrograms.js";
@@ -31,6 +33,7 @@ export default function EntryGate() {
     [error, setError] = useState(""),
     [refresh, setRefresh] = useState(0);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [accountDeleted, setAccountDeleted] = useState(false);
   const [busy, setBusy] = useState(false),
     [notice, setNotice] = useState(""),
     [recovery, setRecovery] = useState(
@@ -48,6 +51,7 @@ export default function EntryGate() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
+      if (event === "SIGNED_OUT") setAccountDeleted(false);
       if (event === "PASSWORD_RECOVERY") setRecovery(true);
     });
     return () => {
@@ -74,6 +78,10 @@ export default function EntryGate() {
         .eq("id", session.user.id)
         .single();
       if (e) throw e;
+      if (p.deleted_at || needsMemberName(p.full_name)) {
+        if (live) { setProfile(p); setAccountDeleted(!!p.deleted_at); setPTMember(null); setGroupContext(null); setMode(""); }
+        return;
+      }
       const { data: m, error: me } = await supabase
         .from("pt_members")
         .select("*")
@@ -104,7 +112,7 @@ export default function EntryGate() {
       }
     })()
       .catch((e) => {
-        if (live) setError(e.message);
+        if (live) { setError(e.message); if (e.code === "PT403") setAccountDeleted(true); }
       })
       .finally(() => {
         if (live) setLoading(false);
@@ -113,6 +121,22 @@ export default function EntryGate() {
       live = false;
     };
   }, [session?.user?.id, refresh]);
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    let live = true;
+    const check = async () => {
+      const { data, error } = await supabase.from("profiles").select("full_name,deleted_at").eq("id", session.user.id).single();
+      if (!live) return;
+      if (error?.code === "PT403" || data?.deleted_at) {
+        setAccountDeleted(true); setPTMember(null); setGroupContext(null); setMode("");
+      } else if (data && needsMemberName(data.full_name)) {
+        setProfile((p) => p ? { ...p, full_name: data.full_name } : p);
+      }
+    };
+    const timer = setInterval(check, 30000);
+    window.addEventListener("focus", check);
+    return () => { live = false; clearInterval(timer); window.removeEventListener("focus", check); };
+  }, [session?.user?.id]);
   async function logout() {
     const { error: e } = await supabase.auth.signOut({ scope: "local" });
     if (e) setError(e.message);
@@ -124,6 +148,8 @@ export default function EntryGate() {
   async function signup(e) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
+    const fullName = normalizeMemberName(f.get("name"));
+    if (needsMemberName(fullName)) { setError("실제 이름을 2~80자로 입력해 주세요."); return; }
     if (f.get("password") !== f.get("confirm")) {
       setError("비밀번호가 일치하지 않습니다.");
       return;
@@ -140,7 +166,7 @@ export default function EntryGate() {
             window.location.origin,
           ).toString(),
           data: {
-            full_name: f.get("name").trim(),
+            full_name: fullName,
             phone: f.get("phone"),
             signup_source: "member",
             privacy_consent: true,
@@ -158,6 +184,8 @@ export default function EntryGate() {
       setBusy(false);
     }
   }
+  if (accountDeleted) return <main className="manage center-state"><h1>삭제된 계정이에요</h1><p>앱 이용이 중지되었습니다. 이용 관련 문의는 코치에게 해주세요.</p><button onClick={logout}>로그아웃</button></main>;
+  if (session && profile && needsMemberName(profile.full_name)) return <RequiredMemberName onSaved={() => setRefresh((v) => v + 1)} onLogout={logout} />;
   if (recovery) return <AuthGate />;
   if (session === undefined || loading)
     return (
@@ -324,6 +352,7 @@ export default function EntryGate() {
                     name="name"
                     autoComplete="name"
                     minLength="2"
+                    maxLength="80"
                     required
                   />
                 </label>

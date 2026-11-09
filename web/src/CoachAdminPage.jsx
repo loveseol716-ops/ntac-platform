@@ -4,6 +4,7 @@ import { checked } from "./pt/api.js";
 import { today } from "./pt/model.js";
 import ProfileDialog from "./ProfileDialog.jsx";
 import MemberDirectory from "./management/MemberDirectory.jsx";
+import DeleteMemberDialog from "./management/DeleteMemberDialog.jsx";
 import {
   SERVICES,
   memberServiceState,
@@ -77,6 +78,7 @@ export default function CoachAdminPage({
     [groupMembers, setGroupMembers] = useState([]),
     [packages, setPackages] = useState([]),
     [sessions, setSessions] = useState([]);
+  const [deleting, setDeleting] = useState(null);
   const [query, setQuery] = useState(""),
     [coachFilter, setCoachFilter] = useState("all"),
     [registering, setRegistering] = useState(false),
@@ -116,6 +118,7 @@ export default function CoachAdminPage({
             .select(
               "id,full_name,email,phone,role,ntac_enabled,assigned_coach_id,coach_name",
             )
+            .is("deleted_at", null)
             .order("full_name"),
         ),
         checked(supabase.from("pt_members").select("*")),
@@ -260,6 +263,10 @@ export default function CoachAdminPage({
     );
   return (
     <main className="manage management-layout">
+      {deleting && <DeleteMemberDialog member={deleting} onClose={() => setDeleting(null)} onDeleted={() => {
+        setProfiles((rows) => rows.filter((p) => p.id !== deleting.id));
+        setDeleting(null); setVersion((v) => v + 1); setMessage("회원 계정을 삭제했어요. 로그인과 모든 서비스 이용이 차단됐어요.");
+      }} />}
       {profileEditing && (
         <ProfileDialog
           targetId={profileEditing}
@@ -347,6 +354,7 @@ export default function CoachAdminPage({
           loading={loading}
           onAssign={edit}
           onProfile={setProfileEditing}
+          onDelete={setDeleting}
         />
       )}
       {tab === "group" && profile && (

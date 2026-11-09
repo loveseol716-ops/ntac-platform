@@ -802,3 +802,9 @@ summary:focus-visible {
     flex: 1;
   }
 }
+.manage button.account-delete-button {
+  color: #ffb4ad;
+  border-color: #83443e;
+  background: #321e20;
+}
+.manage .account-delete-email { overflow-wrap: anywhere; }

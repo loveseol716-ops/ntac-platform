@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { SERVICES, serviceLabels } from "./memberServices.js";
+import { needsMemberName } from "./memberIdentity.js";
 export default function MemberDirectory({
   rows,
   coaches,
   loading,
   onAssign,
   onProfile,
+  onDelete,
 }) {
   const [query, setQuery] = useState(""),
     [filter, setFilter] = useState("all");
   const matches = (row, id) =>
     id === "all" ||
-    (id === "pending" ? !serviceLabels(row.services).length : row.services[id]);
+    (id === "pending" ? !serviceLabels(row.services).length : id === "unnamed" ? needsMemberName(row.p.full_name) : row.services[id]);
   const filtered = rows.filter(
     (r) =>
       matches(r, filter) &&
@@ -37,6 +39,7 @@ export default function MemberDirectory({
           { id: "all", label: "전체" },
           ...SERVICES,
           { id: "pending", label: "미지정" },
+          { id: "unnamed", label: "이름 미입력" },
         ].map((s) => (
           <button
             key={s.id}
@@ -63,6 +66,7 @@ export default function MemberDirectory({
             <div className="unified-member-info">
               <div className="section-heading">
                 <h3>{p.full_name || "이름 없음"}</h3>
+                {needsMemberName(p.full_name) && <span className="service-badge">이름 입력 필요</span>}
                 {p.role !== "member" && (
                   <span className="service-badge">
                     {{ owner: "대표", admin: "관리자", coach: "코치" }[
@@ -103,6 +107,7 @@ export default function MemberDirectory({
                 이용 서비스 설정
               </button>
               <button onClick={() => onProfile(p.id)}>프로필 · 비밀번호</button>
+              {p.role === "member" && onDelete && <button className="account-delete-button" onClick={() => onDelete(p)}>계정 삭제</button>}
             </div>
           </article>
         ))}
