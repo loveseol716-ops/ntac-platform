@@ -1,6 +1,6 @@
 begin;
 do $$
-declare aid uuid; uid uuid; other_uid uuid; source uuid:=gen_random_uuid(); target uuid:=gen_random_uuid(); pid uuid; revision integer; r jsonb; d jsonb; m jsonb;
+declare aid uuid; uid uuid; other_uid uuid; source uuid:=gen_random_uuid(); target uuid:=gen_random_uuid(); pid uuid; newer_class uuid; revision integer; r jsonb; d jsonb; m jsonb;
 begin
  select id into aid from public.profiles where role in ('owner','admin') order by id limit 1;
  select id into uid from public.profiles where role='member' order by id limit 1;
@@ -39,6 +39,10 @@ begin
  perform set_config('role','postgres',true);
  r:=private.group_recommend(target,uid,'standard')->'sq';
  if (r->>'weight')::numeric<>50 then raise exception 'Updated actual performance not used';end if;
+ insert into public.group_classes(title,starts_at,coach_id,created_by,status,movements) values('ROLLBACK NEWER FULL SET',now()-interval '5 minutes',aid,aid,'ended',jsonb_build_array(m)) returning id into newer_class;
+ insert into public.group_participants(class_id,user_id,status,finalized,results) values(newer_class,uid,'completed',true,'{"sq":{"sets":[{"weight":30,"reps":8,"rir":3},{},{},{}]}}');
+ if (private.group_recommend(target,uid,'standard')->'sq'->>'weight')::numeric<>30 then raise exception 'Older summary displaced newer qualified full-set record';end if;
+ update public.group_classes set status='cancelled' where id=newer_class;
  perform set_config('request.jwt.claim.sub',other_uid::text,true);
  perform set_config('role','authenticated',true);
  if exists(select 1 from public.group_last_sets where user_id=uid) then raise exception 'Other member summary exposed by RLS';end if;
