@@ -33,7 +33,7 @@ export default function HistoryRecord({ record, onClose }) {
                   {s.dnf
                     ? "미완주"
                     : s.weight != null && s.reps != null
-                      ? `${s.weight} ${m.unit} × ${s.reps}회${s.rir != null ? ` · 실제 RIR ${s.rir}` : ""}`
+                      ? `${s.weight} ${m.unit} × ${s.reps}회${s.rir != null ? ` · 실제 RPE ${10 - s.rir}` : ""}`
                       : "기록 없음"}
                 </p>
               ))

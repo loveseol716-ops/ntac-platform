@@ -1,3 +1,4 @@
+import { coreMovement } from "./coreLifts.js";
 import { programReady } from "./classTypes.js";
 import { trainingPosition } from "./trainingCycle.js";
 
@@ -8,7 +9,7 @@ export function goalsForDate(rows, date, classType) {
   const block = trainingPosition(date)?.block;
   return block ? rows.find((r) => r.block_id === block.id)?.programs?.[classType] || [] : [];
 }
-export const newMovement = (exercise) => ({
+export const newMovement = (exercise) => coreMovement({
   id: crypto.randomUUID(), exercise_id: exercise?.id || "", label: exercise?.name || "",
   kind: "weight", training_type: "strength", record_use: "log_only", target_reps: 10,
   unit: "kg", load_basis: "total",
@@ -27,5 +28,5 @@ export function editProgram(program, key, value) {
 export function cleanProgram(program) {
   const { _blockDefaultsHandled, _blockPreview, ...rest } = program;
   // Never publish untouched automatic previews.
-  return _blockPreview ? { ...rest, movements: [] } : rest;
+  return _blockPreview ? { ...rest, movements: [] } : { ...rest, movements: (rest.movements || []).map(coreMovement) };
 }

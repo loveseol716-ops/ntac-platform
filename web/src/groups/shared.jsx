@@ -124,7 +124,7 @@ export function RecommendationValue({
           </b>
           {!compact && (
             <small>
-              {target.reps}회 · RIR {target.rir}
+              {target.reps}회 · RPE {10 - target.rir}
             </small>
           )}
         </span>
@@ -391,7 +391,7 @@ export function RecordEditor({
               <h3>마지막 체크 · 수업 전체 RPE</h3>
               <p className="g-muted">
                 오늘 수업 전체가 얼마나 힘들었나요? 0 = 휴식, 5 = 힘듦, 7 = 매우
-                힘듦, 10 = 최대 노력. 세트별 RIR과는 별도예요.
+                힘듦, 10 = 최대 노력. 운동별 세트 RPE와는 별도예요.
               </p>
               <label>
                 수업 전체 RPE

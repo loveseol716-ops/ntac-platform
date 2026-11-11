@@ -1,8 +1,8 @@
+import { setRpe } from "./coreLifts.js";
 import {
   movementLabel,
   sourceLabels,
   nullableNumber,
-  recordUse,
 } from "./model.js";
 export default function StrengthSets({
   m,
@@ -35,7 +35,7 @@ export default function StrengthSets({
           <div className="g-strength-set" key={i}>
             <div className="g-heading">
               <strong>
-                {i + 1}세트 · {target.reps}회 / RIR {target.rir}
+                {i + 1}세트 · {target.reps}회 / RPE {setRpe(target)}
               </strong>
               <span>
                 {r?.weight != null ? `추천 ${r.weight} ${m.unit}` : "코치 확인"}
@@ -51,7 +51,7 @@ export default function StrengthSets({
                   {[
                     ["weight", `실제 중량 (${m.unit})`, 2000],
                     ["reps", "실제 반복 수", 1000],
-                    ["rir", "실제 RIR (선택)", 10],
+                    ["rir", "실제 RPE (선택)", 10],
                   ].map(([key, label, max]) => (
                     <label key={key}>
                       {label}
@@ -62,8 +62,8 @@ export default function StrengthSets({
                         max={max}
                         step={key === "reps" ? 1 : 0.5}
                         placeholder="미입력"
-                        value={actual[key] ?? ""}
-                        onChange={(e) => set(i, key, e.target.value)}
+                        value={key === "rir" ? setRpe(actual) : (actual[key] ?? "")}
+                        onChange={(e) => set(i, key, key === "rir" && e.target.value !== "" ? 10 - Number(e.target.value) : e.target.value)}
                       />
                     </label>
                   ))}
@@ -124,9 +124,7 @@ export default function StrengthSets({
       })}
       {!recommendationOnly && (
         <p className="g-muted">
-          {recordUse(m) === "strength_estimate"
-            ? "실제 RIR은 이 동작을 몇 회 더 할 수 있었는지예요. 모르면 비워 두세요. 실제 RIR을 남긴 완료·코치 확정 기록만 근력 추정에 활용해요. 수업 전체 RPE로 대신 계산하지 않아요."
-            : "오늘의 수행 기록으로 남겨요. 이 결과와 수업 전체 RPE로 최대근력을 계산하지 않아요. 실제 RIR은 원할 때만 입력하세요."}
+          실제 중량·반복 수·운동별 RPE를 남기면 다음 추천의 기준이 돼요. RPE는 이 운동 세트의 체감 강도이며 수업 전체 RPE와 구분해요.
         </p>
       )}
     </>

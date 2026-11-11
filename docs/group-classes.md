@@ -238,3 +238,11 @@ Supersedes previous pending/eight-week preseason drafts. HYROX stays active thro
 Reps/RPE guidance applies to main strength work; cleans are programmed for technique/speed separately, not prescribed the same rep ranges. The four events are shared by journey, class context and admin authoring guidance. Class load indicators distinguish assessment from preparation/recovery. Exact assessment days, standards, scales, attempts and rest still require coach-authored published programs. No participation/lifecycle/record-entry flow is added. Key Descriptions remain admin-only.
 
 Verification: `node tests/training-cycle.mjs`, `node tests/preseason-render.mjs`, `node tests/group-key-description-render.mjs`, and `npm run build --prefix web`.
+
+## Core recommendation authoring — 2026-11-11
+
+New core movement choices are Back Squat, Front Squat, Bench Press, Pendlay Row, conventional Deadlift (existing `deadlift` identity), Overhead Press, Push Press, Push Jerk and Power Clean. Missing catalog identities are added without deleting old exercises. Core strength programs are saved in kg/bar-inclusive total load and `strength_estimate` automatically; editors no longer ask for record use, exercise type, unit, load basis, increment or minimum load. Reps and set RPE are the author inputs. Existing numeric RIR storage/RPC contract is retained with `RPE = 10 - RIR` at the input/output boundary, including actual-set records and member-facing prescriptions. Full-session RPE remains distinct.
+
+Rounding is internal (2.5kg). No universal empty-bar floor is imposed because members may use different bars; nonpositive recommendations still require coach confirmation. Existing non-core and non-strength historical records are not rewritten or silently reclassified. Historical results are not reprocessed by this catalog/editor change. Existing completed/coach-confirmed result eligibility for recommendations remains in force; this does not introduce autonomous model training or activate the member record-entry flow.
+
+Verification: core-lifts-render, group-model, group-key-description-render and build; live exercise catalog and private movement validation.

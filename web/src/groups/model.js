@@ -29,7 +29,7 @@ export const kinds = {
 export const sourceLabels = {
   one_rm: "등록된 1RM 기반 추정",
   recent_set: "최근 동일 세트 기록",
-  estimated_history: "최근 수행·RIR 기반 추정",
+  estimated_history: "최근 수행·RPE 기반 추정",
   recent_result: "최근 동일 조건 기록",
   coach_baseline: "코치 기준 중량",
   coach_override: "코치 조정",
@@ -190,5 +190,5 @@ export function calendarDates(day, view = "month") {
 }
 export const prescriptionText = (m) =>
   m.training_type === "strength"
-    ? `${m.sets.map((s) => s.reps).join("–")}회 · RIR ${m.sets.map((s) => s.rir).every((v) => v === m.sets[0].rir) ? m.sets[0].rir : m.sets.map((s) => s.rir).join(" / ")}`
+    ? `${m.sets.map((s) => s.reps).join("–")}회 · RPE ${m.sets.map((s) => s.rir).every((v) => v === m.sets[0].rir) ? 10 - m.sets[0].rir : m.sets.map((s) => 10 - s.rir).join(" / ")}`
     : `${m.target_reps}회`;

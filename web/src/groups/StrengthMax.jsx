@@ -1,3 +1,4 @@
+import { coreExercises } from "./coreLifts.js";
 import { useEffect, useState } from "react";
 import { checked } from "./api.js";
 import { supabase } from "../lib/supabase.js";
@@ -11,6 +12,7 @@ export default function StrengthMax({
   onSave,
   onClose,
 }) {
+  const available = coreExercises(exercises);
   const [rows, setRows] = useState([]),
     [readError, setReadError] = useState("");
   useEffect(() => {
@@ -26,8 +28,7 @@ export default function StrengthMax({
   return (
     <Dialog title={`${member.name}님의 스트렝스 1RM`} onClose={onClose}>
       <p className="g-muted">
-        코치가 확인한 1RM 또는 추정 1RM을 등록하세요. 같은 종목·단위·총중량/한
-        손 기준에서만 사용하며, 180일이 지나면 갱신이 필요해요.
+        코치가 확인한 1RM 또는 추정 1RM을 등록하세요. 같은 종목의 kg·바벨 포함 총중량 기준으로 사용하며, 180일이 지나면 갱신이 필요해요.
       </p>
       {rows.map((r) => (
         <p key={`${r.exercise_id}/${r.unit}/${r.load_basis}`}>
@@ -41,6 +42,7 @@ export default function StrengthMax({
           e.preventDefault();
           onSave({
             ...Object.fromEntries(new FormData(e.currentTarget)),
+            unit: "kg", load_basis: "total",
             user_id: member.id,
           });
         }}
@@ -49,7 +51,7 @@ export default function StrengthMax({
           <label>
             종목
             <select required name="exercise_id">
-              {exercises.map((x) => (
+              {available.map((x) => (
                 <option key={x.id} value={x.id}>
                   {x.name}
                 </option>
@@ -58,7 +60,7 @@ export default function StrengthMax({
           </label>
           <div className="g-fields">
             <label>
-              1RM 중량
+              1RM 중량 (kg · 바벨 포함)
               <input
                 type="number"
                 required
@@ -67,20 +69,6 @@ export default function StrengthMax({
                 step="any"
                 name="weight"
               />
-            </label>
-            <label>
-              단위
-              <select name="unit">
-                <option>kg</option>
-                <option>lb</option>
-              </select>
-            </label>
-            <label>
-              중량 기준
-              <select name="load_basis">
-                <option value="total">바 포함 총중량</option>
-                <option value="each">덤벨 한 손 기준</option>
-              </select>
             </label>
           </div>
           <div className="g-fields">
