@@ -1719,3 +1719,4 @@
 .g-floor-table button { white-space: nowrap; }
 .groups .g-admin-columns:has(.g-floor-roster) { grid-template-columns: minmax(0,1fr); }
 .g-record-movement details summary { padding: 14px 0; cursor: pointer; color: #b2c7bb; font-size: .82rem; }
+.groups .g-admin-columns:has(.g-floor-roster) > .g-floor-roster { grid-row: 1; }
