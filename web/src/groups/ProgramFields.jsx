@@ -1,6 +1,6 @@
 import { coreExercises, coreMovement, setRpe } from "./coreLifts.js";
 import { useMemo } from "react";
-import { editProgram, newMovement, previewBlockDefaults } from "./blockGoals.js";
+import { editProgram, newMovement } from "./blockGoals.js";
 import ExerciseSearch from "./ExerciseSearch.jsx";
 const NO_GOALS = [];
 export default function ProgramFields({
@@ -13,9 +13,7 @@ export default function ProgramFields({
   showKeyDescription = true,
 }) {
   const available = useMemo(() => coreExercises(exercises), [exercises]);
-  const coreGoals = useMemo(() => goals.filter((g) => available.some((e) => e.id === g.exercise_id)), [goals, available]);
-  const canSeed = !!onChange;
-  const form = useMemo(() => canSeed ? previewBlockDefaults(original, coreGoals, available) : original, [original, coreGoals, available, canSeed]);
+  const form = original;
   const set = (key, value) => onChange ? onChange(editProgram(form, key, value)) : setField(key, value);
   const movement = (id, patch) =>
     set(
@@ -55,24 +53,11 @@ export default function ProgramFields({
           onChange={(e) => set("key_description", e.target.value)}
           placeholder={"예: 하이록스 전 피로를 낮추면서 전환 감각 유지\n목표: RPE 6~7, 후반에도 일정한 페이스\n코칭: 초반 과속을 막고 호흡과 동작 품질 확인"} />
       </label>}
-      {form._blockPreview && <div className="g-default-preview">
-        <strong>이번 블록의 평가 종목을 미리 불러왔어요.</strong>
-        <p>오늘의 프로그램을 입력하거나 아래 내용을 수정하면 적용돼요. 반복 수·RPE은 오늘 수업에 맞춰 확인해 주세요.</p>
-        <button type="button" onClick={() => set("movements", form.movements)}>이 종목으로 작성</button>
-        <button type="button" onClick={() => set("movements", [])}>오늘은 다른 운동으로 작성</button>
-      </div>}
       <div className="g-heading">
         <h3>추천 중량을 받을 핵심 운동</h3>
         <small>{form.movements.length}/20</small>
       </div>
       <p className="g-muted">9종목 · kg · 바벨 포함 총중량으로 고정돼요. 실제 중량·반복 수·운동별 RPE 기록은 다음 추천에 활용해요.</p>
-      {!!coreGoals.length && !form._blockPreview && <div className="g-goal-quick-add">
-        {coreGoals.filter((g) => !form.movements.some((m) => m.exercise_id === g.exercise_id)).map((g) => {
-          const e = available.find((e) => e.id === g.exercise_id);
-          return e && <button type="button" key={g.exercise_id} disabled={form.movements.length >= 20}
-            onClick={() => set("movements", [...form.movements, coreMovement(newMovement(e))])}>+ {e.name} <small>블록 목표</small></button>;
-        })}
-      </div>}
       {form.movements.map((m, i) => (
         <section className="g-record-movement" key={m.id}>
           <div className="g-heading">

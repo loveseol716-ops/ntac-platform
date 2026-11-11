@@ -4,7 +4,7 @@ import { Dialog } from "./shared.jsx";
 import { seoulDate, classTime } from "./model.js";
 import AuthoringContext from "./AuthoringContext.jsx";
 import useBlockGoals from "./useBlockGoals.js";
-import { cleanProgram, editProgram, goalsForDate, previewBlockDefaults } from "./blockGoals.js";
+import { cleanProgram, editProgram, goalsForDate } from "./blockGoals.js";
 import { CLASS_TYPES } from "./classTypes.js";
 import { trainingClass } from "./trainingCycle.js";
 export default function ClassEditor({
@@ -47,8 +47,8 @@ export default function ClassEditor({
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          // Saving a single class explicitly accepts its visible defaults.
-          const draft = previewBlockDefaults(form, goals, exercises);
+          // Only explicitly selected exercises belong to this class.
+          const draft = form;
           onSave({
             ...cleanProgram(editProgram(draft, "movements", draft.movements)),
             recording_version: 2,

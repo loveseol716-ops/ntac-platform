@@ -16,10 +16,9 @@ export const newMovement = (exercise) => coreMovement({
   sets: [{ reps: 10, rir: 3 }, { reps: 10, rir: 3 }, { reps: 8, rir: 3 }, { reps: 8, rir: 3 }, { reps: 8, rir: 3 }],
   load_step: 2.5, min_load: 20,
 });
-export function previewBlockDefaults(program, goals, exercises) {
-  if (!program || program._blockDefaultsHandled || programReady(program) || !goals.length) return program;
-  const movements = goals.map((g) => exercises.find((e) => e.id === g.exercise_id)).filter(Boolean).map(newMovement);
-  return movements.length ? { ...program, movements, _blockPreview: true } : program;
+// Retained for older callers: block goals never insert exercises into a program.
+export function previewBlockDefaults(program) {
+  return program;
 }
 export function editProgram(program, key, value) {
   const { _blockPreview, ...rest } = program;
