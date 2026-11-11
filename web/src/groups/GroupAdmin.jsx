@@ -1,3 +1,5 @@
+import ClassFloorRoster from "./ClassFloorRoster.jsx";
+import LastSetRecord, { quickLifts } from "./LastSetRecord.jsx";
 import MemberCalendar from "./MemberCalendar.jsx";
 import ProgramArchive from "./ProgramArchive.jsx";
 import KeyDescription from "./KeyDescription.jsx";
@@ -320,7 +322,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                       <Program c={c} exercises={exercises} />
                       {admin && <KeyDescription value={c.key_description} />}
                     </div>
-                    <section className="g-panel g-admin-roster">
+                    {quickLifts(c).length ? <ClassFloorRoster c={c} participants={detail.participants} exercises={exercises} busy={busy} onAdd={openAdd} onRecord={setRecord} /> : <section className="g-panel g-admin-roster">
                       <div className="g-heading">
                         <h3>
                           참가자{" "}
@@ -474,7 +476,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                           </div>
                         </article>
                       ))}
-                    </section>
+                    </section>}
                   </div>
                   <div className="g-actions">
                     <button
@@ -672,8 +674,9 @@ export default function GroupAdmin({ profile, onManageMembers }) {
           }}
         />
       )}
-      {record && c && (
-        <RecordEditor
+      {record && c && (quickLifts(c).length ? <LastSetRecord participant={record} c={c} exercises={exercises} busy={busy} error={error} onClose={() => !busy && setRecord(null)} onSave={async (entries) => {
+        if (await act(() => rpc("group_save_last_sets", {pid:record.id,expected_revision:record.revision,entries}), "마지막 세트 기록을 저장했어요.")) setRecord(null);
+      }} /> : <RecordEditor
           participant={record}
           c={c}
           exercises={exercises}

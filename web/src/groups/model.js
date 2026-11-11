@@ -27,6 +27,7 @@ export const kinds = {
   participation: "참여",
 };
 export const sourceLabels = {
+  recent_last_set: "최근 마지막 세트·RPE 기반 추천",
   one_rm: "등록된 1RM 기반 추정",
   recent_set: "최근 동일 세트 기록",
   estimated_history: "최근 수행·RPE 기반 추정",
@@ -81,7 +82,9 @@ export function resultText(m, r) {
     const done = sets.filter(
       (s) => !s.dnf && s.weight != null && s.reps != null,
     );
-    return done.length
+    return done.length === 1
+      ? `${done[0].weight} ${m.unit} × ${done[0].reps}회${done[0].rir == null ? "" : ` · RPE ${10-done[0].rir}`}`
+      : done.length
       ? `${done.length}/${m.sets.length}세트 · ${done.map((s) => `${s.weight}×${s.reps}`).join(" / ")} ${m.unit}`
       : "기록 대기";
   }

@@ -1,0 +1,29 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+const require=createRequire(new URL('../web/package.json',import.meta.url));
+const React=require('react'),{renderToStaticMarkup}=require('react-dom/server');
+const {createServer}=await import(require.resolve('vite'));
+const server=await createServer({root:new URL('../web',import.meta.url).pathname,server:{middlewareMode:true},appType:'custom'});
+try {
+ const {default:Record,lastSetEntries,lastRecordedSet}=await server.ssrLoadModule('/src/groups/LastSetRecord.jsx');
+ const Roster=(await server.ssrLoadModule('/src/groups/ClassFloorRoster.jsx')).default;
+ const {RecommendationValue}=await server.ssrLoadModule('/src/groups/shared.jsx');
+ const m={id:'sq',exercise_id:'back_squat',label:'Squat',training_type:'strength',unit:'kg',load_basis:'total',sets:[{reps:8,rir:3},{reps:8,rir:3},{reps:6,rir:2}]};
+ const c={movements:[m],status:'live'};
+ const p={id:'p',name:'Test Member',status:'active',results:{},recommendations:{sq:{sets:[{weight:40},{weight:40},{weight:40}]}}};
+ const render=(Component,props)=>renderToStaticMarkup(React.createElement(Component,props));
+ const html=render(Record,{participant:p,c,exercises:[]});
+ assert.equal((html.match(/실제 중량<\/|실제 중량 \(kg/g)||[]).length,1);
+ assert(html.includes('마지막으로 완료한 세트')&&html.includes('value="6"'));
+ assert(!html.includes('수업 전체 RPE'));
+ assert.deepEqual(lastSetEntries([m],{sq:{index:3,weight:'40',reps:6,rpe:8}}),[{movement_id:'sq',set_index:3,weight:40,reps:6,rpe:8}]);
+ assert.deepEqual(lastSetEntries([m],{sq:{index:3,weight:'',reps:6,rpe:''}}),[]);
+ assert.throws(()=>lastSetEntries([m],{sq:{index:3,weight:'40',reps:6,rpe:''}}),/모두 확인/);
+ assert.equal(lastRecordedSet(m,{...p,last_sets:{sq:{set_index:2,weight:35,reps:8,rpe:7}}}).index,2);
+ const roster=render(Roster,{c,participants:[p,{...p,id:'empty',name:'No data',recommendations:{}}],exercises:[]});
+ assert(roster.includes('40 kg')&&roster.includes('No data')&&roster.includes('기록 입력'));
+ assert(!roster.includes('코치 확인'));
+ const blank=render(RecommendationValue,{movement:m,recommendation:{}});
+ assert(!blank.includes('코치 확인')&&!blank.includes('kg'));
+ console.log('PASS: tablet roster, blank recommendations, one-record inputs, default reps, partial-entry rejection and corrected set index');
+}finally{await server.close()}

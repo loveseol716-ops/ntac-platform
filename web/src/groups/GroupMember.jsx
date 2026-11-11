@@ -1,3 +1,4 @@
+import LastSetRecord, { quickLifts } from "./LastSetRecord.jsx";
 import { timedClass, useClassClock } from "./classClock.js";
 import MemberCalendar from "./MemberCalendar.jsx";
 import WeeklyOverview from "./WeeklyOverview.jsx";
@@ -167,7 +168,7 @@ export default function GroupMember({ profile }) {
   const canEdit =
     p &&
     !p.finalized &&
-    c?.status === "ended" &&
+    ["live", "ended"].includes(c?.status) &&
     (!c?.ended_at || now < new Date(c.ended_at).getTime() + 86400000) &&
     ["active", "completed"].includes(p.status);
   const openTab = (next) => {
@@ -271,6 +272,7 @@ export default function GroupMember({ profile }) {
                       : "수업 시작 30분 전부터 종료 시간까지 참여할 수 있어요."}
                   </p>
                 )}
+              {p && c.status === "live" && canEdit && !!quickLifts(c).length && <button className="g-primary g-full" onClick={() => setEditing(p)}>운동 후 마지막 세트 기록</button>}
               {p && c.status === "ended" && (
                 <>
                   <section className="g-panel">
@@ -283,7 +285,7 @@ export default function GroupMember({ profile }) {
                       </span>
                     </div>
                     <p className="g-muted">
-                      실제로 수행한 중량과 횟수를 남겨 주세요. 종료 후
+                      마지막으로 완료한 세트의 중량·반복 수·RPE를 남겨 주세요. 종료 후
                       24시간까지 수정할 수 있어요.
                     </p>
                     {c.movements.map((m) => (
@@ -349,8 +351,8 @@ export default function GroupMember({ profile }) {
                     />
                     {["open", "live"].includes(c.status) && (
                       <p className="g-auto-flow">
-                        추천 중량을 확인하고 운동하세요. 기록은 수업 종료 후
-                        입력해 주세요.
+                        추천 중량을 확인하고 운동하세요. 운동을 마치면 마지막 세트만
+                        기록해 주세요.
                       </p>
                     )}
                   </>
@@ -361,8 +363,9 @@ export default function GroupMember({ profile }) {
                 label="이 수업의 위치"
               />
               <Program c={c} exercises={exercises} />
-              {editing && p && (
-                <RecordEditor
+              {editing && p && (quickLifts(c).length ? <LastSetRecord participant={editing} c={c} exercises={exercises} busy={busy} error={error} onClose={() => !busy && setEditing(null)} onSave={async (entries) => {
+                if (await act(() => rpc("group_save_last_sets", {pid:editing.id,expected_revision:editing.revision,entries}), "마지막 세트 기록을 저장했어요.")) setEditing(null);
+              }} /> : <RecordEditor
                   participant={editing}
                   c={c}
                   exercises={exercises}

@@ -366,4 +366,11 @@ console.log("PASS: atomic private intent in classes/weekly/legacy/templates; mem
 await as("coach");
 ok((await db.query("select * from public.group_key_descriptions")).rows.length === 0, "non-admin coach cannot read private intent");
 await denied(() => rpc("group_save_class", [{ ...payload, starts_at: new Date(Date.now()+7200000).toISOString(), key_description: "coach denied" }]), /관리자/);
+if (process.env.NTAC_TEST_LAST_SET === "1") {
+  await db.exec("reset role");
+  await db.exec(fs.readFileSync("supabase/migrations/20261111135052_core_nine_recommendation_lifts.sql", "utf8"));
+  await db.exec(fs.readFileSync("supabase/migrations/20261111141131_last_set_recommendations.sql", "utf8"));
+  await db.exec(fs.readFileSync("tests/last-set-production-smoke.sql", "utf8"));
+  console.log("PASS: last-set summaries, latest RPE recommendations, self/coach authorization, RLS and revision guards");
+}
 await db.close();

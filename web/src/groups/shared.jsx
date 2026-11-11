@@ -87,7 +87,7 @@ export function Program({ c, exercises }) {
             <span className="g-index">{String(i + 1).padStart(2, "0")}</span>
             <div>
               <strong>{movementLabel(m, exercises)}</strong>
-              <RecordUseBadge movement={m} />
+
               <p>
                 {kinds[m.kind]}
                 {m.kind === "weight" &&
@@ -108,7 +108,7 @@ export function RecommendationValue({
   if (m.training_type !== "strength")
     return (
       <b className="g-recommended-weight">
-        {r?.weight != null ? `${r.weight} ${m.unit}` : "코치 확인"}
+        {r?.weight != null ? `${r.weight} ${m.unit}` : ""}
       </b>
     );
   return (
@@ -120,7 +120,7 @@ export function RecommendationValue({
             {compact && `${i + 1}세트 · `}
             {r?.sets?.[i]?.weight != null
               ? `${r.sets[i].weight} ${m.unit}`
-              : "코치 확인"}
+              : ""}
           </b>
           {!compact && (
             <small>
@@ -154,7 +154,7 @@ export function Recommendations({ participant: p, c, exercises }) {
               </div>
               <div>
                 <RecommendationValue movement={m} recommendation={r} />
-                <small>{sourceLabels[r?.source] || "기준 기록이 없어요"}</small>
+                {r?.weight != null && <small>{sourceLabels[r?.source]}</small>}
               </div>
             </div>
           );
@@ -250,7 +250,7 @@ export function RecordEditor({
           .map((m) => (
             <section className="g-record-movement" key={m.id}>
               <h3>{movementLabel(m, exercises)}</h3>
-              <RecordUseBadge movement={m} />
+
               {m.training_type === "strength" ? (
                 <StrengthSets
                   m={m}
