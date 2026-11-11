@@ -99,3 +99,11 @@
   .g-cycle-track { gap: 3px; }
   .g-cycle-class-grid { grid-template-columns: minmax(0, 1fr); }
 }
+.g-training-demand { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px; }
+.g-training-demand > span { border: 1px solid #486352; border-radius: 8px; padding: 8px 10px; color: #c5d7cc; font-size: .75rem; line-height: 1.6; }
+.g-training-demand strong { display: inline-block; margin-left: 6px; color: #d5eadc; }
+.g-training-demand [data-level="평가"], .g-training-demand [data-level="평가 WOD"] { background: #3f324e; border-color: #89749f; }
+.g-training-demand [data-level="높음"], .g-training-demand [data-level="증가"] { background: #433b29; border-color: #9b8655; }
+.g-training-demand [data-level="낮음"], .g-training-demand [data-level="감소"] { background: #283e49; border-color: #688b9e; }
+.g-assessment-movements { padding-left: 22px; margin: 14px 0; color: #e0e9e3; font-size: .82rem; line-height: 1.8; }
+.g-assessment-movements li + li { margin-top: 8px; }

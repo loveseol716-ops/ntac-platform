@@ -1,6 +1,7 @@
 import { addDays, seoulDate } from "./model.js";
 import { CLASS_TYPES } from "./classTypes.js";
 import { HYROX_CYCLE } from "./hyroxCycle.js";
+import { PRESEASON_CYCLE, preseasonDirection } from "./preseasonCycle.js";
 
 // Agreed NOLTO 2.0 calendar. This describes the program, never member attendance.
 // Keep dates explicit: holiday weeks do not count as completed training weeks.
@@ -22,8 +23,7 @@ export const PHASES = {
 const REGULAR_PHASES = ["ready", "build", "build", "build", "load", "load", "reset", "perform", "perform", "perform", "showtime", "showtime"];
 export const TRAINING_BLOCKS = [
   HYROX_CYCLE,
-  // Retain the ID for saved goal drafts without scheduling an unconfirmed season.
-  { id: "2026-preseason", year: 2026, name: "PRE-SEASON", quarter: null, number: null, start: null, end: null, phases: [], pauses: [], planning: true },
+  PRESEASON_CYCLE,
   { id: "2027-b01", year: 2027, name: "BLOCK 01", quarter: 1, number: 1, start: "2027-01-04", end: "2027-03-28", phases: REGULAR_PHASES, pauses: [] },
   { id: "2027-b02", year: 2027, name: "BLOCK 02", quarter: 2, number: 2, start: "2027-04-05", end: "2027-06-27", phases: REGULAR_PHASES, pauses: [] },
   { id: "2027-b03", year: 2027, name: "BLOCK 03", quarter: 3, number: 3, start: "2027-07-05", end: "2027-10-03", phases: REGULAR_PHASES, pauses: [{ start: "2027-09-13", end: "2027-09-19", label: "추석 조정 주간" }] },
@@ -31,7 +31,7 @@ export const TRAINING_BLOCKS = [
 ];
 
 const TRANSITIONS = [
-  { start: "2026-11-16", end: "2027-01-03", planning: true, label: "프리시즌 준비 중" },
+  { start: "2026-11-16", end: "2026-11-22", next: "2026-preseason", label: "회복 · 프리시즌 준비" },
   { start: "2027-03-29", end: "2027-04-04", next: "2027-b02", label: "다음 블록 준비" },
   { start: "2027-06-28", end: "2027-07-04", next: "2027-b03", label: "다음 블록 준비" },
   { start: "2027-12-27", end: "2028-01-02", next: null, label: "연말 조정 주간" },
@@ -96,6 +96,7 @@ export function trainingClass(program) {
 export const JOURNEY_CLASSES = ["gentle_strength", "bomb_strength", "gentle_sweat", "bomb_sweat"];
 
 export function classDirection(position, type) {
+  if (position?.block?.id === PRESEASON_CYCLE.id) return preseasonDirection(position, type, CLASS_TYPES.find((c) => c.id === type)?.name);
   if (position?.block?.id === HYROX_CYCLE.id) {
     const name = CLASS_TYPES.find((c) => c.id === type)?.name;
     if (type === "nolto_team") return { name, part: null, goal: "토요일 팀 세션", prescription: position.weekPlan?.saturday, focus: position.weekPlan?.note || "이번 주의 페이스와 전환을 팀 훈련으로 연결해요.", assessment: null };
@@ -104,7 +105,7 @@ export function classDirection(position, type) {
   }
   if (!position || !JOURNEY_CLASSES.includes(type)) return null;
   const gentle = type.startsWith("gentle"), strength = type.endsWith("strength");
-  // The preseason's specific upper/lower focus and assessment lifts are not yet agreed.
+  // Upper/lower rotation applies to regular quarterly blocks.
   const quarter = position.block?.quarter || position.nextBlock?.quarter;
   const part = strength && quarter ? ((quarter % 2 === 1) === gentle ? "UPPER" : "LOWER") : null;
   const goal = strength

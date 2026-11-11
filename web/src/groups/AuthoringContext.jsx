@@ -1,4 +1,4 @@
-import { PhaseBadge, TrainingWeekFocus } from "./TrainingJourney.jsx";
+import { PhaseBadge, TrainingWeekFocus, TrainingDemand, PreseasonAssessments } from "./TrainingJourney.jsx";
 import { blockLabel, classDirection, PHASES, trainingPosition, trainingWeeks } from "./trainingCycle.js";
 import { classTypeName } from "./classTypes.js";
 import { STRENGTH_TYPES } from "./blockGoals.js";
@@ -22,7 +22,11 @@ export default function AuthoringContext({ date, week = false, classType, goals 
     </ol>}
     <TrainingWeekFocus position={position} />
     {!position.weekPlan && <p className="g-author-focus">{position.state === "paused" ? `${position.label} · ${position.next.start}부터 ${position.next.number}주차 재개` : PHASES[position.phase].description}</p>}
-    {position.weekPlan && direction && <div className="g-author-class-guide"><strong>{direction.name} · {direction.goal}</strong><p>{direction.prescription}</p><p>{direction.focus}</p><small>블록의 기본 기준이에요. 조절주·테이퍼에는 위의 주간 조정 기준을 우선 적용하세요.</small></div>}
+    {position.weekPlan && direction && <div className="g-author-class-guide"><strong>{direction.name} · {direction.goal}</strong><p>{direction.prescription}</p><p>{direction.focus}</p><TrainingDemand direction={direction} /><small>블록의 기본 기준이에요. 조절주·테이퍼에는 위의 주간 조정 기준을 우선 적용하세요.</small></div>}
+    {position.block?.id === "2026-preseason" && <>
+      <p className="g-cycle-note">작성 기준 · 이번 주 목적 → 평가 종목 연결 → 메인 근력 reps·RPE → 지난주 대비 바뀐 요소. 세부 프로그램은 저장·공개 후 멤버에게 표시돼요. Key Description은 관리자 전용이에요.</p>
+      <PreseasonAssessments classType={classType} />
+    </>}
     {position.nextBlock && <p className="g-muted">다음 블록 · {blockLabel(position.nextBlock)} · {position.nextBlock.start} 시작</p>}
     {STRENGTH_TYPES.includes(classType) && position.block && !position.weekPlan && <div className="g-block-targets">
       <small>{classTypeName(classType)} · 이번 블록 평가 목표</small>

@@ -223,3 +223,18 @@ TV 링크는 최초 한 번 각각 열어 두면 됩니다. 기존 링크도 자
 ## 앱 중심 수업 흐름 검증
 
 가상 회원과 제어된 시계로 입장 시점, 회원·코치 세트 추천, 추천만 조정했을 때 실제 기록이 생기지 않음, 예정 종료 후 기록 입력 표시, 실제 세트와 RPE 저장, 오류 시 입력 보존, 기존 24시간 수정 기한을 확인했습니다. 320–1440px에서 가로 넘침과 주요 배치를 확인했습니다. 이 변경은 UI 흐름 개선이며 DB migration은 추가하지 않습니다.
+
+## Confirmed six-week preseason — 2026-11-11
+
+Supersedes previous pending/eight-week preseason drafts. HYROX stays active through November 15. November 16–22 is recovery/preparation, November 23–January 3 is the six-week preseason, and the regular Q1 block starts January 4. Calendar guidance changes automatically in Seoul time; saved programs retain their existing manual publication controls.
+
+- READY: 8–10 main strength reps, RPE 6–7.
+- BUILD: 6–8 main strength reps, RPE 7.
+- LOAD: 4–6 main strength reps, RPE 7–8.
+- RESET: maintain week 3 sets/reps; reduce load to RPE 6–7.
+- Week 5 SHOWTIME I: Gentle Sweat Ski/Row 2,000m TT; Bomb Sweat power assessment (3 rounds, 4min on/8min off, Bike 20/16cal → Burpee 30 → Wall Ball 20 at 20/14lb). Strength/metcon preparation is low volume and low effort.
+- Week 6 SHOWTIME II: Gentle Strength Back Squat 5RM and BB Hang Power Clean 1RM; Bomb Strength 3 rounds/cap 10min of dual DB C&J 6 (20/12.5kg), BJO 12 (24/20in), T2B 12, KB deadlift 6 (32/24kg). Sweat is light recovery with minimal residual fatigue.
+
+Reps/RPE guidance applies to main strength work; cleans are programmed for technique/speed separately, not prescribed the same rep ranges. The four events are shared by journey, class context and admin authoring guidance. Class load indicators distinguish assessment from preparation/recovery. Exact assessment days, standards, scales, attempts and rest still require coach-authored published programs. No participation/lifecycle/record-entry flow is added. Key Descriptions remain admin-only.
+
+Verification: `node tests/training-cycle.mjs`, `node tests/preseason-render.mjs`, `node tests/group-key-description-render.mjs`, and `npm run build --prefix web`.
