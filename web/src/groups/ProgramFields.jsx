@@ -10,6 +10,7 @@ export default function ProgramFields({
   goals = NO_GOALS,
   exercises,
   hideTitle = false,
+  showKeyDescription = true,
 }) {
   const canSeed = !!onChange;
   const form = useMemo(() => canSeed ? previewBlockDefaults(original, goals, exercises) : original, [original, goals, exercises, canSeed]);
@@ -65,6 +66,13 @@ export default function ProgramFields({
           placeholder={"Warm-up\nMain\nFinisher"}
         />
       </label>
+      {showKeyDescription && <label className="g-key-description-field">
+        Key Description · 관리자 전용
+        <small>수업의 의도, 훈련 목적, 목표 강도와 코칭 포인트를 적어 주세요. 멤버에게는 공개되지 않아요.</small>
+        <textarea rows={4} maxLength={4000} value={form.key_description || ""}
+          onChange={(e) => set("key_description", e.target.value)}
+          placeholder={"예: 하이록스 전 피로를 낮추면서 전환 감각 유지\n목표: RPE 6~7, 후반에도 일정한 페이스\n코칭: 초반 과속을 막고 호흡과 동작 품질 확인"} />
+      </label>}
       {form._blockPreview && <div className="g-default-preview">
         <strong>이번 블록의 평가 종목을 미리 불러왔어요.</strong>
         <p>오늘의 프로그램을 입력하거나 아래 내용을 수정하면 적용돼요. 반복 수·RIR은 오늘 수업에 맞춰 확인해 주세요.</p>

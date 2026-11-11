@@ -1,5 +1,6 @@
 import MemberCalendar from "./MemberCalendar.jsx";
 import ProgramArchive from "./ProgramArchive.jsx";
+import KeyDescription from "./KeyDescription.jsx";
 import WeeklyPrograms from "./WeeklyPrograms.jsx";
 import StrengthMax from "./StrengthMax.jsx";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -9,6 +10,7 @@ import {
   rpc,
   listClasses,
   listExercises,
+  listTemplates,
   loadDetail,
   saveParticipant,
 } from "./api.js";
@@ -68,13 +70,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
     Promise.all([
       listClasses(day, "month"),
       listExercises(),
-      checked(
-        supabase
-          .from("group_templates")
-          .select("*")
-          .is("archived_at", null)
-          .order("updated_at", { ascending: false }),
-      ),
+      listTemplates(admin),
       admin ? rpc("group_directory") : Promise.resolve([]),
     ])
       .then(([cs, es, ts, ds]) => {
@@ -322,6 +318,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                         label="이 수업의 위치"
                       />
                       <Program c={c} exercises={exercises} />
+                      {admin && <KeyDescription value={c.key_description} />}
                     </div>
                     <section className="g-panel g-admin-roster">
                       <div className="g-heading">

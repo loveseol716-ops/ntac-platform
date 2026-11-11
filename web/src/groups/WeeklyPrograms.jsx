@@ -1,4 +1,5 @@
 import ClassTypeWeekEditor from "./ClassTypeWeekEditor.jsx";
+import KeyDescription from "./KeyDescription.jsx";
 import TimetableEditor from "./TimetableEditor.jsx";
 import { blankPrograms, programReady, typeDays } from "./classTypes.js";
 import { useEffect, useState, useRef } from "react";
@@ -39,7 +40,7 @@ export default function WeeklyPrograms({
   useEffect(() => {
     let live = true;
     Promise.all([
-      listWeeks(day),
+      listWeeks(day, true),
       checked(supabase.from("group_timetable").select("*").single()),
     ])
       .then(([w, t]) => {
@@ -184,6 +185,7 @@ export default function WeeklyPrograms({
                     {typeDays(p.class_type_id)} ·{" "}
                     {programReady(p) ? "작성됨" : "작성 전"}
                   </small>
+                  {!!p.key_description && <details className="g-key-summary"><summary>Key Description · 관리자 전용</summary><p>{p.key_description}</p></details>}
                 </div>
               ))}
             </div>
@@ -254,6 +256,7 @@ export default function WeeklyPrograms({
             <details className="g-template-preview">
               <summary><strong>{t.title}</strong><small>내용 보기 · 핵심 운동 {t.movements.length}개</small></summary>
               <Program c={t} exercises={exercises} />
+              <KeyDescription value={t.key_description} />
             </details>
             {(profile.role !== "coach" || t.created_by === profile.id) && (
               <button
@@ -438,7 +441,7 @@ function LegacyWeekEditor({
                 </button>
               </div>
               <TemplatePicker key={dow} templates={templates} loading={templatesLoading} error={templatesError} hasContent={programReady(d)}
-                onApply={(t) => set({ ...d, title: t.title, description: t.description, movements: t.movements, _blockDefaultsHandled: true })} />
+                onApply={(t) => set({ ...d, title: t.title, description: t.description, ...(t.key_description !== undefined ? { key_description: t.key_description } : {}), movements: t.movements, _blockDefaultsHandled: true })} />
               <AuthoringContext date={addDays(form.week_start, dow - 1)} classType={trainingClass(d)} goals={goalsForDate(blockGoals, addDays(form.week_start, dow - 1), trainingClass(d))} exercises={exercises} />
               <ProgramFields form={d} onChange={set} goals={goalsForDate(blockGoals, addDays(form.week_start, dow - 1), trainingClass(d))} exercises={exercises} />
             </>

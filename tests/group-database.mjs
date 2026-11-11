@@ -360,4 +360,10 @@ await db.exec(fs.readFileSync("supabase/migrations/20261025120515_group_week_pub
 await db.exec(fs.readFileSync("supabase/migrations/20261025121656_group_deleted_week_occurrences.sql", "utf8"));
 await db.exec(fs.readFileSync("tests/group-week-publication-production-smoke.sql", "utf8"));
 console.log("PASS: week unpublish, republish, deletion, member RLS, direct RPC guards and retained history");
+await db.exec(fs.readFileSync("supabase/migrations/20261111041053_group_admin_key_descriptions.sql", "utf8"));
+await db.exec(fs.readFileSync("tests/group-key-description-production-smoke.sql", "utf8"));
+console.log("PASS: atomic private intent in classes/weekly/legacy/templates; member REST/detail/history isolation; private helpers denied");
+await as("coach");
+ok((await db.query("select * from public.group_key_descriptions")).rows.length === 0, "non-admin coach cannot read private intent");
+await denied(() => rpc("group_save_class", [{ ...payload, starts_at: new Date(Date.now()+7200000).toISOString(), key_description: "coach denied" }]), /관리자/);
 await db.close();

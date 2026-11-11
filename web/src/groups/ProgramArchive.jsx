@@ -10,6 +10,8 @@ import {
 } from "./model.js";
 import { Dialog, Program } from "./shared.jsx";
 import { typeDays } from "./classTypes.js";
+import { attachWeekKeys, checked } from "./api.js";
+import KeyDescription from "./KeyDescription.jsx";
 
 export default function ProgramArchive({ exercises, onWeek, onClass }) {
   const [kind, setKind] = useState("weeks"),
@@ -24,6 +26,17 @@ export default function ProgramArchive({ exercises, onWeek, onClass }) {
     [selected, setSelected] = useState(null),
     [programIndex, setProgramIndex] = useState(0),
     [loadedKey, setLoadedKey] = useState("");
+  const [noteError, setNoteError] = useState(""), [notesLoading, setNotesLoading] = useState(false);
+  useEffect(() => {
+    if (!selected?.id) return;
+    let live = true;
+    setNoteError(""); setNotesLoading(true);
+    checked(supabase.from("group_key_descriptions").select("week_id,program_key,key_description").eq("week_id", selected.id))
+      .then((notes) => { if (live) setSelected((w) => w ? attachWeekKeys(w, notes) : w); })
+      .catch(() => live && setNoteError("Key Description을 불러오지 못했어요. 창을 닫고 다시 열어 주세요."))
+      .finally(() => live && setNotesLoading(false));
+    return () => { live = false; };
+  }, [selected?.id]);
   const requestKey = JSON.stringify([kind, month, query, page]);
   useEffect(() => {
     let live = true;
@@ -240,7 +253,8 @@ export default function ProgramArchive({ exercises, onWeek, onClass }) {
             </label>
           )}
           {programs?.[programIndex] ? (
-            <Program c={programs[programIndex]} exercises={exercises} />
+            <><Program c={programs[programIndex]} exercises={exercises} />
+            {notesLoading ? <p role="status">Key Description을 불러오고 있어요.</p> : noteError ? <p className="g-error" role="alert">{noteError}</p> : <KeyDescription value={programs[programIndex].key_description} />}</>
           ) : (
             <p>작성된 프로그램이 없어요.</p>
           )}

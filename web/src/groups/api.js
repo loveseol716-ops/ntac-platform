@@ -31,11 +31,27 @@ export const saveParticipant = (p, payload) =>
   });
 export const history = () => rpc("group_my_history");
 
-export const listWeeks = (day) =>
-  checked(
+export async function listWeeks(day, includeKeys = false) {
+  const weeks = await checked(
     supabase
       .from("group_weeks")
       .select("*")
       .eq("week_start", weekStart(day))
       .neq("status", "archived"),
   );
+  if (!includeKeys || !weeks.length) return weeks;
+  const notes = await checked(supabase.from("group_key_descriptions").select("week_id,program_key,key_description").in("week_id", weeks.map((w) => w.id)));
+  return weeks.map((w) => attachWeekKeys(w, notes));
+}
+export function attachWeekKeys(week, notes) {
+  const field = week.program_mode === "class_type" ? "programs" : "days";
+  return { ...week, [field]: (week[field] || []).map((p) => ({ ...p,
+    key_description: notes.find((n) => n.week_id === week.id && n.program_key === String(p.class_type_id || p.dow))?.key_description || "",
+  })) };
+}
+export async function listTemplates(includeKeys = false) {
+  const templates = await checked(supabase.from("group_templates").select("*").is("archived_at", null).order("updated_at", { ascending: false }));
+  if (!includeKeys || !templates.length) return templates;
+  const notes = await checked(supabase.from("group_key_descriptions").select("template_id,key_description").in("template_id", templates.map((t) => t.id)));
+  return templates.map((t) => ({ ...t, key_description: notes.find((n) => n.template_id === t.id)?.key_description || "" }));
+}

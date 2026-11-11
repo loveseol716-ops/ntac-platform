@@ -1700,3 +1700,9 @@
 .groups .g-week-actions {
   gap: 10px;
 }
+.groups .g-key-description-field { display: grid; gap: 8px; margin: 16px 0; }
+.groups .g-key-description-field small { color: var(--g-muted); font-weight: normal; }
+.groups .g-key-description { border-color: #42705d; margin-top: 16px; }
+.groups .g-key-description small { display: inline-block; color: var(--g-muted); font-size: 12px; }
+.groups .g-key-description p, .groups .g-key-summary p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.groups .g-key-summary { margin-top: 10px; font-size: 13px; }
