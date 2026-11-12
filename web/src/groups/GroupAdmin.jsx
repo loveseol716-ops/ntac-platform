@@ -1,3 +1,4 @@
+import MemberTrainingHistory from "./MemberTrainingHistory.jsx";
 import ClassFloorRoster from "./ClassFloorRoster.jsx";
 import LastSetRecord, { quickLifts } from "./LastSetRecord.jsx";
 import MemberCalendar from "./MemberCalendar.jsx";
@@ -64,7 +65,8 @@ export default function GroupAdmin({ profile, onManageMembers }) {
     [version, setVersion] = useState(0),
     [baseline, setBaseline] = useState(null),
     [audit, setAudit] = useState(null),
-    [strengthMax, setStrengthMax] = useState(null);
+    [strengthMax, setStrengthMax] = useState(null),
+    [historyMember, setHistoryMember] = useState(null);
   useEffect(() => {
     let live = true;
     setLoading(true);
@@ -152,7 +154,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
             ? [
                 ["programs", "주간 프로그램"],
                 ["archive", "운동 DB"],
-                ["members", "회원 · 기준 중량"],
+                ["members", "회원 · 운동 기록"],
               ]
             : []),
         ].map(([k, v]) => (
@@ -582,8 +584,8 @@ export default function GroupAdmin({ profile, onManageMembers }) {
             <div>
               <h2>그룹 이용 회원</h2>
               <p className="g-muted">
-                이용 서비스 배정은 회원 통합 관리에서, 기준 중량과 1RM은 여기서
-                관리해요.
+                이용 서비스 배정은 회원 통합 관리에서, 운동 기록·기준 중량·1RM은 여기서
+                확인해요.
               </p>
               {onManageMembers && (
                 <button onClick={onManageMembers}>회원 통합 관리로 이동</button>
@@ -613,7 +615,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
           />
           <div className="g-member-table">
             {directory
-              .filter((p) => p.active)
+              .filter((p) => p.active || admin)
               .filter((p) =>
                 `${p.name} ${p.email}`
                   .toLowerCase()
@@ -628,6 +630,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                   <span className={`g-badge ${p.active ? "open" : ""}`}>
                     {p.active ? "이용 중" : "미등록 · 중지"}
                   </span>
+                  <button onClick={() => setHistoryMember(p)}>운동 기록</button>
                   <button
                     onClick={() => {
                       setBaseline(p);
@@ -649,6 +652,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
           </div>
         </>
       )}
+      {historyMember && <Dialog title="회원 운동 기록 DB" onClose={() => setHistoryMember(null)}><MemberTrainingHistory member={historyMember} /></Dialog>}
       {editing && (
         <ClassEditor
           current={editing.new ? null : editing}

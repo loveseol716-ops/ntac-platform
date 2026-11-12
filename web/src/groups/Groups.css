@@ -1720,3 +1720,11 @@
 .groups .g-admin-columns:has(.g-floor-roster) { grid-template-columns: minmax(0,1fr); }
 .g-record-movement details summary { padding: 14px 0; cursor: pointer; color: #b2c7bb; font-size: .82rem; }
 .groups .g-admin-columns:has(.g-floor-roster) > .g-floor-roster { grid-row: 1; }
+.g-training-history-list { display: grid; gap: 16px; margin: 20px 0; }
+.groups .g-training-history-card { margin: 0; padding: 18px; }
+.g-training-history-card .g-heading h3 { margin: 7px 0 0; font-size: 1rem; }
+.g-training-history-card .g-heading small { color: #b2c7bb; }
+.g-history-lift { padding: 15px 0; border-bottom: 1px solid #35473e; }
+.groups .g-history-lift p { margin: 8px 0 0; line-height: 1.8; font-size: .86rem; overflow-wrap: anywhere; }
+.g-history-lift > strong { font-size: .84rem; color: #b7d7c3; }
+.g-training-history-card details summary { padding: 14px 0; cursor: pointer; }

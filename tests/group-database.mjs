@@ -372,6 +372,9 @@ if (process.env.NTAC_TEST_LAST_SET === "1") {
   await db.exec(fs.readFileSync("supabase/migrations/20261111141131_last_set_recommendations.sql", "utf8"));
   await db.exec(fs.readFileSync("supabase/migrations/20261111142241_last_set_latest_source_guard.sql", "utf8"));
   await db.exec(fs.readFileSync("tests/last-set-production-smoke.sql", "utf8"));
+  await db.exec(fs.readFileSync("supabase/migrations/20261112085309_member_training_history.sql", "utf8"));
+  await db.exec(fs.readFileSync("tests/member-history-production-smoke.sql", "utf8"));
+  console.log("PASS: own/administrator historical records, movement filters, RPE separation and peer-access denial");
   console.log("PASS: last-set summaries, latest RPE recommendations, self/coach authorization, RLS and revision guards");
 }
 await db.close();

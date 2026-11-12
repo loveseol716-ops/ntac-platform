@@ -1,8 +1,8 @@
+import MemberTrainingHistory from "./MemberTrainingHistory.jsx";
 import LastSetRecord, { quickLifts } from "./LastSetRecord.jsx";
 import { timedClass, useClassClock } from "./classClock.js";
 import MemberCalendar from "./MemberCalendar.jsx";
 import WeeklyOverview from "./WeeklyOverview.jsx";
-import HistoryRecord from "./HistoryRecord.jsx";
 import TrainingJourney, {
   TrainingContext,
   TrainingPositionBar,
@@ -25,11 +25,9 @@ import {
   participantLabels,
   resultText,
   movementLabel,
-  groupStats,
   programVisibleFrom,
 } from "./model.js";
 import {
-  ClassCard,
   Program,
   Recommendations,
   RecordEditor,
@@ -39,7 +37,6 @@ export default function GroupMember({ profile }) {
   const now = useClassClock();
   const [tab, setTab] = useState("today"),
     [minDay, setMinDay] = useState(programVisibleFrom()),
-    [historyRecord, setHistoryRecord] = useState(null),
     [view, setView] = useState("month"),
     [day, setDay] = useState(seoulDate()),
     [classes, setClasses] = useState([]),
@@ -163,8 +160,7 @@ export default function GroupMember({ profile }) {
     }
   }
   const c = timedClass(detail?.class, now),
-    p = detail?.participants.find((p) => p.user_id === profile.id),
-    stats = groupStats(records);
+    p = detail?.participants.find((p) => p.user_id === profile.id);
   const canEdit =
     p &&
     !p.finalized &&
@@ -212,12 +208,6 @@ export default function GroupMember({ profile }) {
         <p role="status" className="g-success">
           {message}
         </p>
-      )}
-      {historyRecord && (
-        <HistoryRecord
-          record={historyRecord}
-          onClose={() => setHistoryRecord(null)}
-        />
       )}
       {loading && selected && (
         <p className="g-muted" role="status">
@@ -413,41 +403,7 @@ export default function GroupMember({ profile }) {
           minDay={minDay}
         />
       ) : tab === "history" ? (
-        <>
-          <h2>나의 운동 기록</h2>
-          <div className="g-summary">
-            <span>
-              <b>{stats.sessions}</b> 완료한 수업
-            </span>
-            <span>
-              <b>{stats.days}</b> 운동한 날
-            </span>
-          </div>
-          <p className="g-muted">
-            최근 200개 참가 기록 · 운동 완료한 수업만 횟수에 포함돼요.
-          </p>
-          {!records.length && (
-            <div className="g-empty">
-              첫 수업을 시작하면 여기에 기록이 쌓여요.
-            </div>
-          )}
-          {records
-            .filter((r) => r.group_classes)
-            .map((r) => (
-              <ClassCard
-                key={r.id}
-                c={r.group_classes}
-                joined={r}
-                actionLabel="기록 보기"
-                onClick={() =>
-                  r.group_classes.program_hidden ||
-                  seoulDate(r.group_classes.starts_at) < minDay
-                    ? setHistoryRecord(r)
-                    : setSelected(r.class_id)
-                }
-              />
-            ))}
-        </>
+        <MemberTrainingHistory />
       ) : (
         <TrainingJourney />
       )}
