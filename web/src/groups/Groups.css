@@ -1802,3 +1802,11 @@
 .g-floor-set-grid:not(.is-uniform) .g-floor-weight > b { font-size:clamp(1.75rem,3.2vw,2.7rem); letter-spacing:-.04em; }
 .g-floor-set-grid:not(.is-uniform) .g-floor-weight.is-long > b { font-size:clamp(1.5rem,2.7vw,2.2rem); }
 .g-floor-set-grid:not(.is-uniform) .g-floor-weight > span { font-size:.7rem; }
+
+.g-floor-set.is-increase { background:#36281b; box-shadow:inset 0 0 0 1px #a77742; }
+.g-floor-set.is-decrease { background:#152d3b; box-shadow:inset 0 0 0 1px #53859e; }
+.g-floor-set.is-increase .g-floor-weight { color:#ffd098; }
+.g-floor-set.is-decrease .g-floor-weight { color:#a9deff; }
+.g-floor-change { display:block; margin-top:4px; font-size:.75rem; line-height:1.4; color:#b4cbbd; font-variant-numeric:tabular-nums; }
+.g-floor-change.is-increase { color:#ffd098; }
+.g-floor-change.is-decrease { color:#a9deff; }

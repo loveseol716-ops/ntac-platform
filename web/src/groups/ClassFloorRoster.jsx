@@ -36,10 +36,15 @@ export default function ClassFloorRoster({c,participants,exercises,directory=[],
       const displayed=uniform ? [sets[0]] : sets;
       return <article className="g-floor-member" key={p.id}>
         <header><div><h3 title={p.name || person.name}>{p.name || person.name || "회원"}</h3><p title={memberMetadata(person)}>{memberMetadata(person)}</p></div><span className="g-badge">{p.status==="planned" ? "예정" : p.status==="completed" ? "저장됨" : "참여 중"}</span></header>
-        <div className={`g-floor-set-grid${uniform ? " is-uniform" : ""}`} aria-label="전체 세트 추천 중량">{displayed.map((s,i)=><div className="g-floor-set" key={i}>
+        <div className={`g-floor-set-grid${uniform ? " is-uniform" : ""}`} aria-label="전체 세트 추천 중량">{displayed.map((s,i)=>{
+          const previous=i>0 ? sets[i-1].weight : null;
+          const delta=s.weight!=null&&previous!=null ? Math.round((Number(s.weight)-Number(previous))*100)/100 : null;
+          const direction=delta==null||delta===0 ? "" : delta>0 ? " is-increase" : " is-decrease";
+          return <div className={`g-floor-set${direction}`} key={i}>
           <small>{uniform&&sets.length>1 ? `1–${sets.length}세트` : `${i+1}세트`} · {s.reps}회 · RPE {10-s.rir}</small>
           <div className={`g-floor-weight${s.weight!=null&&String(s.weight).length>4 ? " is-long" : ""}`} aria-label={s.weight==null ? "기준 데이터 없음" : `${uniform ? "전체" : i+1}세트 추천 중량 ${s.weight} kg`}>{s.weight!=null&&<><b>{s.weight}</b><span>kg</span></>}</div>
-        </div>)}</div>
+          {delta!=null&&<strong className={`g-floor-change${direction}`} aria-label={delta===0 ? "이전 세트와 같은 중량" : `이전 세트보다 ${Math.abs(delta)} kg ${delta>0 ? "증가" : "감소"}`}>{delta===0 ? "= 유지" : `${delta>0 ? "↑ +" : "↓ −"}${Math.abs(delta)} kg`}</strong>}
+        </div>;})}</div>
         <div className="g-floor-card-actions">
           {p.status==="planned"&&["open","live","ended"].includes(c.status)&&canAdd&&onJoin&&<button disabled={busy} onClick={()=>add(p.user_id)}>참여 처리</button>}
           {!!movements.length&&(isAdmin ? !["draft","cancelled"].includes(c.status) : p.status!=="planned"&&["live","ended"].includes(c.status))&&<button disabled={busy} onClick={()=>onRecord(p)}>{movements.some((m)=>lastRecordedSet(m,p)) ? "기록 수정" : "기록 입력"}</button>}
@@ -48,6 +53,6 @@ export default function ClassFloorRoster({c,participants,exercises,directory=[],
     })}</div>
     {pages>1&&<nav className="g-floor-pages" aria-label="멤버 페이지"><button disabled={currentPage===0} onClick={()=>setPage(currentPage-1)}>이전</button><span>{currentPage+1} / {pages}</span><button disabled={currentPage===pages-1} onClick={()=>setPage(currentPage+1)}>다음</button></nav>}
     {!people.length&&<div className="g-empty">이름으로 멤버를 추가하거나, 멤버 앱에서 수업에 참여해 주세요.</div>}
-    <p className="g-floor-footnote">kg · 바벨 포함 · 기준 데이터가 없으면 공백</p>
+    <p className="g-floor-footnote">kg · 바벨 포함 · ↑ 증량 / ↓ 감량: 이전 세트 기준 · 데이터 없으면 공백</p>
   </section>;
 }

@@ -27,6 +27,11 @@ try {
  assert(!roster.includes('추천 세트 선택'),'Set weights never require a set selector');
  const variedRoster=render(Roster,{c,participants:[{...p,recommendations:{sq:{sets:[{weight:40},{weight:45},{weight:50}]}}}],exercises:[]});
  for(const label of ['1세트 추천 중량 40 kg','2세트 추천 중량 45 kg','3세트 추천 중량 50 kg'])assert(variedRoster.includes(label),'All prescribed weights are visible together');
+ const changes=render(Roster,{c:{...c,movements:[{...m,sets:[...m.sets,m.sets[2]]}]},participants:[{...p,recommendations:{sq:{sets:[{weight:40},{weight:42.5},{weight:37.5},{weight:37.5}]}}}],exercises:[]});
+ assert(changes.includes('↑ +2.5 kg')&&changes.includes('↓ −5 kg')&&changes.includes('= 유지'),'Increase, decrease and unchanged weights have explicit cues');
+ assert(changes.includes('is-increase')&&changes.includes('is-decrease'));
+ const gap=render(Roster,{c,participants:[{...p,recommendations:{sq:{sets:[{weight:40},{},{weight:50}]}}}],exercises:[]});
+ assert(!gap.includes('g-floor-change'),'Never infer a change across missing data');
  const sameClass={...c,movements:[{...m,sets:[{reps:8,rir:3},{reps:8,rir:3},{reps:8,rir:3}]}]};
  const same=render(Roster,{c:sameClass,participants:[p],exercises:[]});
  assert(same.includes('1–3세트')&&(same.match(/<b>40<\/b>/g)||[]).length===1,'Identical sets share one large weight');
