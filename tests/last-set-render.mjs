@@ -6,8 +6,9 @@ const {createServer}=await import(require.resolve('vite'));
 const server=await createServer({root:new URL('../web',import.meta.url).pathname,server:{middlewareMode:true},appType:'custom'});
 try {
  const {default:Record,lastSetEntries,lastRecordedSet}=await server.ssrLoadModule('/src/groups/LastSetRecord.jsx');
+ const {memberMetadata} = await server.ssrLoadModule("/src/groups/ClassFloorRoster.jsx");
  const Roster=(await server.ssrLoadModule('/src/groups/ClassFloorRoster.jsx')).default;
- const {RecommendationValue}=await server.ssrLoadModule('/src/groups/shared.jsx');
+ const {Dialog,RecommendationValue}=await server.ssrLoadModule('/src/groups/shared.jsx');
  const m={id:'sq',exercise_id:'back_squat',label:'Squat',training_type:'strength',unit:'kg',load_basis:'total',sets:[{reps:8,rir:3},{reps:8,rir:3},{reps:6,rir:2}]};
  const c={movements:[m],status:'live'};
  const p={id:'p',name:'Test Member',status:'active',results:{},recommendations:{sq:{sets:[{weight:40},{weight:40},{weight:40}]}}};
@@ -25,5 +26,14 @@ try {
  assert(!roster.includes('코치 확인'));
  const blank=render(RecommendationValue,{movement:m,recommendation:{}});
  assert(!blank.includes('코치 확인')&&!blank.includes('kg'));
+ assert.equal(memberMetadata({sex:'male',age:31,phone_suffix:'1234'}),'남 · 31세 · 연락처 ····1234');
+ assert.equal(memberMetadata({}), '');
+ const early=render(Roster,{c:{...c,status:'published'},participants:[{...p,status:'planned'}],exercises:[],directory:[{id:'u',name:'Test Member',sex:'female',age:28,phone_suffix:'5678',active:true}],isAdmin:true,onJoin:()=>{}});
+ assert(early.includes('이름 검색해서 추가')&&early.includes('참여 예정'),'Future members remain visible with recommendations');
+ const ended=render(Roster,{c:{...c,status:'ended'},participants:[],exercises:[],isAdmin:true,onJoin:()=>{}});
+ assert(ended.includes('이름 검색해서 추가'),'Admins can add after scheduled end');
+ const closed=render(Roster,{c:{...c,status:'ended'},participants:[],exercises:[],isAdmin:false,onJoin:()=>{}});
+ assert(!closed.includes('이름 검색해서 추가'),'Coach UI does not inherit administrator time bypass');
+ const full=render(Dialog,{title:'추천 중량 시스템',fullScreen:true,children:'content'});assert(full.includes('g-floor-dialog'));
  console.log('PASS: tablet roster, blank recommendations, one-record inputs, default reps, partial-entry rejection and corrected set index');
 }finally{await server.close()}

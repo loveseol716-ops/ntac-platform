@@ -24,7 +24,7 @@ export function RecordUseBadge({ movement }) {
     </span>
   );
 }
-export function Dialog({ title, onClose, children }) {
+export function Dialog({ title, onClose, children, fullScreen = false }) {
   const ref = useRef(null);
   useEffect(() => {
     ref.current.showModal();
@@ -32,7 +32,7 @@ export function Dialog({ title, onClose, children }) {
   return (
     <dialog
       ref={ref}
-      className="group-dialog groups"
+      className={`group-dialog groups${fullScreen ? " g-floor-dialog" : ""}`}
       onCancel={(e) => {
         e.preventDefault();
         onClose();

@@ -54,6 +54,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
     [editing, setEditing] = useState(null),
     [record, setRecord] = useState(null),
     [adding, setAdding] = useState(false),
+    [floorOpen, setFloorOpen] = useState(false),
     [choices, setChoices] = useState([]),
     [exception, setException] = useState(false),
     [query, setQuery] = useState(""),
@@ -96,7 +97,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
   }, [selected]);
   useEffect(() => {
     let live = true;
-    setDetail(null);
+    setDetail((old) => old?.class?.id === selected ? old : null);
     if (!selected) return;
     const refresh = () =>
       loadDetail(selected)
@@ -133,6 +134,12 @@ export default function GroupAdmin({ profile, onManageMembers }) {
     coaches = admin
       ? directory.filter((p) => ["owner", "admin", "coach"].includes(p.role))
       : [profile];
+  useEffect(() => { setFloorOpen(false); }, [selected]);
+  async function openFloor() {
+    setError("");
+    try { setDirectory(await rpc("group_floor_directory", {cid:selected})); setFloorOpen(true); }
+    catch(e) { setError(e.message); }
+  }
   async function openAdd() {
     setChoices([]);
     setException(false);
@@ -314,6 +321,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                       </p>
                     )
                   )}
+                  {!["draft","cancelled"].includes(c.status) && !c.archived_at && <button className="g-primary g-full g-open-floor" onClick={openFloor}>추천 중량 시스템 열기 <span>멤버 추가 · 개인별 추천 · 운동 기록</span></button>}
                   <div className="g-admin-columns">
                     <div>
                       <TrainingContext
@@ -324,7 +332,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                       <Program c={c} exercises={exercises} />
                       {admin && <KeyDescription value={c.key_description} />}
                     </div>
-                    {quickLifts(c).length ? <ClassFloorRoster c={c} participants={detail.participants} exercises={exercises} busy={busy} onAdd={openAdd} onRecord={setRecord} /> : <section className="g-panel g-admin-roster">
+                    {!quickLifts(c).length && <section className="g-panel g-admin-roster">
                       <div className="g-heading">
                         <h3>
                           참가자{" "}
@@ -337,8 +345,8 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                             }
                           </span>
                         </h3>
-                        {["open", "live"].includes(c.status) &&
-                          !c.archived_at && (
+                        {(admin || ["open", "live"].includes(c.status)) &&
+                          !["draft", "cancelled"].includes(c.status) && !c.archived_at && (
                             <button className="g-primary" onClick={openAdd}>
                               멤버 입장
                             </button>
@@ -678,6 +686,10 @@ export default function GroupAdmin({ profile, onManageMembers }) {
           }}
         />
       )}
+      {floorOpen && c && <Dialog fullScreen title={`${classTime(c.starts_at)} · ${c.title} · 추천 중량`} onClose={() => !busy && setFloorOpen(false)}>
+        <p className="g-floor-date">{seoulDate(c.starts_at)} · {c.duration_minutes}분</p>
+        <ClassFloorRoster c={c} participants={detail.participants} exercises={exercises} directory={directory} isAdmin={admin} busy={busy} error={error} onRecord={setRecord} onJoin={(id,exception) => act(() => rpc("group_join", {cid:c.id,user_ids:[id],allow_exception:exception}), "멤버를 추가했어요.")} />
+      </Dialog>}
       {record && c && (quickLifts(c).length ? <LastSetRecord participant={record} c={c} exercises={exercises} busy={busy} error={error} onClose={() => !busy && setRecord(null)} onSave={async (entries) => {
         if (await act(() => rpc("group_save_last_sets", {pid:record.id,expected_revision:record.revision,entries}), "마지막 세트 기록을 저장했어요.")) setRecord(null);
       }} /> : <RecordEditor
