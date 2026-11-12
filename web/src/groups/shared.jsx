@@ -160,7 +160,7 @@ export function Recommendations({ participant: p, c, exercises }) {
           );
         })}
       <p className="g-muted">
-        추천은 출발점이에요. 오늘 상태와 자세를 확인하고 코치와 조정해 주세요.
+        워밍업 후 코치와 중량을 조정해 주세요.
       </p>
     </section>
   );

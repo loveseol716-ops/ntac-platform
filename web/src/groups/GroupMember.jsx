@@ -347,11 +347,11 @@ export default function GroupMember({ profile }) {
                     )}
                   </>
                 )}
-              <TrainingContext
+              <details className="g-class-context-details"><summary>이번 주 훈련 방향</summary><TrainingContext
                 date={c.starts_at}
                 classType={trainingClass(c)}
                 label="이 수업의 위치"
-              />
+              /></details>
               <Program c={c} exercises={exercises} />
               {editing && p && (quickLifts(c).length ? <LastSetRecord participant={editing} c={c} exercises={exercises} busy={busy} error={error} onClose={() => !busy && setEditing(null)} onSave={async (entries) => {
                 if (await act(() => rpc("group_save_last_sets", {pid:editing.id,expected_revision:editing.revision,entries}), "마지막 세트 기록을 저장했어요.")) setEditing(null);

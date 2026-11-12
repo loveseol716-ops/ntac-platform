@@ -314,23 +314,17 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                         프로그램 공개
                       </button>
                     </div>
-                  ) : (
-                    c.status !== "cancelled" && (
-                      <p className="g-auto-flow">
-                        수업 참여 → 추천 중량 확인 → 수업 후 기록
-                      </p>
-                    )
-                  )}
+                  ) : null}
                   {!["draft","cancelled"].includes(c.status) && !c.archived_at && <button className="g-primary g-full g-open-floor" onClick={openFloor}>추천 중량 시스템 열기 <span>멤버 추가 · 개인별 추천 · 운동 기록</span></button>}
                   <div className="g-admin-columns">
                     <div>
-                      <TrainingContext
+                      <details className="g-class-context-details"><summary>이번 주 훈련 방향</summary><TrainingContext
                         date={c.starts_at}
                         classType={trainingClass(c)}
                         label="이 수업의 위치"
-                      />
+                      /></details>
                       <Program c={c} exercises={exercises} />
-                      {admin && <KeyDescription value={c.key_description} />}
+                      {admin && c.key_description && <details className="g-class-context-details"><summary>코칭 메모 · 관리자 전용</summary><KeyDescription value={c.key_description} /></details>}
                     </div>
                     {!quickLifts(c).length && <section className="g-panel g-admin-roster">
                       <div className="g-heading">

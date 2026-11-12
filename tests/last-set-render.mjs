@@ -29,7 +29,10 @@ try {
  assert.equal(memberMetadata({sex:'male',age:31,phone_suffix:'1234'}),'남 · 31세 · 연락처 ····1234');
  assert.equal(memberMetadata({}), '');
  const early=render(Roster,{c:{...c,status:'published'},participants:[{...p,status:'planned'}],exercises:[],directory:[{id:'u',name:'Test Member',sex:'female',age:28,phone_suffix:'5678',active:true}],isAdmin:true,onJoin:()=>{}});
- assert(early.includes('이름 검색해서 추가')&&early.includes('참여 예정')&&early.includes('기록 입력'),'Administrator can record for a planned future participant');
+ assert(early.includes('멤버 추가')&&early.includes('예정')&&early.includes('기록 입력'),'Administrator can record for a planned future participant');
+ const six=render(Roster,{c,participants:Array.from({length:7},(_,i)=>({...p,id:`p${i}`,name:`MEMBER_${i}`})),exercises:[]});
+ assert.equal((six.match(/class="g-floor-member"/g)||[]).length,6);
+ assert(six.includes('멤버 페이지')&&!six.includes('MEMBER_6'),'Overflow participants have a next page rather than crowding the six-person grid');
  const ended=render(Roster,{c:{...c,status:'ended'},participants:[],exercises:[],isAdmin:true,onJoin:()=>{}});
  assert(ended.includes('이름 검색해서 추가'),'Admins can add after scheduled end');
  const closed=render(Roster,{c:{...c,status:'ended'},participants:[],exercises:[],isAdmin:false,onJoin:()=>{}});
