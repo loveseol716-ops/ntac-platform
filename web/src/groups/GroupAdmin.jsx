@@ -83,7 +83,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
           setClasses(cs.filter((c) => admin || c.coach_id === profile.id));
           setExercises(es);
           setTemplates(ts);
-          setDirectory(ds);
+          setDirectory((old) => ds.map((person) => ({ ...old.find((entry) => entry.id === person.id), ...person })));
         }
       })
       .catch((e) => live && setLoadError(e.message))
