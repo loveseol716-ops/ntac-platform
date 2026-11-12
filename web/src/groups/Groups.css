@@ -1792,3 +1792,13 @@
 }
 .groups .g-last-set-fields > label { display:flex; flex-direction:column; gap:8px; }
 .g-last-set-fields input { margin-top:auto; }
+
+/* Keep every set visible during coaching; identical prescriptions share one large value. */
+.g-floor-set-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; margin:10px 0; }
+.g-floor-set-grid.is-uniform { grid-template-columns:minmax(0,1fr); }
+.g-floor-set { min-width:0; padding:7px 4px; border-radius:8px; background:#122218; text-align:center; }
+.g-floor-set > small { display:block; color:#b4cbbd; font-size:.7rem; line-height:1.5; overflow-wrap:anywhere; }
+.g-floor-set-grid:not(.is-uniform) .g-floor-weight { min-height:40px; margin:3px 0 0; gap:4px; }
+.g-floor-set-grid:not(.is-uniform) .g-floor-weight > b { font-size:clamp(1.75rem,3.2vw,2.7rem); letter-spacing:-.04em; }
+.g-floor-set-grid:not(.is-uniform) .g-floor-weight.is-long > b { font-size:clamp(1.5rem,2.7vw,2.2rem); }
+.g-floor-set-grid:not(.is-uniform) .g-floor-weight > span { font-size:.7rem; }

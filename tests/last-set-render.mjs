@@ -24,6 +24,15 @@ try {
  const roster=render(Roster,{c,participants:[p,{...p,id:'empty',name:'No data',recommendations:{}}],exercises:[]});
  assert(roster.includes('40 kg')&&roster.includes('No data')&&roster.includes('기록 입력'));
  assert(!roster.includes('코치 확인'));
+ assert(!roster.includes('추천 세트 선택'),'Set weights never require a set selector');
+ const variedRoster=render(Roster,{c,participants:[{...p,recommendations:{sq:{sets:[{weight:40},{weight:45},{weight:50}]}}}],exercises:[]});
+ for(const label of ['1세트 추천 중량 40 kg','2세트 추천 중량 45 kg','3세트 추천 중량 50 kg'])assert(variedRoster.includes(label),'All prescribed weights are visible together');
+ const sameClass={...c,movements:[{...m,sets:[{reps:8,rir:3},{reps:8,rir:3},{reps:8,rir:3}]}]};
+ const same=render(Roster,{c:sameClass,participants:[p],exercises:[]});
+ assert(same.includes('1–3세트')&&(same.match(/<b>40<\/b>/g)||[]).length===1,'Identical sets share one large weight');
+ const sparse=render(Roster,{c,participants:[{...p,recommendations:{sq:{sets:[{weight:40},{},{weight:50}]}}}],exercises:[]});
+ assert(sparse.includes('기준 데이터 없음')&&!sparse.includes('추천 중량 0 kg'),'Missing set data stays blank');
+
  const blank=render(RecommendationValue,{movement:m,recommendation:{}});
  assert(!blank.includes('코치 확인')&&!blank.includes('kg'));
  assert.equal(memberMetadata({sex:'male',age:31,phone_suffix:'1234'}),'남 · 31세 · 연락처 ····1234');
