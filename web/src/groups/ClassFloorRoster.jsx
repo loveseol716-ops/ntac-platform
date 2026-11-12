@@ -34,11 +34,9 @@ export default function ClassFloorRoster({c,participants,exercises,directory=[],
     <div className="g-floor-members" data-page-size="6">{visible.map((p)=>{
       const person=directory.find((x)=>x.id===p.user_id)||{},rec=movement ? p.recommendations?.[movement.id] : null;
       const weight=rec?.sets?.[setIndex]?.weight ?? (setIndex===0 ? rec?.weight : null) ?? null;
-      const actual=movement ? lastRecordedSet(movement,p) : null;
       return <article className="g-floor-member" key={p.id}>
         <header><div><h3 title={p.name || person.name}>{p.name || person.name || "회원"}</h3><p title={memberMetadata(person)}>{memberMetadata(person)}</p></div><span className="g-badge">{p.status==="planned" ? "예정" : p.status==="completed" ? "저장됨" : "참여 중"}</span></header>
         <div className={`g-floor-weight${weight!=null&&String(weight).length>4 ? " is-long" : ""}`} aria-label={weight==null ? "기준 데이터 없음" : `추천 중량 ${weight} kg`}>{weight!=null&&<><b>{weight}</b><span>kg</span></>}</div>
-        <p className="g-floor-actual">{actual ? `기록 ${actual.weight}kg × ${actual.reps}회${actual.rir==null ? "" : ` · RPE ${10-actual.rir}`}` : ""}</p>
         <div className="g-floor-card-actions">
           {p.status==="planned"&&["open","live","ended"].includes(c.status)&&canAdd&&onJoin&&<button disabled={busy} onClick={()=>add(p.user_id)}>참여 처리</button>}
           {!!movements.length&&(isAdmin ? !["draft","cancelled"].includes(c.status) : p.status!=="planned"&&["live","ended"].includes(c.status))&&<button disabled={busy} onClick={()=>onRecord(p)}>{movements.some((m)=>lastRecordedSet(m,p)) ? "기록 수정" : "기록 입력"}</button>}

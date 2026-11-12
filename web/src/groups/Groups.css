@@ -1740,7 +1740,7 @@
 .g-floor-exception { margin-top:8px; font-size:.74rem; color:#a9bfb2; }
 .g-floor-exception summary { cursor:pointer; padding:6px 0; }
 .g-floor-members { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; align-items:stretch; }
-.g-floor-member { display:flex; flex-direction:column; min-width:0; padding:14px; border:1px solid #385241; border-radius:14px; background:#192a20; }
+.g-floor-member { display:flex; flex-direction:column; min-width:0; padding:12px; border:1px solid #385241; border-radius:14px; background:#192a20; }
 .g-floor-member > header { display:flex; align-items:flex-start; gap:8px; min-width:0; }
 .g-floor-member header > div { flex:1; min-width:0; }
 .groups .g-floor-member h3 { margin:0; font-size:1.1rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
