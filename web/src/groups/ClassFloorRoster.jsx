@@ -35,7 +35,7 @@ export default function ClassFloorRoster({c,participants,exercises,directory=[],
           </div>;
         })}
         {p.status==="planned"&&["open","live","ended"].includes(c.status)&&canAdd&&onJoin&&<button className="g-primary g-full" disabled={busy} onClick={()=>add(p.user_id)}>참여 처리</button>}
-        {p.status!=="planned"&&!!movements.length&&["live","ended"].includes(c.status)&&<button className="g-full" disabled={busy} onClick={()=>onRecord(p)}>{movements.some((m)=>lastRecordedSet(m,p)) ? "기록 수정" : "기록 입력"}</button>}
+        {!!movements.length&&(isAdmin ? !["draft","cancelled"].includes(c.status) : p.status!=="planned"&&["live","ended"].includes(c.status))&&<button className="g-full" disabled={busy} onClick={()=>onRecord(p)}>{movements.some((m)=>lastRecordedSet(m,p)) ? "기록 수정" : "기록 입력"}</button>}
       </article>;
     })}</div>
     {!people.length&&<div className="g-empty">이름으로 멤버를 추가해 주세요.<br />멤버가 앱에서 직접 참여해도 여기에 표시돼요.</div>}
