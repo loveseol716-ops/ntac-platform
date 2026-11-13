@@ -1,3 +1,4 @@
+import { setIntensityText } from "./coreLifts.js";
 import { loadingText } from "./equipment.js";
 import StrengthSets from "./StrengthSets.jsx";
 import { classPhase } from "./classClock.js";
@@ -126,7 +127,7 @@ export function RecommendationValue({
           {!compact && loadingText(r?.sets?.[i]) && <small>{loadingText(r.sets[i])}</small>}
           {!compact && (
             <small>
-              {target.reps}회 · RPE {10 - target.rir}
+              {target.reps}회 · {setIntensityText(m,target)}
             </small>
           )}
         </span>

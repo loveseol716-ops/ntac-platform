@@ -380,6 +380,8 @@ if (process.env.NTAC_TEST_LAST_SET === "1") {
   await db.exec(fs.readFileSync("tests/admin-preclass-production-smoke.sql", "utf8"));
   await db.exec(fs.readFileSync("supabase/migrations/20261113003037_equipment_load_recommendations.sql", "utf8"));
   await db.exec(fs.readFileSync("tests/equipment-production-smoke.sql", "utf8"));
+  await db.exec(fs.readFileSync("supabase/migrations/20261113004516_percentage_strength_prescriptions.sql", "utf8"));
+  await db.exec(fs.readFileSync("tests/percentage-prescription-smoke.sql", "utf8"));
   console.log("PASS: administrator preclass recording and immediate next-class recommendation");
   console.log("PASS: administrator unrestricted class entry and staff-only floor identifiers");
   console.log("PASS: own/administrator historical records, movement filters, RPE separation and peer-access denial");

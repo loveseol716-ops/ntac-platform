@@ -1,4 +1,4 @@
-import { coreExercises, coreMovement, setRpe } from "./coreLifts.js";
+import { coreExercises, coreMovement, setRpe, isPercentPrescription, changePrescriptionMode } from "./coreLifts.js";
 import { useMemo } from "react";
 import { editProgram, newMovement } from "./blockGoals.js";
 import ExerciseSearch from "./ExerciseSearch.jsx";
@@ -9,7 +9,6 @@ export default function ProgramFields({
   onChange,
   goals = NO_GOALS,
   exercises,
-  hideTitle = false,
   showKeyDescription = true,
 }) {
   const available = useMemo(() => coreExercises(exercises), [exercises]);
@@ -22,20 +21,6 @@ export default function ProgramFields({
     );
   return (
     <>
-      {!hideTitle && (
-        <>
-          <label>
-            수업명
-            <input
-              required
-              maxLength={120}
-              value={form.title}
-              onChange={(e) => set("title", e.target.value)}
-              placeholder="예: 하체 스트렝스 & 컨디셔닝"
-            />
-          </label>
-        </>
-      )}
       <label>
         오늘의 프로그램
         <textarea
@@ -102,12 +87,11 @@ export default function ProgramFields({
           </div>
           {m.training_type === "strength" && (
             <>
-              <p className="g-prescription">
-                {m.sets.map((s) => s.reps).join("–")}회 ·{" "}
-                {m.sets.every((s) => s.rir === m.sets[0].rir)
-                  ? `RPE ${setRpe(m.sets[0])}`
-                  : "세트별 RPE"}
-              </p>
+              <label>추천 중량 기준
+                <select value={m.prescription_mode || "rpe"} onChange={(e)=>movement(m.id,changePrescriptionMode(m,e.target.value))}>
+                  <option value="rpe">목표 RPE</option><option value="percent_1rm">%1RM · 기준 최대중량 대비</option>
+                </select>
+              </label>
               {m.sets.map((s, j) => (
                 <div className="g-set-prescription" key={j}>
                   <b>{j + 1}세트</b>
@@ -134,19 +118,19 @@ export default function ProgramFields({
                     />
                   </label>
                   <label>
-                    목표 RPE
+                    {isPercentPrescription(m) ? "목표 %1RM" : "목표 RPE"}
                     <input
-                      aria-label={`운동 ${i + 1} ${j + 1}세트 RPE`}
+                      aria-label={`운동 ${i + 1} ${j + 1}세트 ${isPercentPrescription(m) ? "%1RM" : "RPE"}`}
                       required
                       type="number"
-                      min={5}
-                      max={10}
-                      step={0.5}
-                      value={setRpe(s)}
+                      min={isPercentPrescription(m) ? 1 : 5}
+                      max={isPercentPrescription(m) ? 100 : 10}
+                      step={isPercentPrescription(m) ? 1 : 0.5}
+                      value={isPercentPrescription(m) ? (s.percent_1rm ?? "") : setRpe(s)}
                       onChange={(e) =>
                         movement(m.id, {
                           sets: m.sets.map((x, k) =>
-                            k === j ? { ...x, rir: 10 - Number(e.target.value) } : x,
+                            k === j ? { ...x, ...(isPercentPrescription(m) ? {percent_1rm: e.target.value==="" ? "" : Number(e.target.value)} : {rir: 10 - Number(e.target.value)}) } : x,
                           ),
                         })
                       }
@@ -172,7 +156,7 @@ export default function ProgramFields({
               >
                 + 세트 추가
               </button>
-              <p className="g-muted">목표 RPE에 맞춰 추천해요. 기준 기록이 없으면 코치가 시작 중량을 확인해요.</p>
+              <p className="g-muted">{isPercentPrescription(m) ? "등록된 1RM 또는 최근 기록의 추정 1RM으로 계산해요. 기준이 없으면 공백이에요. 최근 기록 기반 자동 증량은 최대 5%로 제한돼요." : "목표 RPE에 맞춰 추천해요. 기준 기록이 없으면 코치가 시작 중량을 확인해요."}</p>
             </>
           )}
         </section>

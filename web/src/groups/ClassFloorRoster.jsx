@@ -1,3 +1,4 @@
+import { setIntensityText } from "./coreLifts.js";
 import { loadingText } from "./equipment.js";
 import { useState } from "react";
 import { quickLifts,lastRecordedSet } from "./LastSetRecord.jsx";
@@ -33,7 +34,7 @@ export default function ClassFloorRoster({c,participants,exercises,directory=[],
     <div className="g-floor-members" data-page-size="6">{visible.map((p)=>{
       const person=directory.find((x)=>x.id===p.user_id)||{},rec=movement ? p.recommendations?.[movement.id] : null;
       const sets=(movement?.sets||[]).map((s,i)=>({...s,...rec?.sets?.[i],weight:rec?.sets?.[i]?.weight ?? (i===0 ? rec?.weight : null) ?? null}));
-      const uniform=sets.length>0&&sets.every((s)=>s.weight===sets[0].weight&&s.reps===sets[0].reps&&s.rir===sets[0].rir);
+      const uniform=sets.length>0&&sets.every((s)=>s.weight===sets[0].weight&&s.reps===sets[0].reps&&s.rir===sets[0].rir&&s.percent_1rm===sets[0].percent_1rm);
       const displayed=uniform ? [sets[0]] : sets;
       return <article className="g-floor-member" key={p.id}>
         <header><div><h3 title={p.name || person.name}>{p.name || person.name || "회원"}</h3><p title={memberMetadata(person)}>{memberMetadata(person)}</p></div><span className="g-badge">{p.status==="planned" ? "예정" : p.status==="completed" ? "저장됨" : "참여 중"}</span></header>
@@ -42,7 +43,7 @@ export default function ClassFloorRoster({c,participants,exercises,directory=[],
           const delta=s.weight!=null&&previous!=null ? Math.round((Number(s.weight)-Number(previous))*100)/100 : null;
           const direction=delta==null||delta===0 ? "" : delta>0 ? " is-increase" : " is-decrease";
           return <div className={`g-floor-set${direction}`} key={i}>
-          <small>{uniform&&sets.length>1 ? `1–${sets.length}세트` : `${i+1}세트`} · {s.reps}회 · RPE {10-s.rir}</small>
+          <small>{uniform&&sets.length>1 ? `1–${sets.length}세트` : `${i+1}세트`} · {s.reps}회 · {setIntensityText(movement,s)}</small>
           <div className={`g-floor-weight${s.weight!=null&&String(s.weight).length>4 ? " is-long" : ""}`} aria-label={s.weight==null ? "기준 데이터 없음" : `${uniform ? "전체" : i+1}세트 추천 중량 ${s.weight} kg`}>{s.weight!=null&&<><b>{s.weight}</b><span>kg</span></>}</div>
           {delta!=null&&<strong className={`g-floor-change${direction}`} aria-label={delta===0 ? "이전 세트와 같은 중량" : `이전 세트보다 ${Math.abs(delta)} kg ${delta>0 ? "증가" : "감소"}`}>{delta===0 ? "= 유지" : `${delta>0 ? "↑ +" : "↓ −"}${Math.abs(delta)} kg`}</strong>}
         </div>;})}</div>

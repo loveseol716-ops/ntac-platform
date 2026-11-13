@@ -1,4 +1,4 @@
-import { setRpe } from "./coreLifts.js";
+import { setRpe, setIntensityText } from "./coreLifts.js";
 import {
   movementLabel,
   sourceLabels,
@@ -35,7 +35,7 @@ export default function StrengthSets({
           <div className="g-strength-set" key={i}>
             <div className="g-heading">
               <strong>
-                {i + 1}세트 · {target.reps}회 / RPE {setRpe(target)}
+                {i + 1}세트 · {target.reps}회 / {setIntensityText(m,target)}
               </strong>
               <span>
                 {r?.weight != null ? `추천 ${r.weight} ${m.unit}` : "코치 확인"}

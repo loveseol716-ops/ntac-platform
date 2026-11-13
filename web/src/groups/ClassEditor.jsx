@@ -23,11 +23,13 @@ export default function ClassEditor({
     current
       ? {
           ...current,
+          class_type_id: trainingClass(current) || "",
           date: seoulDate(current.starts_at),
           time: classTime(current.starts_at),
         }
       : {
-          title: "",
+          title: "GENTLE STRENGTH",
+          class_type_id: "gentle_strength",
           date: day,
           time: "18:00",
           duration_minutes: 50,
@@ -74,7 +76,6 @@ export default function ClassEditor({
                   if (t)
                     setForm((f) => ({
                       ...f,
-                      title: t.title,
                       description: t.description,
                       ...(t.key_description !== undefined ? { key_description: t.key_description } : {}),
                       movements: t.movements.map((m) => ({
@@ -140,8 +141,8 @@ export default function ClassEditor({
             </select>
           </label>
           <label>수업 종류
-            <select value={trainingClass(form) || ""} onChange={(e) => setForm((f) => ({ ...f, class_type_id: e.target.value || null, title: !f.title || CLASS_TYPES.some((t) => t.name === f.title) ? CLASS_TYPES.find((t) => t.id === e.target.value)?.name || "" : f.title }))}>
-              <option value="">기타 · 직접 작성</option>
+            <select required value={form.class_type_id || ""} onChange={(e) => setForm((f) => ({ ...f, class_type_id: e.target.value, title: CLASS_TYPES.find((t) => t.id === e.target.value)?.name || "" }))}>
+              <option value="" disabled>수업 종류 선택</option>
               {CLASS_TYPES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </label>

@@ -1,3 +1,4 @@
+import { setIntensityText } from "./coreLifts.js";
 export const stateLabels = {
   draft: "작성 중",
   published: "수업 예정",
@@ -193,5 +194,5 @@ export function calendarDates(day, view = "month") {
 }
 export const prescriptionText = (m) =>
   m.training_type === "strength"
-    ? `${m.sets.map((s) => s.reps).join("–")}회 · RPE ${m.sets.map((s) => s.rir).every((v) => v === m.sets[0].rir) ? 10 - m.sets[0].rir : m.sets.map((s) => 10 - s.rir).join(" / ")}`
+    ? `${m.sets.map((s) => s.reps).join("–")}회 · ${[...new Set(m.sets.map((s)=>setIntensityText(m,s)))].join(" / ")}`
     : `${m.target_reps}회`;

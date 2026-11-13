@@ -298,3 +298,14 @@ Verification: renderer checks for six cards plus overflow pagination, unknown we
 - Feasibility is PER BAR. Shared room inventory is not reserved or jointly allocated across three bars/six people. For example four 1 kg plates can be fully consumed by one bar, leaving none for another. Coach checks concurrent availability; do not claim room-wide feasibility.
 - Program authoring remains target RPE. Percentage-of-1RM authoring is not part of this change. Actual last-set RPE/reps remain input to the estimate.
 - Verification: equipment-production-smoke.sql checks 1,200 target/bar combinations, symmetric reconstruction and microplate limits, public join/detail integration (63/58/60 kg), stable bar, retained ceiling, private execution privileges, rollback only.
+
+
+### Percentage prescriptions and automatic class titles (2026-11-13)
+
+- Each core strength movement chooses `prescription_mode: rpe | percent_1rm`; missing mode preserves existing RPE behavior. Percentage sets store `reps` and numeric `percent_1rm` (1–100), without a fabricated target RIR/RPE.
+- Program editor offers per-set %1RM input; new sets copy the previous target. Switching modes deliberately clears the other mode's target and initializes 75% or RPE 7 for review.
+- Server validation keeps all original movement rules and checks percentage mode/range/type. Compatibility validation normalizes a temporary copy only; persisted percent sets do not acquire RIR.
+- A valid recent same-lift estimate or registered 1RM supplies the base. Percentage target = base × percent/100, followed by the existing recent-record 5% growth ceiling and equipment feasibility pass. Missing 1RM evidence remains blank; a coach's rep-specific baseline alone is insufficient for percentage extrapolation.
+- Both member recommendations and tablet cards label percentage targets, never a fabricated RPE. Post-workout last-set weight/reps/actual RPE remains unchanged and updates future estimates. Existing participant snapshots are retained.
+- Remove class-title input from ProgramFields. ClassEditor selects a required class type; cleanProgram uses its canonical name for typed classes/weekly programs and retains a safe day-based fallback for legacy day programs. Weekly bundle titles and stored template names are separate.
+- Tests cover 78/82% of registered 100 kg, history-derived 80 kg estimate with preserved ceiling (62/63 kg), no-evidence blank, invalid percentages/modes, public class save/template preservation, mode switch and all display surfaces, and automatic canonical title.

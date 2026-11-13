@@ -112,7 +112,7 @@ export default function ClassTypeWeekEditor({
             <AuthoringContext date={form.week_start} week classType={selected} goals={goals} exercises={exercises} />
             <TemplatePicker key={selected} templates={templates} loading={templatesLoading} error={templatesError} hasContent={programReady(p)}
               onApply={(t) => setProgram({ ...p, description: t.description, ...(t.key_description !== undefined ? { key_description: t.key_description } : {}), movements: t.movements, _blockDefaultsHandled: true })} />
-            <ProgramFields form={p} onChange={setProgram} goals={goals} exercises={exercises} hideTitle />
+            <ProgramFields form={p} onChange={setProgram} goals={goals} exercises={exercises} />
           </section>
           {(error || validation) && (
             <p className="g-error" role="alert">

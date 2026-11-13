@@ -1,5 +1,5 @@
 import { coreMovement } from "./coreLifts.js";
-import { programReady } from "./classTypes.js";
+import { programReady, classTypeName } from "./classTypes.js";
 import { trainingPosition } from "./trainingCycle.js";
 
 export const STRENGTH_TYPES = ["gentle_strength", "bomb_strength"];
@@ -26,6 +26,7 @@ export function editProgram(program, key, value) {
 }
 export function cleanProgram(program) {
   const { _blockDefaultsHandled, _blockPreview, ...rest } = program;
+  rest.title = classTypeName(rest.class_type_id) || rest.title || (rest.dow ? `${["월","화","수","목","금","토","일"][rest.dow-1]}요일 프로그램` : "그룹수업");
   // Never publish untouched automatic previews.
   return _blockPreview ? { ...rest, movements: [] } : { ...rest, movements: (rest.movements || []).map(coreMovement) };
 }

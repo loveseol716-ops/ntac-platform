@@ -20,3 +20,12 @@ export function coreMovement(m) {
     sets: m.sets?.length ? m.sets : [{ reps: m.target_reps || 8, rir: 3 }],
     load_step: 2.5, min_load: 0 };
 }
+
+export const isPercentPrescription = (m) => m.prescription_mode === "percent_1rm";
+export const setIntensityText = (m,s) => isPercentPrescription(m) ? `${s.percent_1rm}% 1RM` : `RPE ${setRpe(s)}`;
+export function changePrescriptionMode(m,mode) {
+  return {prescription_mode:mode,sets:m.sets.map((s)=>{
+    const {rir,percent_1rm,...rest}=s;
+    return mode==="percent_1rm" ? {...rest,percent_1rm:percent_1rm??75} : {...rest,rir:rir??3};
+  })};
+}
