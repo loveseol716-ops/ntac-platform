@@ -16,7 +16,7 @@ try{
  for(const [date,reps,rpe] of [['2026-11-23',8,6],['2026-11-30',6,7],['2026-12-07',4,7],['2026-12-14',4,6]]){
   const rule=designRule(date,'gentle_strength');
   const m=defaultDesignMovement(CORE_LIFTS[0],rule);
-  assert.equal(m.sets[0].reps,reps);assert.equal(10-m.sets[0].rir,rpe);
+  assert.equal(m.sets[0].reps,reps);assert.equal(m.prescription_mode,'percent_1rm');assert.equal(m.sets[0].percent_1rm,Math.round(100/(1+(reps+10-rpe)/30)));assert(!('rir' in m.sets[0]));
   const converted={...m,...designPrescriptionMode(m,'percent_1rm',rule)};
   if(!rule.maintainWeek)assert(!designIssues({movements:[converted]},rule).some(x=>x.includes('강도')),'Default percent respects weekly guidance');
  }

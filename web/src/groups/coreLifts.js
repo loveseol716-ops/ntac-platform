@@ -30,3 +30,11 @@ export function changePrescriptionMode(m,mode) {
     return mode==="percent_1rm" ? {...rest,percent_1rm:percent_1rm??75} : {...rest,rir:rir??3};
   })};
 }
+
+// Creation-only default: never call this while normalizing saved programs.
+export function percentDefaults(m) {
+ return {...m,prescription_mode:"percent_1rm",sets:m.sets.map(s=>{
+  const {rir,...rest}=s;
+  return {...rest,percent_1rm:s.percent_1rm??Math.round(100/(1+(Number(s.reps)+Number(rir??3))/30))};
+ })};
+}

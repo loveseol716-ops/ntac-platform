@@ -1,5 +1,5 @@
 import book from './preseasonDesignRules.json';
-import { CORE_LIFTS, coreMovement, isPercentPrescription } from './coreLifts.js';
+import { CORE_LIFTS, coreMovement, isPercentPrescription, percentDefaults } from './coreLifts.js';
 const strengthTypes=['gentle_strength','bomb_strength'];
 export function designRule(date,type) {
   const day=String(date||'').slice(0,10);
@@ -44,9 +44,9 @@ export function defaultDesignMovement(exercise,rule,reference) {
   let reps=technicalLift(exercise.id)?2:(rule?.defaultReps??8);
   if(rule?.assessment)reps=exercise.id==='hang_power_clean'?1:exercise.id==='back_squat'?5:reps;
   const rpe=rule?.defaultRpe??7;
-  const resetSets=previous?.sets?.map(s=>isPercentPrescription(previous)?{reps:s.reps,percent_1rm:Math.max(1,Math.floor(s.percent_1rm*.95))}:{reps:s.reps,rir:Math.min(5,Math.max(10-rpe,Number(s.rir)+1))});
-  return coreMovement({prescription_mode:previous?.prescription_mode,id:crypto.randomUUID(),exercise_id:exercise.id,label:exercise.name,training_type:'strength',target_reps:resetSets?.[0]?.reps??reps,
-    sets:resetSets||Array.from({length:rule?.defaultSets??3},()=>({reps,rir:10-rpe}))});
+  const resetSets=previous?.sets?.map(s=>isPercentPrescription(previous)?{reps:s.reps,percent_1rm:Math.max(1,technicalLift(exercise.id)?Math.floor(s.percent_1rm*.95):Math.min(Number(s.percent_1rm)-1,Math.round(100/(1+(Number(s.reps)+10-rpe)/30))))}:{reps:s.reps,rir:Math.min(5,Math.max(10-rpe,Number(s.rir)+1))});
+  return percentDefaults(coreMovement({prescription_mode:previous?.prescription_mode,id:crypto.randomUUID(),exercise_id:exercise.id,label:exercise.name,training_type:'strength',target_reps:resetSets?.[0]?.reps??reps,
+    sets:resetSets||Array.from({length:rule?.defaultSets??3},()=>({reps,rir:10-rpe}))}));
 }
 export function designPrescriptionMode(m,mode,rule) {
  const sets=m.sets.map(s=>{
