@@ -1,10 +1,14 @@
-import { coreExercises, coreMovement, setRpe, isPercentPrescription, changePrescriptionMode } from "./coreLifts.js";
+import DesignGuard, { useDesignReference } from "./DesignGuard.jsx";
+import { designRule, defaultDesignMovement, percentRange, designPrescriptionMode, technicalLift } from "./designRules.js";
+import { coreExercises, coreMovement, setRpe, isPercentPrescription } from "./coreLifts.js";
 import { useMemo } from "react";
 import { editProgram, newMovement } from "./blockGoals.js";
 import ExerciseSearch from "./ExerciseSearch.jsx";
 const NO_GOALS = [];
 export default function ProgramFields({
   form: original,
+  date,
+  classType,
   set: setField,
   onChange,
   goals = NO_GOALS,
@@ -13,6 +17,8 @@ export default function ProgramFields({
 }) {
   const available = useMemo(() => coreExercises(exercises), [exercises]);
   const form = original;
+  const type=classType||form.class_type_id,rule=designRule(date,type);
+  const reference=useDesignReference(date,type);
   const set = (key, value) => onChange ? onChange(editProgram(form, key, value)) : setField(key, value);
   const movement = (id, patch) =>
     set(
@@ -38,11 +44,12 @@ export default function ProgramFields({
           onChange={(e) => set("key_description", e.target.value)}
           placeholder={"예: 하이록스 전 피로를 낮추면서 전환 감각 유지\n목표: RPE 6~7, 후반에도 일정한 페이스\n코칭: 초반 과속을 막고 호흡과 동작 품질 확인"} />
       </label>}
+      <DesignGuard program={form} date={date} type={type} rule={rule} {...reference} onChange={value=>onChange ? onChange(value) : set("movements",value.movements)} />
       <div className="g-heading">
         <h3>추천 중량을 받을 핵심 운동</h3>
         <small>{form.movements.length}/20</small>
       </div>
-      <p className="g-muted">9종목 · kg · 바벨 포함 총중량으로 고정돼요. 실제 중량·반복 수·운동별 RPE 기록은 다음 추천에 활용해요.</p>
+      <p className="g-muted">핵심 바벨 종목 · kg · 바벨 포함 총중량으로 고정돼요. 실제 중량·반복 수·운동별 RPE 기록은 다음 추천에 활용해요.</p>
       {form.movements.map((m, i) => (
         <section className="g-record-movement" key={m.id}>
           <div className="g-heading">
@@ -88,7 +95,7 @@ export default function ProgramFields({
           {m.training_type === "strength" && (
             <>
               <label>추천 중량 기준
-                <select value={m.prescription_mode || "rpe"} onChange={(e)=>movement(m.id,changePrescriptionMode(m,e.target.value))}>
+                <select value={m.prescription_mode || "rpe"} onChange={(e)=>movement(m.id,designPrescriptionMode(m,e.target.value,rule))}>
                   <option value="rpe">목표 RPE</option><option value="percent_1rm">%1RM · 기준 최대중량 대비</option>
                 </select>
               </label>
@@ -135,6 +142,7 @@ export default function ProgramFields({
                         })
                       }
                     />
+                    {rule?.rpe&&!technicalLift(m.exercise_id)&&isPercentPrescription(m)&&<small>주차 참고 범위 {percentRange(s.reps,rule.rpe).join('~')}% · 현재 추정식 환산</small>}
                   </label>
                   <button
                     type="button"
@@ -162,7 +170,7 @@ export default function ProgramFields({
         </section>
       ))}
       <ExerciseSearch exercises={available} disabled={form.movements.length >= 20}
-        label="+ 핵심 운동 추가 · 9종목" onSelect={(e) => set("movements", [...form.movements, coreMovement(newMovement(e))])} />
+        label="+ 핵심 운동 추가" onSelect={(e) => set("movements", [...form.movements, rule ? defaultDesignMovement(e,rule,reference.reference) : coreMovement(newMovement(e))])} />
     </>
   );
 }

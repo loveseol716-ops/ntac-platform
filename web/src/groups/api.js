@@ -40,12 +40,14 @@ export async function listWeeks(day, includeKeys = false) {
       .neq("status", "archived"),
   );
   if (!includeKeys || !weeks.length) return weeks;
-  const notes = await checked(supabase.from("group_key_descriptions").select("week_id,program_key,key_description").in("week_id", weeks.map((w) => w.id)));
+  const notes = await checked(supabase.from("group_key_descriptions").select("week_id,program_key,key_description,design_exception_reason,design_issues").in("week_id", weeks.map((w) => w.id)));
   return weeks.map((w) => attachWeekKeys(w, notes));
 }
 export function attachWeekKeys(week, notes) {
   const field = week.program_mode === "class_type" ? "programs" : "days";
   return { ...week, [field]: (week[field] || []).map((p) => ({ ...p,
+    design_exception_reason: notes.find((n) => n.week_id === week.id && n.program_key === String(p.class_type_id || p.dow))?.design_exception_reason || "",
+    design_issues: notes.find((n) => n.week_id === week.id && n.program_key === String(p.class_type_id || p.dow))?.design_issues || [],
     key_description: notes.find((n) => n.week_id === week.id && n.program_key === String(p.class_type_id || p.dow))?.key_description || "",
   })) };
 }

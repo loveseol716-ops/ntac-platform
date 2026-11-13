@@ -9,6 +9,7 @@ export const CORE_LIFTS = [
   { id: "push_press", name: "푸시 프레스" },
   { id: "push_jerk", name: "푸시 저크" },
   { id: "power_clean", name: "파워 클린" },
+  { id: "hang_power_clean", name: "행 파워 클린" },
 ];
 export const isCoreLift = (id) => CORE_LIFTS.some((lift) => lift.id === id);
 export const coreExercises = (exercises = []) => CORE_LIFTS.filter((lift) => exercises.some((e) => e.id === lift.id));

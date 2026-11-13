@@ -40,5 +40,5 @@ try {
  const sets=renderToStaticMarkup(React.createElement(Sets,{m,result:{sets:[{weight:40,reps:10,rir:2}]}}));
  assert(sets.includes('실제 RPE')&&!sets.includes('실제 RIR'));
  assert(sets.includes('value="8"'),'Stored RIR 2 renders as RPE 8 without rewriting data');
- console.log('PASS: exactly nine lift choices, fixed conventions, automatic record use, RPE display and legacy preservation');
+ console.log('PASS: canonical core lift choices, fixed conventions, automatic record use, RPE display and legacy preservation');
 }finally{await server.close()}

@@ -1815,3 +1815,8 @@
 .g-floor-loading summary { cursor:pointer; padding:5px 0; }
 .groups .g-floor-loading p { margin:4px 0; font-size:.7rem; overflow-wrap:anywhere; }
 .g-floor-loading > small { display:block; font-size:.65rem; color:#a9bfb2; }
+
+.g-design-guard { margin:16px 0; padding:14px; border:1px solid #b78b4c; border-radius:12px; background:#302a1e; }
+.groups .g-design-guard p,.groups .g-design-guard li { font-size:.8rem; line-height:1.6; margin:7px 0; }
+.g-design-guard ul { padding-left:20px; color:#ffd098; }
+.g-design-guard > small { display:block; line-height:1.5; color:#d4c5ab; }

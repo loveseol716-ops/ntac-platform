@@ -443,7 +443,7 @@ function LegacyWeekEditor({
               <TemplatePicker key={dow} templates={templates} loading={templatesLoading} error={templatesError} hasContent={programReady(d)}
                 onApply={(t) => set({ ...d, title: t.title, description: t.description, ...(t.key_description !== undefined ? { key_description: t.key_description } : {}), movements: t.movements, _blockDefaultsHandled: true })} />
               <AuthoringContext date={addDays(form.week_start, dow - 1)} classType={trainingClass(d)} goals={goalsForDate(blockGoals, addDays(form.week_start, dow - 1), trainingClass(d))} exercises={exercises} />
-              <ProgramFields form={d} onChange={set} goals={goalsForDate(blockGoals, addDays(form.week_start, dow - 1), trainingClass(d))} exercises={exercises} />
+              <ProgramFields date={addDays(form.week_start, dow - 1)} classType={trainingClass(d)} form={d} onChange={set} goals={goalsForDate(blockGoals, addDays(form.week_start, dow - 1), trainingClass(d))} exercises={exercises} />
             </>
           )}
           {error && (

@@ -1,0 +1,13 @@
+{
+  "version": "2026-preseason-v1",
+  "start": "2026-11-23",
+  "end": "2027-01-03",
+  "weeks": [
+    {"week":1,"reps":[8,10],"rpe":[6,7],"defaultReps":8,"defaultRpe":6,"defaultSets":3},
+    {"week":2,"reps":[6,8],"rpe":[7,7],"defaultReps":6,"defaultRpe":7,"defaultSets":3},
+    {"week":3,"reps":[4,6],"rpe":[7,8],"defaultReps":4,"defaultRpe":7,"defaultSets":3},
+    {"week":4,"reps":[4,6],"rpe":[6,7],"defaultReps":4,"defaultRpe":6,"defaultSets":3,"maintainWeek":3},
+    {"week":5,"reps":null,"rpe":[6,7],"defaultReps":4,"defaultRpe":6,"defaultSets":2,"note":"리프팅·메트콘 저볼륨 예열. 카디오 평가에 피로를 겹치지 않아요."},
+    {"week":6,"reps":null,"rpe":null,"defaultReps":5,"defaultRpe":9,"defaultSets":1,"note":"Gentle Strength: 백스쿼트 5RM·행 파워클린 1RM. Bomb Strength: 메트콘 평가, 필수 리프트·일반 반복 기준 제외."}
+  ]
+}

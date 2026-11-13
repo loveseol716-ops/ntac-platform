@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-const aliases = { overhead_press: "OHP strict press 숄더 프레스", bench_press: "BP bench 벤치", back_squat: "BS squat 스쿼트", front_squat: "FS squat 스쿼트", deadlift: "DL dead lift", pendlay_row: "pendlay row 바벨 로우", push_press: "push press 푸쉬 프레스", push_jerk: "push jerk 푸쉬 저크", power_clean: "power clean 파워클린", pull_up: "턱걸이 pullup" };
+const aliases = { hang_power_clean: "hang power clean 행파클 행클린", overhead_press: "OHP strict press 숄더 프레스", bench_press: "BP bench 벤치", back_squat: "BS squat 스쿼트", front_squat: "FS squat 스쿼트", deadlift: "DL dead lift", pendlay_row: "pendlay row 바벨 로우", push_press: "push press 푸쉬 프레스", push_jerk: "push jerk 푸쉬 저크", power_clean: "power clean 파워클린", pull_up: "턱걸이 pullup" };
 const normalize = (value) => value.toLowerCase().replace(/[\s_-]+/g, "");
 
 export default function ExerciseSearch({ exercises, onSelect, exclude = [], disabled = false, label = "+ 종목 검색해서 추가" }) {

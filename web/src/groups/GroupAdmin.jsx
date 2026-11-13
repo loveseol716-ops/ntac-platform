@@ -324,7 +324,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
                         label="이 수업의 위치"
                       /></details>
                       <Program c={c} exercises={exercises} />
-                      {admin && c.key_description && <details className="g-class-context-details"><summary>코칭 메모 · 관리자 전용</summary><KeyDescription value={c.key_description} /></details>}
+                      {admin && (c.key_description || c.design_exception_reason) && <details className="g-class-context-details"><summary>코칭 메모 · 관리자 전용</summary><KeyDescription value={c.key_description} exceptionReason={c.design_exception_reason} /></details>}
                     </div>
                     {!quickLifts(c).length && <section className="g-panel g-admin-roster">
                       <div className="g-heading">

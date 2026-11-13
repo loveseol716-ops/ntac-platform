@@ -19,8 +19,8 @@ export default function BlockGoalsEditor({ date, rows, exercises, busy, error, o
   return <Dialog title="블록 목표 설정" onClose={onClose}>
     <form onSubmit={(e) => { e.preventDefault(); onSave({ block_id: blockId, revision: saved?.revision || 0, programs }); }}>
       <fieldset disabled={busy}>
-        <p className="g-muted">블록 시작 전에 평가 종목을 한 번 정해 두세요. 해당 블록의 새 스트렝스 프로그램에 종목을 미리 불러와요.</p>
-        {position?.weekPlan && <p className="g-muted">하이록스 준비 기간에는 현재 프로그램을 이어가요. 다음 시즌의 평가 목표를 초안으로 저장할 수 있어요.</p>}
+        <p className="g-muted">블록 시작 전에 평가 종목을 한 번 정해 두세요. 프로그램 작성 시 평가 목표와 주차 방향을 확인하는 기준으로 사용해요.</p>
+        {position?.weekPlan && <p className="g-muted">현재 시즌은 확정된 주차별 계획을 따라요. 다음 정규 블록의 평가 목표는 별도로 저장할 수 있어요.</p>}
         <label>설정할 블록<select value={blockId} onChange={(e) => setBlockId(e.target.value)}>
           {configurableBlocks.map((b) => <option value={b.id} key={b.id}>{blockLabel(b)}</option>)}
         </select></label>
@@ -38,7 +38,7 @@ export default function BlockGoalsEditor({ date, rows, exercises, busy, error, o
           <ExerciseSearch exercises={exercises} exclude={programs[type].map((g) => g.exercise_id)} disabled={programs[type].length >= 8}
             label="+ 평가 종목 추가" onSelect={(e) => setGoals(type, [...programs[type], { exercise_id: e.id, test_reps: type === "gentle_strength" ? 5 : 1 }])} />
         </section>)}
-        <p className="g-muted">RM은 블록 마지막의 평가 목표예요. 매 수업의 반복 수·RIR과 기록 활용 방식은 따로 정해요. 목표를 바꿔도 이미 작성한 수업은 유지돼요.</p>
+        <p className="g-muted">RM은 블록 마지막의 평가 목표예요. 매 수업의 반복 수·RPE 또는 %1RM은 따로 정해요. 목표를 바꿔도 이미 작성한 수업은 유지돼요.</p>
         {error && <p className="g-error" role="alert">{error}</p>}
         <button className="g-primary g-full" type="submit">{busy ? "저장 중…" : `${block.name} 목표 저장`}</button>
       </fieldset>

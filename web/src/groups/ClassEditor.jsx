@@ -148,7 +148,7 @@ export default function ClassEditor({
           </label>
           <AuthoringContext date={form.date} classType={trainingClass(form)} goals={goals} exercises={exercises} loading={blockGoals.loading} error={blockGoals.error} />
           {blockGoals.error && <button type="button" onClick={blockGoals.refresh}>블록 목표 다시 불러오기</button>}
-          <ProgramFields form={form} onChange={setForm} goals={goals} exercises={exercises} showKeyDescription={["owner", "admin"].includes(profile.role)} />
+          <ProgramFields date={form.date} classType={form.class_type_id} form={form} onChange={setForm} goals={goals} exercises={exercises} showKeyDescription={["owner", "admin"].includes(profile.role)} />
           <p className="g-muted">
             참가자가 생기면 프로그램이 고정돼요. 다른 조건의 운동은 새 종목으로
             구분해 주세요.

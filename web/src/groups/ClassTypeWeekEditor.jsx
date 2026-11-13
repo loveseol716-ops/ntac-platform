@@ -105,14 +105,14 @@ export default function ClassTypeWeekEditor({
             <h3>{type.name}</h3>
             {programReady(p) && <button type="button" className="g-danger" onClick={() => {
               if (confirm(`${type.name} 내용을 비울까요? 저장하면 반영돼요.`)) {
-                setProgram({ ...p, description: "", key_description: "", movements: [], _blockDefaultsHandled: true });
+                setProgram({ ...p, description: "", key_description: "", design_exception_reason: "", movements: [], _blockDefaultsHandled: true });
                 setValidation("");
               }
             }}>이 수업 내용 비우기</button>}
             <AuthoringContext date={form.week_start} week classType={selected} goals={goals} exercises={exercises} />
             <TemplatePicker key={selected} templates={templates} loading={templatesLoading} error={templatesError} hasContent={programReady(p)}
-              onApply={(t) => setProgram({ ...p, description: t.description, ...(t.key_description !== undefined ? { key_description: t.key_description } : {}), movements: t.movements, _blockDefaultsHandled: true })} />
-            <ProgramFields form={p} onChange={setProgram} goals={goals} exercises={exercises} />
+              onApply={(t) => setProgram({ ...p, design_exception_reason: "", description: t.description, ...(t.key_description !== undefined ? { key_description: t.key_description } : {}), movements: t.movements, _blockDefaultsHandled: true })} />
+            <ProgramFields date={form.week_start} classType={selected} form={p} onChange={setProgram} goals={goals} exercises={exercises} />
           </section>
           {(error || validation) && (
             <p className="g-error" role="alert">
