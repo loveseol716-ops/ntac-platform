@@ -327,3 +327,5 @@ Verification: renderer checks for six cards plus overflow pagination, unknown we
 - Test design-guards-render.mjs plus SQL rollback smoke cover defaults, shared rulebook, weekly bands, % bounds, missing exact exercise, reset references/volume/effort, assessment exceptions, unfilled slots, private reasons, atomic saves/publication guards and actual hang-record recommendations.
 
 - Mapping correction (2026-11-13): training weeks1–5 anchor Back Squat in Gentle Strength and Hang Power Clean in Bomb Strength. Week6 retains the separate lifting/metcon assessment schedule.
+
+- Creation default (2026-11-13): new core exercises use %1RM, initialized from the existing rep/RPE default or the selected preseason week. Saved RPE programs and actual-effort records are preserved; week4 percentage defaults stay below week3 while matching the weekly guidance where possible.
