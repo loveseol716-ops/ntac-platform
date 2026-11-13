@@ -383,6 +383,8 @@ if (process.env.NTAC_TEST_LAST_SET === "1") {
   await db.exec(fs.readFileSync("supabase/migrations/20261113004516_percentage_strength_prescriptions.sql", "utf8"));
   await db.exec(fs.readFileSync("tests/percentage-prescription-smoke.sql", "utf8"));
   await db.exec(fs.readFileSync("supabase/migrations/20261113010227_preseason_design_guards.sql", "utf8"));
+  await db.exec(fs.readFileSync("supabase/migrations/20261113020353_preseason_class_lift_mapping.sql", "utf8"));
+  await db.exec(fs.readFileSync("tests/class-lift-mapping-smoke.sql", "utf8"));
   await db.exec(fs.readFileSync("tests/design-guards-smoke.sql", "utf8"));
   console.log("PASS: seasonal design guards, exceptions, private notes, hang clean evidence and weekly/publish bypass denial");
   console.log("PASS: administrator preclass recording and immediate next-class recommendation");

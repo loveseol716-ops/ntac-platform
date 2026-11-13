@@ -8,7 +8,7 @@ export function designRule(date,type) {
   if(day<book.start||day>book.end||!strengthTypes.includes(type))return null;
   const week=Math.floor((Date.parse(`${day}T00:00:00Z`)-Date.parse(`${book.start}T00:00:00Z`))/604800000)+1;
   const rule=book.weeks[week-1];
-  return {...rule,version:book.version,required:week===6&&type==='bomb_strength' ? [] : ['back_squat','hang_power_clean'],assessment:week===6&&type==='gentle_strength'};
+  return {...rule,version:book.version,required:week===6 ? (type==='bomb_strength' ? [] : ['back_squat','hang_power_clean']) : [type==='gentle_strength' ? 'back_squat' : 'hang_power_clean'],assessment:week===6&&type==='gentle_strength'};
 }
 export const technicalLift=(id)=>['hang_power_clean','power_clean','push_jerk'].includes(id);
 export function percentRange(reps,rpe) {

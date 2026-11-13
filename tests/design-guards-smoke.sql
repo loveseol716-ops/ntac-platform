@@ -7,7 +7,7 @@ begin
  m:='[{"id":"sq","exercise_id":"back_squat","label":"Squat","kind":"weight","training_type":"strength","record_use":"strength_estimate","unit":"kg","load_basis":"total","target_reps":8,"load_step":2.5,"min_load":0,"sets":[{"reps":8,"rir":4},{"reps":8,"rir":4},{"reps":8,"rir":4}]},{"id":"hpc","exercise_id":"hang_power_clean","label":"Hang","kind":"weight","training_type":"strength","record_use":"strength_estimate","unit":"kg","load_basis":"total","target_reps":2,"load_step":2.5,"min_load":0,"sets":[{"reps":2,"rir":4},{"reps":2,"rir":4},{"reps":2,"rir":4}]}]';
  if private.group_design_rule('2026-11-22','gentle_strength') is not null or private.group_design_rule('2027-01-04','gentle_strength') is not null or private.group_design_rule('2026-11-23','gentle_sweat') is not null then raise exception 'Rule leaks outside season/types';end if;
  if jsonb_array_length(private.group_design_issues('2026-11-23','gentle_strength',m))<>0 then raise exception 'Valid W1 rejected';end if;
- bad:=m-1;
+ bad:=m-0;
  if jsonb_array_length(private.group_design_issues('2026-11-23','gentle_strength',bad))=0 then raise exception 'Missing exact hang identity accepted';end if;
  if jsonb_array_length(private.group_design_issues('2026-11-30','gentle_strength',m))=0 then raise exception 'W2 RPE7 not checked';end if;
  good:=jsonb_set(m,'{0,sets}','[{"reps":6,"rir":3}]');
@@ -49,7 +49,7 @@ begin
  -- Every written class in a weekly bundle is checked; untouched classes stay empty.
  select ('2026-11-23'::date+offs.k*7) into ws from generate_series(0,4) offs(k) where offs.k<>2 and not exists(select 1 from public.group_weeks where week_start='2026-11-23'::date+offs.k*7 and status<>'archived') order by offs.k limit 1;
  if ws is not null then
-  select jsonb_agg(jsonb_build_object('class_type_id',t.id,'title',t.name,'description',case when t.id='gentle_strength' then 'ROLLBACK WEEK GUARD' else '' end,'movements',case when t.id='gentle_strength' then m-1 else '[]'::jsonb end)) into programs from public.group_class_types t;
+  select jsonb_agg(jsonb_build_object('class_type_id',t.id,'title',t.name,'description',case when t.id='gentle_strength' then 'ROLLBACK WEEK GUARD' else '' end,'movements',case when t.id='gentle_strength' then m-0 else '[]'::jsonb end)) into programs from public.group_class_types t;
   payload:=jsonb_build_object('title','ROLLBACK GUARD WEEK','week_start',ws,'program_mode','class_type','status','draft','programs',programs);
   begin perform public.group_save_week(payload);raise exception 'WEEK GUARD BYPASSED';exception when raise_exception then if SQLERRM='WEEK GUARD BYPASSED' or SQLERRM not like '%20자%' then raise;end if;end;
   select jsonb_agg(p||case when p->>'class_type_id'='gentle_strength' then jsonb_build_object('design_exception_reason',reason) else '{}'::jsonb end) into programs from jsonb_array_elements(programs) p;

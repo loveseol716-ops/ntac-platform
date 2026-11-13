@@ -23,11 +23,14 @@ try{
  const r1=designRule('2026-11-23','gentle_strength'),r3=designRule('2026-12-07','gentle_strength'),r4=designRule('2026-12-14','gentle_strength');
  const valid={description:'body',movements:r1.required.map(id=>defaultDesignMovement(CORE_LIFTS.find(e=>e.id===id),r1))};
  assert.deepEqual(designIssues(valid,r1),[]);
- assert(designIssues({...valid,movements:valid.movements.slice(0,1)},r1).some(x=>x.includes('행 파워')));
+ assert(designIssues({...valid,movements:[]},r1).some(x=>x.includes('백 스쿼트')));
  const reference=r3.required.map(id=>defaultDesignMovement(CORE_LIFTS.find(e=>e.id===id),r3));
  const reset={movements:r4.required.map(id=>defaultDesignMovement(CORE_LIFTS.find(e=>e.id===id),r4,reference))};
  assert.deepEqual(designIssues(reset,r4,reference),[]);
  reset.movements[0].sets.pop();assert(designIssues(reset,r4,reference).some(x=>x.includes('세트·반복')));
+ assert.deepEqual(r1.required,['back_squat']);
+ assert.deepEqual(designRule('2026-11-23','bomb_strength').required,['hang_power_clean']);
+ assert.deepEqual(designRule('2026-12-28','gentle_strength').required,['back_squat','hang_power_clean']);
  const blank=render(Guard,{program:{movements:[],description:''},date:'2026-11-23',type:'gentle_strength',onChange:()=>{}});
  assert(blank.includes('누락된 필수 운동 추가')&&!blank.includes('textarea'),'Untouched empty weekly slots can remain empty');
  const missing=render(Guard,{program:{movements:[],description:'written workout'},date:'2026-11-23',type:'gentle_strength',onChange:()=>{}});
