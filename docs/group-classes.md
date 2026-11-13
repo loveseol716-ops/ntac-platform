@@ -325,3 +325,5 @@ Verification: renderer checks for six cards plus overflow pagination, unknown we
 - Enforced inside existing authorized/revision-locked save pipelines: individual class, whole week and publication of legacy class drafts. Failed checks roll back all writes. Previous underlying helpers have execute revoked; no client-side-only bypass. Template drafts remain date-independent and receive checks on use in a dated class/week.
 - Hang Power Clean is a distinct tenth canonical lift, including last-set storage, percentage validation and equipment recommendations. No generic Power Clean history is relabeled or reused.
 - Test design-guards-render.mjs plus SQL rollback smoke cover defaults, shared rulebook, weekly bands, % bounds, missing exact exercise, reset references/volume/effort, assessment exceptions, unfilled slots, private reasons, atomic saves/publication guards and actual hang-record recommendations.
+
+- Mapping correction (2026-11-13): training weeks1–5 anchor Back Squat in Gentle Strength and Hang Power Clean in Bomb Strength. Week6 retains the separate lifting/metcon assessment schedule.
