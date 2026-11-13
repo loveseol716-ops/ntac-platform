@@ -1,3 +1,4 @@
+import { loadingText } from "./equipment.js";
 import StrengthSets from "./StrengthSets.jsx";
 import { classPhase } from "./classClock.js";
 import { useEffect, useRef, useState } from "react";
@@ -122,6 +123,7 @@ export function RecommendationValue({
               ? `${r.sets[i].weight} ${m.unit}`
               : ""}
           </b>
+          {!compact && loadingText(r?.sets?.[i]) && <small>{loadingText(r.sets[i])}</small>}
           {!compact && (
             <small>
               {target.reps}회 · RPE {10 - target.rir}

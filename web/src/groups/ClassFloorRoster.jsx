@@ -1,3 +1,4 @@
+import { loadingText } from "./equipment.js";
 import { useState } from "react";
 import { quickLifts,lastRecordedSet } from "./LastSetRecord.jsx";
 import { movementLabel } from "./model.js";
@@ -31,7 +32,7 @@ export default function ClassFloorRoster({c,participants,exercises,directory=[],
     {!movement&&<p className="g-muted">수업 프로그램에 핵심 운동을 등록해 주세요.</p>}
     <div className="g-floor-members" data-page-size="6">{visible.map((p)=>{
       const person=directory.find((x)=>x.id===p.user_id)||{},rec=movement ? p.recommendations?.[movement.id] : null;
-      const sets=(movement?.sets||[]).map((s,i)=>({...s,weight:rec?.sets?.[i]?.weight ?? (i===0 ? rec?.weight : null) ?? null}));
+      const sets=(movement?.sets||[]).map((s,i)=>({...s,...rec?.sets?.[i],weight:rec?.sets?.[i]?.weight ?? (i===0 ? rec?.weight : null) ?? null}));
       const uniform=sets.length>0&&sets.every((s)=>s.weight===sets[0].weight&&s.reps===sets[0].reps&&s.rir===sets[0].rir);
       const displayed=uniform ? [sets[0]] : sets;
       return <article className="g-floor-member" key={p.id}>
@@ -45,6 +46,7 @@ export default function ClassFloorRoster({c,participants,exercises,directory=[],
           <div className={`g-floor-weight${s.weight!=null&&String(s.weight).length>4 ? " is-long" : ""}`} aria-label={s.weight==null ? "기준 데이터 없음" : `${uniform ? "전체" : i+1}세트 추천 중량 ${s.weight} kg`}>{s.weight!=null&&<><b>{s.weight}</b><span>kg</span></>}</div>
           {delta!=null&&<strong className={`g-floor-change${direction}`} aria-label={delta===0 ? "이전 세트와 같은 중량" : `이전 세트보다 ${Math.abs(delta)} kg ${delta>0 ? "증가" : "감소"}`}>{delta===0 ? "= 유지" : `${delta>0 ? "↑ +" : "↓ −"}${Math.abs(delta)} kg`}</strong>}
         </div>;})}</div>
+        {rec?.sets?.some((s)=>loadingText(s))&&<details className="g-floor-loading"><summary>바벨 · 플레이트 구성</summary>{(uniform ? rec.sets.slice(0,1) : rec.sets).map((s,i)=><p key={i}>{!uniform&&`${i+1}세트 · `}{loadingText(s)||"기준 데이터 없음"}</p>)}<small>개별 바벨 기준 · 공용 재고 자동 배분 제외</small></details>}
         <div className="g-floor-card-actions">
           {p.status==="planned"&&["open","live","ended"].includes(c.status)&&canAdd&&onJoin&&<button disabled={busy} onClick={()=>add(p.user_id)}>참여 처리</button>}
           {!!movements.length&&(isAdmin ? !["draft","cancelled"].includes(c.status) : p.status!=="planned"&&["live","ended"].includes(c.status))&&<button disabled={busy} onClick={()=>onRecord(p)}>{movements.some((m)=>lastRecordedSet(m,p)) ? "기록 수정" : "기록 입력"}</button>}

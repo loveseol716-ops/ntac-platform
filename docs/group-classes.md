@@ -286,3 +286,15 @@ The tablet workspace now uses three columns/two rows for six visible members at 
 Name search is revealed by Add Member and stays available while adding, closing automatically when the sixth member is added. Supplementary class phase/context and administrator coaching intent are collapsed; the actual workout stays visible. Redundant lifecycle and record-help copy is shortened. Shared grid min-widths, input sizing, touch target spacing and the five-cell administrator member row are corrected, with three action columns on mobile. Existing member self-record permissions and data/recommendation behavior are unchanged.
 
 Verification: renderer checks for six cards plus overflow pagination, unknown weights, planned/admin controls, record inputs and historical records; production build. A local visual fixture used fictional members, but the browser preview could not be opened under this environment's URL policy. Native iPad/device visual or touch validation remains outstanding.
+
+
+### Equipment-aware recommendation (2026-11-13)
+
+- Nine core kg/bar-inclusive strength movements now keep raw RPE targets through equipment rounding. Existing saved recommendation snapshots and actual records are retained; new joins use the new rule.
+- Available bar denominations: 7.5/15/20 kg. Pick the largest bar no heavier than the smallest usable target and keep it for every set of that movement. This is a suggested bar, not a physical rack assignment.
+- Enumerate symmetric microplate pairs bounded by room inventory: 1 kg x4, 1.5 kg x6, 2.5 kg x6. Larger 5/10/15/20 kg denominations are supported; their room quantities have not been supplied.
+- Use the highest feasible total at or below the unrounded target; tie-break by fewest plates. Preserve historical-evidence rules and the 5% automatic growth ceiling. No evidence stays blank; below-empty-bar targets stay blank.
+- Return bar_weight and plates_per_side alongside each set. Member recommendations display the recipe, while the six-person floor roster keeps it in a collapsed disclosure.
+- Feasibility is PER BAR. Shared room inventory is not reserved or jointly allocated across three bars/six people. For example four 1 kg plates can be fully consumed by one bar, leaving none for another. Coach checks concurrent availability; do not claim room-wide feasibility.
+- Program authoring remains target RPE. Percentage-of-1RM authoring is not part of this change. Actual last-set RPE/reps remain input to the estimate.
+- Verification: equipment-production-smoke.sql checks 1,200 target/bar combinations, symmetric reconstruction and microplate limits, public join/detail integration (63/58/60 kg), stable bar, retained ceiling, private execution privileges, rollback only.

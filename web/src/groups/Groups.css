@@ -1810,3 +1810,8 @@
 .g-floor-change { display:block; margin-top:4px; font-size:.75rem; line-height:1.4; color:#b4cbbd; font-variant-numeric:tabular-nums; }
 .g-floor-change.is-increase { color:#ffd098; }
 .g-floor-change.is-decrease { color:#a9deff; }
+
+.g-floor-loading { margin:0 0 8px; font-size:.7rem; line-height:1.5; color:#b4cbbd; }
+.g-floor-loading summary { cursor:pointer; padding:5px 0; }
+.groups .g-floor-loading p { margin:4px 0; font-size:.7rem; overflow-wrap:anywhere; }
+.g-floor-loading > small { display:block; font-size:.65rem; color:#a9bfb2; }

@@ -38,6 +38,11 @@ try {
  const sparse=render(Roster,{c,participants:[{...p,recommendations:{sq:{sets:[{weight:40},{},{weight:50}]}}}],exercises:[]});
  assert(sparse.includes('기준 데이터 없음')&&!sparse.includes('추천 중량 0 kg'),'Missing set data stays blank');
 
+ const loaded={weight:63,bar_weight:20,plates_per_side:[{kg:20,count:1},{kg:1.5,count:1}]};
+ const equipped=render(Roster,{c,participants:[{...p,recommendations:{sq:{sets:[loaded,loaded,loaded]}}}],exercises:[]});
+ assert(equipped.includes('바벨 · 플레이트 구성')&&equipped.includes('바벨 20kg · 한쪽 20 + 1.5kg'),'Floor roster exposes collapsible loading recipe');
+ const memberWeight=render(RecommendationValue,{movement:m,recommendation:{sets:[loaded,loaded,loaded]}});
+ assert(memberWeight.includes('바벨 20kg · 한쪽 20 + 1.5kg'),'Members see the same per-side loading');
  const blank=render(RecommendationValue,{movement:m,recommendation:{}});
  assert(!blank.includes('코치 확인')&&!blank.includes('kg'));
  assert.equal(memberMetadata({sex:'male',age:31,phone_suffix:'1234'}),'남 · 31세 · 연락처 ····1234');
