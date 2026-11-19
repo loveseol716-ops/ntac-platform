@@ -3,20 +3,18 @@ const wordmark = "data:image/webp;base64,UklGRhhFAABXRUJQVlA4TAxFAAAv3wEcEFVxf/9
 
 export default function NTACLogo() {
   return (
-    <img
+    <span
       className="ntac-logo"
-      src={wordmark}
-      alt="NOLTO TRAINING CLUB"
-      width="140"
-      height="42"
+      role="img"
+      aria-label="NOLTO TRAINING CLUB"
       style={{
+        display: "block",
+        margin: 0,
         width: 140,
-        height: 42,
-        boxSizing: "border-box",
-        padding: "8px 10px",
-        objectFit: "contain",
-        borderRadius: 8,
-        backgroundColor: "#10291F",
+        height: 32,
+        backgroundColor: "currentColor",
+        mask: `url("${wordmark}") left center / contain no-repeat`,
+        WebkitMask: `url("${wordmark}") left center / contain no-repeat`,
       }}
     />
   );
