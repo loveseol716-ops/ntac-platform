@@ -1,3 +1,4 @@
+import GroupNotices from "./GroupNotices.jsx";
 import MemberTrainingHistory from "./MemberTrainingHistory.jsx";
 import LastSetRecord, { quickLifts } from "./LastSetRecord.jsx";
 import { timedClass, useClassClock } from "./classClock.js";
@@ -183,6 +184,7 @@ export default function GroupMember({ profile }) {
         {[
           ["today", "수업 캘린더"],
           ["programs", "주간 프로그램"],
+          ["notices", "공지"],
           ["history", "나의 기록"],
           ["journey", "트레이닝 여정"],
         ].map(([k, v]) => (
@@ -196,6 +198,7 @@ export default function GroupMember({ profile }) {
           </button>
         ))}
       </nav>
+      {!selected && tab === "today" && <GroupNotices compact onOpen={()=>openTab("notices")} />}
       {error && (
         <div className="g-error" role="alert">
           {error}
@@ -402,6 +405,8 @@ export default function GroupMember({ profile }) {
           loading={loading}
           minDay={minDay}
         />
+      ) : tab === "notices" ? (
+        <GroupNotices />
       ) : tab === "history" ? (
         <MemberTrainingHistory />
       ) : (

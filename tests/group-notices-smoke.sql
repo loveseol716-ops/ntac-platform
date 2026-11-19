@@ -1,0 +1,55 @@
+begin;
+do $$
+declare aid uuid; uid uuid; other_uid uuid; coachid uuid; published uuid; pinned uuid; draft uuid; rowcount int; r public.group_notices; testids uuid[];
+begin
+ select id into aid from public.profiles where role in ('owner','admin') order by id limit 1;
+ select id into uid from public.profiles where role='member' order by id limit 1;
+ select id into other_uid from public.profiles where role='member' and id<>uid order by id limit 1;
+ select id into coachid from public.profiles where role='coach' order by id limit 1;
+ if aid is null or uid is null then raise exception 'Need admin/member fixture';end if;
+ insert into public.group_members(user_id,active) values(uid,true) on conflict(user_id) do update set active=true;
+ if other_uid is not null then insert into public.group_members(user_id,active) values(other_uid,false) on conflict(user_id) do update set active=false;end if;
+ perform set_config('request.jwt.claim.sub',aid::text,true);perform set_config('role','authenticated',true);
+ published:=public.group_save_notice('{"title":"ROLLBACK NOTICE","body":"테스트 안내\n두 번째 줄","link_url":"https://example.com/apply"}');
+ pinned:=public.group_save_notice('{"title":"ROLLBACK PINNED","body":"중요 안내","pinned":true}');
+ draft:=public.group_save_notice('{"title":"ROLLBACK DRAFT","body":"관리자만 볼 내용","is_published":false}');testids:=array[published,pinned,draft];
+ if (select count(*) from public.group_notices where id=any(testids))<>3 then raise exception 'Admin cannot read draft';end if;
+ if (select n.id from public.group_notices n where n.id=any(testids) and n.is_published order by n.pinned desc,n.created_at desc,n.id desc limit 1)<>pinned then raise exception 'Pinned ordering wrong';end if;
+ begin perform public.group_save_notice('{"title":"Invalid","body":"link","link_url":"javascript:alert(1)"}');raise exception 'UNSAFE LINK ACCEPTED';exception when raise_exception then if SQLERRM='UNSAFE LINK ACCEPTED' then raise;end if;end;
+ begin perform public.group_save_notice('{"title":" ","body":"content"}');raise exception 'EMPTY TITLE ACCEPTED';exception when raise_exception then if SQLERRM='EMPTY TITLE ACCEPTED' then raise;end if;end;
+ begin perform public.group_save_notice('{"title":"Invalid","body":"text","is_published":"true"}');raise exception 'INVALID BOOLEAN ACCEPTED';exception when raise_exception then if SQLERRM='INVALID BOOLEAN ACCEPTED' then raise;end if;end;
+ begin insert into public.group_notices(title,body,created_by,updated_by) values('DIRECT','DENIED',aid,aid);raise exception 'DIRECT WRITE ACCEPTED';exception when insufficient_privilege then null;end;
+ perform set_config('request.jwt.claim.sub',uid::text,true);
+ if (select count(*) from public.group_notices where id=any(testids))<>2 then raise exception 'Active group member visibility wrong';end if;
+ if exists(select 1 from public.group_notices where id=draft) then raise exception 'Draft leak';end if;
+ begin perform public.group_save_notice('{"title":"Member","body":"No write"}');raise exception 'MEMBER WRITE ACCEPTED';exception when raise_exception then if SQLERRM='MEMBER WRITE ACCEPTED' or SQLERRM not like '%관리자%' then raise;end if;end;
+ begin perform public.group_delete_notice(published,1);raise exception 'MEMBER DELETE ACCEPTED';exception when raise_exception then if SQLERRM='MEMBER DELETE ACCEPTED' or SQLERRM not like '%관리자%' then raise;end if;end;
+ if other_uid is not null then
+  perform set_config('request.jwt.claim.sub',other_uid::text,true);
+  if exists(select 1 from public.group_notices where id=any(testids)) then raise exception 'Inactive/no group access can read';end if;
+ end if;
+ if coachid is not null then
+  perform set_config('request.jwt.claim.sub',coachid::text,true);
+  if (select count(*) from public.group_notices where id=any(testids))<>2 then raise exception 'Coach draft visibility wrong';end if;
+  begin perform public.group_save_notice('{"title":"Coach","body":"No write"}');raise exception 'COACH WRITE ACCEPTED';exception when raise_exception then if SQLERRM='COACH WRITE ACCEPTED' or SQLERRM not like '%관리자%' then raise;end if;end;
+ end if;
+ perform set_config('request.jwt.claim.sub','',true);perform set_config('role','anon',true);
+ begin perform public.group_save_notice('{"title":"Anon","body":"No write"}');raise exception 'ANON RPC ACCEPTED';exception when insufficient_privilege then null;end;
+ begin perform 1 from public.group_notices;raise exception 'ANON READ ACCEPTED';exception when insufficient_privilege then null;end;
+ perform set_config('role','authenticated',true);perform set_config('request.jwt.claim.sub',aid::text,true);
+ perform public.group_save_notice(jsonb_build_object('id',published,'revision',1,'title','ROLLBACK EDITED','body','수정한 내용','is_published',false));
+ begin perform public.group_save_notice(jsonb_build_object('id',published,'revision',1,'title','Stale','body','Rejected'));raise exception 'STALE EDIT ACCEPTED';exception when raise_exception then if SQLERRM='STALE EDIT ACCEPTED' or SQLERRM not like '%변경%' then raise;end if;end;
+ begin perform public.group_delete_notice(published,1);raise exception 'STALE DELETE ACCEPTED';exception when raise_exception then if SQLERRM='STALE DELETE ACCEPTED' or SQLERRM not like '%변경%' then raise;end if;end;
+ perform set_config('request.jwt.claim.sub',uid::text,true);
+ if exists(select 1 from public.group_notices where id=published) then raise exception 'Unpublished post stays visible';end if;
+ perform set_config('role','none',true);
+ update public.group_members set active=false where user_id=uid;
+ perform set_config('role','authenticated',true);
+ if exists(select 1 from public.group_notices where id=any(testids)) then raise exception 'Revoked member keeps access';end if;
+ perform set_config('request.jwt.claim.sub',aid::text,true);
+ perform public.group_delete_notice(published,2);
+ if exists(select 1 from public.group_notices where id=published) then raise exception 'Deleted post visible to admin';end if;
+ begin perform public.group_save_notice(jsonb_build_object('id',published,'revision',3,'title','Restore','body','Rejected'));raise exception 'DELETED POST RESTORED';exception when raise_exception then if SQLERRM='DELETED POST RESTORED' or SQLERRM not like '%삭제%' then raise;end if;end;
+end $$;
+rollback;
+select 'PASS: group-only notice read, admin CRUD, pinning, drafts, link validation, stale edits, anonymous/direct-write denial, unpublish/delete and revoked access; rollback only' as result;

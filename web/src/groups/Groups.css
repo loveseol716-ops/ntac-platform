@@ -1820,3 +1820,35 @@
 .groups .g-design-guard p,.groups .g-design-guard li { font-size:.8rem; line-height:1.6; margin:7px 0; }
 .g-design-guard ul { padding-left:20px; color:#ffd098; }
 .g-design-guard > small { display:block; line-height:1.5; color:#d4c5ab; }
+
+/* Group notices: readable text, compact closed rows and separate admin controls. */
+.groups .g-member-tabs, .groups.g-admin > .g-admin-tabs { grid-template-columns:repeat(5,minmax(0,1fr)); }
+.groups.g-admin > .g-staff-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.g-notices { min-width:0; }
+.g-notices > .g-heading { flex-wrap:wrap; }
+.g-notice-list { display:grid; gap:12px; }
+.g-notice-card { margin:0; min-width:0; }
+.g-notice-card summary { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; min-height:44px; padding:8px 0; cursor:pointer; }
+.g-notice-title { display:flex; align-items:center; flex-wrap:wrap; gap:8px; min-width:0; }
+.g-notice-title > strong { font-size:1.05rem; line-height:1.5; overflow-wrap:anywhere; }
+.g-notice-badge { display:inline-block; padding:3px 8px; border-radius:6px; background:#345740; color:#e4f3d2; font-size:.875rem; line-height:1.4; flex-shrink:0; }
+.g-notice-badge.is-draft { background:#39413d; color:#d2d8d4; }
+.g-notice-card time { flex-shrink:0; font-size:.875rem; line-height:1.6; color:#b5c7bb; }
+.groups .g-notice-body > p { white-space:pre-wrap; overflow-wrap:anywhere; font-size:1rem; line-height:1.8; margin:14px 0; }
+.g-notice-link { display:inline-flex; align-items:center; min-height:44px; padding:8px 14px; box-sizing:border-box; color:#e5f4d9; border:1px solid #688f6c; border-radius:8px; font-size:1rem; text-decoration:underline; }
+.g-notice-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.g-notice-card > .g-notice-actions { justify-content:flex-end; margin-top:8px; }
+.g-notice-actions button { min-height:44px; font-size:.875rem; }
+.g-notice-options { display:flex; flex-wrap:wrap; gap:12px 24px; margin:12px 0; }
+.groups .g-notice-options label { margin:0; min-height:44px; }
+.g-notice-editor input:not([type="checkbox"]), .g-notice-editor textarea { font-size:1rem; }
+.groups .g-notice-teaser { display:flex; align-items:center; width:100%; gap:10px; padding:14px; margin:0 0 16px; text-align:left; background:#1c3325; border:1px solid #49694e; }
+.g-notice-teaser strong { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:1rem; }
+.g-notice-teaser > span:last-child { flex-shrink:0; font-size:.875rem; }
+@container (max-width:650px) {
+ .groups .g-member-tabs, .groups.g-admin > .g-admin-tabs { grid-template-columns:repeat(3,minmax(0,1fr)); }
+ .g-notice-card summary { flex-direction:column; gap:5px; }
+}
+@container (max-width:380px) {
+ .groups .g-member-tabs, .groups.g-admin > .g-admin-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}

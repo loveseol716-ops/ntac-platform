@@ -1,3 +1,4 @@
+import GroupNotices from "./GroupNotices.jsx";
 import MemberTrainingHistory from "./MemberTrainingHistory.jsx";
 import ClassFloorRoster from "./ClassFloorRoster.jsx";
 import LastSetRecord, { quickLifts } from "./LastSetRecord.jsx";
@@ -154,9 +155,10 @@ export default function GroupAdmin({ profile, onManageMembers }) {
   }
   return (
     <section className="groups g-admin">
-      <nav className="g-tabs" aria-label="그룹수업 관리 메뉴">
+      <nav className={`g-tabs ${admin ? "g-admin-tabs" : "g-staff-tabs"}`} aria-label="그룹수업 관리 메뉴">
         {[
           ["classes", "수업 운영"],
+          ["notices", "공지"],
           ...(admin
             ? [
                 ["programs", "주간 프로그램"],
@@ -189,6 +191,7 @@ export default function GroupAdmin({ profile, onManageMembers }) {
           {message}
         </p>
       )}
+      {tab === "notices" && <GroupNotices canManage={admin} />}
       {tab === "classes" && (
         <>
           {selected ? (
