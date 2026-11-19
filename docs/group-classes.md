@@ -329,3 +329,13 @@ Verification: renderer checks for six cards plus overflow pagination, unknown we
 - Mapping correction (2026-11-13): training weeks1–5 anchor Back Squat in Gentle Strength and Hang Power Clean in Bomb Strength. Week6 retains the separate lifting/metcon assessment schedule.
 
 - Creation default (2026-11-13): new core exercises use %1RM, initialized from the existing rep/RPE default or the selected preseason week. Saved RPE programs and actual-effort records are preserved; week4 percentage defaults stay below week3 while matching the weekly guidance where possible.
+
+
+### Group notices (2026-11-19)
+
+- Member navigation has a 공지 tab; the class calendar also shows the first pinned/latest published title. Admin/staff group navigation includes 공지, with authoring actions visible only to owner/admin.
+- Simple text notices: title (120 chars), body (10,000 chars), optional HTTP(S) link, pin and published/private flags. Closed rows show title/date; opening reveals body and the link. No comments, reactions, push notifications or member result-entry requirements.
+- public.group_notices is protected by RLS. Owner/admin read all undeleted rows; coaches and active group members read only published undeleted rows. NTAC/PT permission alone and historical group participation do not grant notice access. Revoking group_members.active immediately blocks subsequent reads.
+- Client table writes are revoked. Authenticated invoker RPCs delegate to private definer helpers that check database owner/admin role on every call. Saves/deletes check revisions, validate text/link/boolean fields, and preserve original author/created time. Delete archives a row and forbids restoration through save.
+- List pagination is20 rows, pinned first then created_at/id descending. Optional links are validated again at rendering; all text is React-escaped. Both member/admin lists refresh on focus or explicit refresh. Existing exercise, program, membership, PT and NTAC data flows are unchanged.
+- Verification: group-notices-render.mjs (text escaping, link protocols, admin actions, inputs/navigation); group-notices-database.mjs and group-notices-smoke.sql (admin CRUD, member/coach/anonymous boundaries, drafts, pins, stale revisions, archive/unpublish, direct-write denial and access revocation). Hosted smoke uses rollback only and leaves no announcements.
